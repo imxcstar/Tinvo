@@ -12,7 +12,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <Content Include="icon.ico" />
+		<Content Include="icon.ico" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -21,7 +21,23 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\TrustInnova\TrustInnova.csproj" />
+		<ProjectReference Include="..\TrustInnova\TrustInnova.csproj" />
 	</ItemGroup>
+
+	<PropertyGroup>
+		<ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<LlamaSharpBackendCpu Include="$(NuGetPackageRoot)\llamasharp.backend.cpu\0.16.0\runtimes\**\*.*" />
+		<LlamaSharpBackendVulkan Include="$(NuGetPackageRoot)\llamasharp.backend.vulkan\0.16.0\runtimes\**\*.*" />
+	</ItemGroup>
+
+	<Target Name="CopyRuntimesFolderOnPublish" AfterTargets="Publish">
+		<Delete Files="$(PublishDir)llama.dll" />
+		<Delete Files="$(PublishDir)llava_shared.dll" />
+		<Copy SourceFiles="@(LlamaSharpBackendCpu)" DestinationFolder="$(PublishDir)\runtimes\%(RecursiveDir)" />
+		<Copy SourceFiles="@(LlamaSharpBackendVulkan)" DestinationFolder="$(PublishDir)\runtimes\%(RecursiveDir)" />
+	</Target>
 
 </Project>

@@ -19,6 +19,7 @@ using TrustInnova.Service.Chat;
 using TrustInnova.Service.KBS;
 using TrustInnova.Services;
 using TrustInnova.Application.Provider;
+using TrustInnova.Provider.Ollama;
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
@@ -40,7 +41,8 @@ services.AddSingleton<AIAssistantService>();
 services.AddProviderRegisterer()
         .RegistererBaiduProvider()
         .RegistererOpenAIProvider()
-        .RegistererXunFeiProvider();
+        .RegistererXunFeiProvider()
+        .RegistererOllamaProvider();
 
 services.AddSingleton<ProviderService>();
 
