@@ -1,0 +1,512 @@
+﻿@page "/"
+@implements IDisposable
+@layout ChatBar
+
+@using System.Dynamic;
+@using System.Text.Json.Nodes;
+@using TrustInnova.Pages.Chat.Component.ChatMsgList
+@using TrustInnova.Pages.Chat.Model
+@using TrustInnova.Service.Chat;
+@using TrustInnova.Service.KBS
+
+@inject ISnackbar _snackbar
+@inject IChatService _chatService
+@inject IKBSService _kbsService
+@inject IJSRuntime _js
+@inject IDialogService _dialogService
+
+<PageTitle>TrustInnovaAI-聊天</PageTitle>
+
+<style>
+    .chat-width {
+        width: calc(100% - 300px - 12px);
+    }
+
+    .send-msg-button {
+        width: 180px;
+    }
+
+        .send-msg-button span::before {
+            content: "发送(Enter)";
+        }
+
+    .kbs-setting-view {
+        width: 75vw !important;
+    }
+
+
+    .kbs-view {
+        width: 25vw !important;
+    }
+
+    .chat-history-show {
+        display: none;
+    }
+
+
+    @@media only screen and (min-width: 599px) and (max-width: 959px) {
+        .chat-history-view {
+            width: 350px !important;
+        }
+    }
+
+    @@media only screen and (max-width: 599px) {
+        .kbs-setting-view {
+            width: 100vw !important;
+            z-index: calc(var(--mud-zindex-appbar) + 3) !important;
+        }
+
+        .kbs-view {
+            width: 100vw !important;
+        }
+
+        .chat-title {
+            max-width: 50px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .chat-history-show {
+            display: block;
+        }
+
+        .chat-history-view {
+            width: 100vw !important;
+        }
+    }
+
+    @@media only screen and (max-width: 959px) {
+        .kbs-setting-view {
+            width: 100vw !important;
+            z-index: calc(var(--mud-zindex-appbar) + 3) !important;
+        }
+
+        .kbs-view {
+            width: 100vw !important;
+        }
+
+        .chat-width {
+            width: 100%;
+        }
+
+        .send-msg-button {
+            width: 80px;
+        }
+
+            .send-msg-button span::before {
+                content: "发送";
+            }
+
+        .chat-history-show {
+            display: block;
+        }
+    }
+
+    .kbs-setting-add-file .mud-input-control-input-container {
+        height: 100%;
+    }
+</style>
+
+<MudStack Row="true" Style="width: 100%;height: 100%;" Class="pa-5">
+    <MudPaper Class="d-none d-md-flex d-lg-flex d-xl-flex d-xxl-flex pr-1" Height="100%" MaxWidth="350px" Width="350px" Style="overflow: hidden;background-color: transparent;">
+        <MudStack Spacing="0" Style=" height: 100%;width: 100%" Class="pb-3">
+            <MudStack AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="pl-3 pt-3" Spacing="1" Row="true">
+                <MudText>会话记录</MudText>
+                <MudTooltip Text="新建聊天">
+                    <MudIconButton Icon="@Icons.Material.Filled.AddCircle" OnClick="NewMsgGroup"
+                                   Disabled="@(!string.IsNullOrWhiteSpace(searchChatMsgGroupName))"></MudIconButton>
+                </MudTooltip>
+            </MudStack>
+            <MudStack Class="pl-3 pt-1 pr-3 pb-2">
+                <MudTextField @bind-Value="@searchChatMsgGroupName" AdornmentIcon="@Icons.Material.Filled.Search"
+                              Adornment="Adornment.End" Immediate="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudStack>
+            <MudPaper Elevation="0" Style="flex: 1;overflow-y:scroll;overflow-x:hidden;background-color: transparent;" Class="sbc pl-2 pr-1 msg-history-group">
+                @if (isLoadingMsgGroupList)
+                {
+                    @for (int i = 0; i < 30; i++)
+                    {
+                        <MudStack Spacing="1" Style="margin-top: 3px">
+                            <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="50px" />
+                            <MudSkeleton />
+                        </MudStack>
+                    }
+                }
+                else
+                {
+                    @foreach (var chatHistory in _chatService.MsgGroupList)
+                    {
+                        @if (!string.IsNullOrWhiteSpace(searchChatMsgGroupName) &&
+                       !chatHistory.Title.Contains(searchChatMsgGroupName))
+                        {
+                            continue;
+                        }
+                        <MudStack Spacing="0" Style="margin-top: 3px">
+                            <div style="height: 50px"
+                                 class="@($"chatHistoryGradual {(((selectMsgGroup != null && chatHistory.Id == selectMsgGroup.Id) || (selectMsgGroup == null && string.IsNullOrWhiteSpace(chatHistory.Id))) ? "chatHistoryGradual-select" : "")}")"
+                                 @onclick="@(async () => { await GetMsgList(chatHistory); })">
+                                <MudStack Row="true" Style="height: 100%" AlignItems="AlignItems.Center" Class="pl-6 pr-6">
+                                    <MudText>@chatHistory.Title</MudText>
+                                    <MudSpacer />
+                                </MudStack>
+                            </div>
+                            <MudDivider Class="mt-1" />
+                        </MudStack>
+                    }
+                }
+            </MudPaper>
+            @if (isShowLoadGroupLoading)
+            {
+                <MudStack Spacing="1" Style="margin-top: 3px" AlignItems="AlignItems.Center">
+                    <MudProgressCircular Size="Size.Medium" Color="Color.Info" Indeterminate="true" />
+                </MudStack>
+            }
+        </MudStack>
+    </MudPaper>
+
+    <MudPaper Height="100%" Width="100%" Class="chat-width" Style="background-color: transparent;">
+        <MudPaper Elevation="0" Class="rounded-0" Style="max-width:100%;height: 48px;background-color: transparent;">
+            <MudToolBar Dense="true" Style="width:100%">
+                <MudIconButton Class="chat-history-show" Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" />
+                <MudText Class="chat-title">@(selectMsgGroup == null ? "新的聊天" : selectMsgGroup.Title)</MudText>
+                <MudText Class="pl-1 pr-1">-</MudText>
+                <MudText>@(selectAiApp?.Name ?? "")</MudText>
+                <MudIconButton Icon="@Icons.Material.Filled.Mode" Color="Color.Inherit" OnClick="ChatSetting" />
+                <MudSpacer />
+            </MudToolBar>
+        </MudPaper>
+        <MudDivider />
+        <MudStack Spacing="1" Style="height: calc(100% - 48px)">
+            <ChatMsgList Class="pt-1 mt-1" Items="@_chatService.MsgList" EnableLoadingState="@isLoadingMsgList"
+                         Style="width:100%;max-width:100%;height: 100%">
+            </ChatMsgList>
+            @if (isChatMsgGenerating)
+            {
+                <MudStack Justify="Justify.Center" Row="true" Style="height: 36.5px;margin-top: -45px;margin-bottom: 3px;">
+                    <MudButton StartIcon="@Icons.Material.Filled.Stop" IconColor="Color.Warning" Variant="Variant.Filled"
+                               Style="width: 130px;background-color: #ffffff" OnClick="StopChatMsgGenerate">停止生成</MudButton>
+                </MudStack>
+            }
+            <MudDivider />
+            <MudPaper Elevation="0" Style="min-height: 200px;background-color: transparent;">
+                <MudStack Style="height: 100%;">
+                    <MudStack Spacing="1" Row="true" Style="height: 25px" Class="pt-1 pl-3 pr-3">
+                        <MudTooltip Text="文件">
+                            <MudFileUpload T="IBrowserFile" FilesChanged="SendFile" Style="margin-top: 0px;"
+                                           Accept=".jpg,.jpeg,.png,.bmp,.gif,.doc,.docx,.pdf,.txt">
+                                <ActivatorContent>
+                                    <MudIconButton Icon="@Icons.Material.Filled.AttachFile" Color="Color.Inherit"
+                                                   Size="Size.Small" />
+                                </ActivatorContent>
+                            </MudFileUpload>
+                        </MudTooltip>
+                        <MudTooltip Text="语音聊天">
+                            <MudIconButton Icon="@Icons.Material.Filled.KeyboardVoice" Color="Color.Inherit"
+                                           Size="Size.Small" />
+                        </MudTooltip>
+                        <MudSpacer />
+                    </MudStack>
+                    <div class="pl-3 pr-1 pb-1" style="height: 100%;width: 100%;">
+                        <MudStack Style="height: 100%;width: 100%;">
+                            <textarea id="input-msg" class="sbc input-msg" style="height: 100%;width: 100%;border: none;resize: none;outline: none;overflow-y:scroll;font-size: initial;"></textarea>
+                            <MudStack Row="true" Justify="Justify.FlexEnd" Class="pr-2 pb-1">
+                                <MudButton Variant="Variant.Filled" Class="send-msg-button" OnClick="SendMsg"
+                                           Disabled="!enableSend"></MudButton>
+                            </MudStack>
+                        </MudStack>
+                    </div>
+                </MudStack>
+            </MudPaper>
+        </MudStack>
+    </MudPaper>
+</MudStack>
+
+<MudMessageBox @ref="setTitleBox">
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center">
+            <MudText>聊天设置</MudText>
+        </MudStack>
+    </TitleContent>
+    <MessageContent>
+        <MudStack Spacing="1" Style="width: 300px;">
+            <MudTextField @bind-Value="selectMsgGroup!.Title" Label=" 标题" Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Disabled="@(selectMsgGroup == null || string.IsNullOrWhiteSpace(selectMsgGroup.Id))"></MudTextField>
+            <MudSelect Dense="true" Margin="Margin.Dense" @bind-Value="chatSetSelectAiApp" T="AiAppInfo" Label="AI"
+                       Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
+                @foreach (var aiApp in _chatService.AiAppList)
+                {
+                    <MudSelectItem Value="@aiApp" />
+                }
+            </MudSelect>
+        </MudStack>
+    </MessageContent>
+    <CancelButton>
+        <MudButton Variant="Variant.Filled" Class="mr-2">取消</MudButton>
+    </CancelButton>
+    <YesButton>
+        <MudButton Variant="Variant.Filled">确定</MudButton>
+    </YesButton>
+</MudMessageBox>
+
+@code
+{
+    private MudMessageBox setTitleBox { get; set; }
+
+    private string searchChatMsgGroupName = "";
+
+    private bool isKBSWait = false;
+
+    private bool isLoadingMsgGroupList = true;
+    private bool isLoadingMsgList = true;
+    private bool isChatMsgGenerating = false;
+    private bool enableSend = true;
+    private bool isShowLoadGroupLoading = false;
+    private bool shouldPreventDefault = false;
+
+
+    private ChatMsgGroupItemInfo? selectMsgGroup;
+    private AiAppInfo? selectAiApp;
+
+    private AiAppInfo? chatSetSelectAiApp;
+
+    private CancellationTokenSource? chatMsgGenerateCancellationTokenSource;
+
+    private async Task<string> GetInputMsgValue()
+    {
+        return await _js.InvokeAsync<string>("blazorHelper.GetElementValueById", "input-msg");
+    }
+
+    private async Task SetInputMsgValue(string value)
+    {
+        await _js.InvokeVoidAsync("blazorHelper.SetElementValueById", "input-msg", value);
+    }
+
+    [JSInvokable]
+    public bool OnMsgInputKeyDownBefore(string value)
+    {
+        return enableSend;
+    }
+
+    [JSInvokable]
+    public async Task OnMsgInputKeyDownAfter(string value)
+    {
+        if (enableSend)
+            await Send(value, null);
+    }
+
+    private async Task ChatSetting()
+    {
+        try
+        {
+            var oldName = selectMsgGroup?.Title;
+            chatSetSelectAiApp = selectAiApp;
+            bool? result = await setTitleBox.ShowAsync();
+            if (result == null || !result.Value)
+            {
+                if (selectMsgGroup != null && oldName != null)
+                    selectMsgGroup.Title = oldName;
+            }
+            else
+            {
+                if (selectMsgGroup != null && oldName != null)
+                {
+                    if (string.IsNullOrWhiteSpace(selectMsgGroup.Title))
+                    {
+                        selectMsgGroup.Title = oldName;
+                        _snackbar.Add("标题不能为空", Severity.Warning);
+                        return;
+                    }
+                    if (selectMsgGroup.Title != oldName)
+                        if (!await _chatService.UpdateMsgGroup(selectMsgGroup))
+                            selectMsgGroup.Title = oldName;
+                }
+                selectAiApp = chatSetSelectAiApp;
+            }
+        }
+        catch (Exception ex)
+        {
+            _snackbar.Add(ex.Message, Severity.Error, config => { config.RequireInteraction = true; });
+        }
+        StateHasChanged();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                await Task.Delay(500);
+                _chatService.OnStateHasChange = EventCallback.Factory.Create(this, StateHasChanged);
+                await _chatService.LoadAiAppListAsync();
+                selectAiApp = _chatService.AiAppList.FirstOrDefault();
+                isLoadingMsgGroupList = true;
+                await _chatService.LoadMsgGroupListAsync();
+                isLoadingMsgGroupList = false;
+                var fMsgGroup = _chatService.MsgGroupList.FirstOrDefault();
+                if (fMsgGroup != null)
+                    await GetMsgList(fMsgGroup);
+                else
+                    await NewMsgGroup();
+                await _js.InvokeVoidAsync("blazorHelper.InitScrollEndListener", "msg-history-group", DotNetObjectReference.Create(this), nameof(OnMsgGroupScrollToEnd));
+                await _js.InvokeVoidAsync("blazorHelper.OnKeyDownListen", "input-msg", "!shift + !ctrl + Enter", DotNetObjectReference.Create(this), nameof(OnMsgInputKeyDownBefore), nameof(OnMsgInputKeyDownAfter));
+                isLoadingMsgList = false;
+            }
+            catch (Exception ex)
+            {
+                _snackbar.Add(ex.Message, Severity.Error);
+            }
+        }
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
+    [JSInvokable]
+    public async Task OnMsgGroupScrollToEnd()
+    {
+        if (isShowLoadGroupLoading)
+            return;
+
+        isShowLoadGroupLoading = true;
+        StateHasChanged();
+        await Task.Delay(300);
+
+        try
+        {
+            await _chatService.LoadMoreMsgGroupListAsync();
+        }
+        catch (Exception ex)
+        {
+            _snackbar.Add(ex.Message, Severity.Error);
+        }
+
+        isShowLoadGroupLoading = false;
+        StateHasChanged();
+    }
+
+    private async Task GetMsgList(ChatMsgGroupItemInfo? msgGroup)
+    {
+        try
+        {
+            if (selectMsgGroup == msgGroup)
+                return;
+            if (chatMsgGenerateCancellationTokenSource != null)
+                await chatMsgGenerateCancellationTokenSource.CancelAsync();
+            selectMsgGroup = msgGroup;
+            isLoadingMsgList = true;
+            StateHasChanged();
+            await Task.Delay(100);
+            await _chatService.LoadMsgListAsync(selectMsgGroup);
+            var uAiapp = _chatService.MsgList.LastOrDefault()?.AiApp;
+            if (uAiapp != null && chatSetSelectAiApp == null)
+            {
+                selectAiApp = _chatService.AiAppList.FirstOrDefault(x => x.Id == uAiapp.Id);
+            }
+            isLoadingMsgList = false;
+            StateHasChanged();
+            await Task.Delay(100);
+            await _js.InvokeVoidAsyncIgnoreErrors("ChatContainerToBottom", true, false);
+        }
+        catch (Exception ex)
+        {
+            _snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task OnSettingNewMsgGroup()
+    {
+        setTitleBox.Close();
+        await NewMsgGroup();
+    }
+
+    private async Task NewMsgGroup()
+    {
+        var fMsgGroup = _chatService.MsgGroupList.FirstOrDefault();
+        if (fMsgGroup == null || !string.IsNullOrWhiteSpace(fMsgGroup.Id))
+        {
+            fMsgGroup = new ChatMsgGroupItemInfo()
+                {
+                    CreateTime = DateTime.Now,
+                    Title = "新的聊天",
+                };
+            _chatService.MsgGroupList.Insert(0, fMsgGroup);
+        }
+        await GetMsgList(fMsgGroup);
+    }
+
+
+    private async Task SendMsg()
+    {
+        await Send(await GetInputMsgValue(), null);
+    }
+
+
+    private async Task SendFile(IBrowserFile? file)
+    {
+        await Send(null, file);
+    }
+
+    private async Task Send(string? sendMsgContent, IBrowserFile? file)
+    {
+        try
+        {
+            if (selectAiApp == null || !_chatService.AiAppList.Any(x => x.Id == selectAiApp.Id))
+                selectAiApp = _chatService.AiAppList.FirstOrDefault();
+            var msgGroup = selectMsgGroup;
+            if (!string.IsNullOrWhiteSpace(searchChatMsgGroupName))
+            {
+                var isReturn = true;
+                foreach (var chatHistory in _chatService.MsgGroupList)
+                {
+                    if (chatHistory.Title.Contains(searchChatMsgGroupName) && chatHistory.Id == msgGroup?.Id)
+                    {
+                        isReturn = false;
+                        break;
+                    }
+                }
+                if (isReturn)
+                {
+                    _snackbar.Add("搜索中只能使用搜索的聊天组", Severity.Warning);
+                    return;
+                }
+            }
+            if (chatMsgGenerateCancellationTokenSource != null)
+                await chatMsgGenerateCancellationTokenSource.CancelAsync();
+            chatMsgGenerateCancellationTokenSource = new CancellationTokenSource();
+            isChatMsgGenerating = true;
+            enableSend = false;
+            await SetInputMsgValue("");
+            await _js.InvokeVoidAsyncIgnoreErrors("ChatContainerToBottom");
+            await _js.InvokeVoidAsyncIgnoreErrors("StartChatContainerCheck");
+            if (file == null)
+                await _chatService.SendMsgAsync(sendMsgContent, selectAiApp, msgGroup, null, null,
+                chatMsgGenerateCancellationTokenSource.Token);
+            else
+                await _chatService.SendMsgAsync(file, selectAiApp, msgGroup, null, null,
+                chatMsgGenerateCancellationTokenSource.Token);
+        }
+        catch (Exception ex)
+        {
+            _snackbar.Add(ex.Message, Severity.Error, config => { config.RequireInteraction = true; });
+        }
+        await _js.InvokeVoidAsyncIgnoreErrors("StopChatContainerCheck");
+        await _js.InvokeVoidAsyncIgnoreErrors("ChatContainerToBottom", false);
+        isChatMsgGenerating = false;
+        enableSend = true;
+        StateHasChanged();
+    }
+
+    private async Task StopChatMsgGenerate()
+    {
+        if (chatMsgGenerateCancellationTokenSource != null)
+            await chatMsgGenerateCancellationTokenSource.CancelAsync();
+    }
+
+    public void Dispose()
+    {
+        _js.InvokeVoidAsyncIgnoreErrors("StopChatContainerCheck");
+        if (chatMsgGenerateCancellationTokenSource != null)
+            chatMsgGenerateCancellationTokenSource.Cancel();
+    }
+}

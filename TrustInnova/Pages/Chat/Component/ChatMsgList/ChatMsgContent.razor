@@ -1,0 +1,64 @@
+﻿@using Masa.Blazor
+
+<style>
+    .markdown-parser__basic {
+        list-style-position: inside;
+    }
+
+        .markdown-parser__basic p {
+            margin-bottom: 5px;
+        }
+
+    .wordWrap {
+        white-space: pre-wrap; /* CSS 2.0 */
+        white-space: -pre-wrap; /* Opera 4-6 */
+        white-space: -o-pre-wrap; /* Opera 7 */
+        white-space: -moz-pre-wrap; /* Mozilla */
+        white-space: -hp-pre-wrap; /* HP Printers */
+        word-wrap: break-word; /* IE 5+ */
+    }
+</style>
+
+@switch (ContentType)
+{
+    case ChatContentType.Image:
+        <MudImage ObjectFit="ObjectFit.ScaleDown" Style="max-width: 250px;max-height:250px;" Src="@($"{(Content.StartsWith("http")?"":"data:image/png;base64, ")}{Content}")" Elevation="25" Class="rounded-lg" />
+        break;
+
+    case ChatContentType.File:
+    case ChatContentType.Audio:
+    case ChatContentType.Video:
+        <FileContent Name="@Content"></FileContent>
+        break;
+
+    default:
+        <MudPaper Elevation="1" Width="100%" Class="pa-3 mt-1 mr-1" Style="@TextStyle">
+            @if (IfTextUseRawText)
+            {
+                <pre class="wordWrap" style="font-size: initial;font-family: var(--mud-typography-default-family);">
+                    @Content
+                </pre>
+            }
+            else
+            {
+                <MMarkdownIt Source="@Content"
+                             Html="true"
+                             Class="markdown-parser__basic" Style="font-size: initial;" />
+            }
+        </MudPaper>
+        break;
+}
+
+@code {
+    [Parameter]
+    public string Content { get; set; }
+
+    [Parameter]
+    public ChatContentType ContentType { get; set; }
+
+    [Parameter]
+    public bool IfTextUseRawText { get; set; } = false;
+
+    [Parameter]
+    public string TextStyle { get; set; }
+}

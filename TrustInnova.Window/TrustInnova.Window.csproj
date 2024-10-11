@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net8.0-windows</TargetFramework>
+		<Nullable>enable</Nullable>
+		<UseWindowsForms>true</UseWindowsForms>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<RootNamespace>TrustInnova</RootNamespace>
+		<ApplicationIcon>icon.ico</ApplicationIcon>
+		<IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <Content Include="icon.ico" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.AspNetCore.Components.WebView.WindowsForms" Version="8.0.80" />
+		<PackageReference Include="Serilog.Sinks.Debug" Version="2.0.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\TrustInnova\TrustInnova.csproj" />
+	</ItemGroup>
+
+</Project>

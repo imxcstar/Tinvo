@@ -1,0 +1,37 @@
+﻿<MudPaper Width="100%" Height="320px" MaxHeight="320px" Elevation="0" Style="overflow-y:scroll;overflow-x:hidden;" Class="ma-5 sbc">
+    <MudList T="SkillProviderSelectItemModel" SelectionMode="SelectionMode.SingleSelection" Color="@Color.Info" SelectedValue="@SelectItem" SelectedValueChanged="@SelectItemChanged">
+        @foreach (var item in Items)
+        {
+            <MudStack Row="true" AlignItems="AlignItems.Center" Class="mt-1 mb-1" Spacing="0" StretchItems="StretchItems.End">
+                <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                    @if (!string.IsNullOrWhiteSpace(item.Icon))
+                    {
+                        <MudIcon Icon="@item.Icon" />
+                    }
+                    @if (!string.IsNullOrWhiteSpace(item.Name))
+                    {
+                        <MudText>@item.Name</MudText>
+                    }
+                </MudStack>
+                <MudPaper Elevation="0">
+                    <MudDivider DividerType="DividerType.Middle" />
+                </MudPaper>
+            </MudStack>
+            @foreach (var titem in item.Items)
+            {
+                <MudListItem Text="@titem.Name" Value="@titem" />
+            }
+        }
+    </MudList>
+</MudPaper>
+
+@code {
+    [Parameter]
+    public List<SkillProviderSelectModel> Items { get; set; } = null!;
+
+    [Parameter]
+    public SkillProviderSelectItemModel? SelectItem { get; set; }
+
+    [Parameter]
+    public EventCallback<SkillProviderSelectItemModel?> SelectItemChanged { get; set; }
+}

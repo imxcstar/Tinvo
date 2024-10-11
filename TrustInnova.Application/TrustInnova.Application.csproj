@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<RootNamespace>TrustInnova.Application</RootNamespace>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<Folder Include="ImageGeneration\" />
+		<Folder Include="ImageAnalysis\" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\TrustInnova.Abstractions\TrustInnova.Abstractions.csproj" />
+		<ProjectReference Include="..\TrustInnova.Provider.Baidu\TrustInnova.Provider.Baidu.csproj" />
+		<ProjectReference Include="..\TrustInnova.Provider.LLama\TrustInnova.Provider.LLama.csproj" />
+		<ProjectReference Include="..\TrustInnova.Provider.Ollama\TrustInnova.Provider.Ollama.csproj" />
+		<ProjectReference Include="..\TrustInnova.Provider.OpenAI\TrustInnova.Provider.OpenAI.csproj" />
+		<ProjectReference Include="..\TrustInnova.Provider.XunFei\TrustInnova.Provider.XunFei.csproj" />
+		<ProjectReference Include="..\TrustInnova.Utils\TrustInnova.Utils.csproj" />
+	</ItemGroup>
+
+</Project>

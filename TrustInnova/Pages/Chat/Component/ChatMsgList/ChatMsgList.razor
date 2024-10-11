@@ -1,0 +1,156 @@
+﻿@using Microsoft.JSInterop;
+@using TrustInnova.Pages.Chat.Component.ChatMsgList;
+
+<MudStack id="ChatContainer" Style="@("overflow-y:scroll;overflow-x:hidden;padding-left:8px;padding-right:8px;padding-bottom:38px;"+Style)" Class="@($"sbc ChatContainer {Class}")">
+    @if (EnableLoadingState)
+    {
+        @for (int i = 0; i < 6; i++)
+        {
+            if (i % 2 == 0)
+            {
+                <MudStack Justify="Justify.FlexEnd" Spacing="1" Row="true" Class="pb-3">
+                    <MudStack Justify="Justify.FlexEnd" AlignItems="AlignItems.Center" Style="max-width: 80%">
+                        <MudSkeleton SkeletonType="SkeletonType.Rectangle" Class="pa-3 mt-1 mr-1" Width="400px" Height="80px" />
+                    </MudStack>
+                    <div>
+                        <MudSkeleton SkeletonType="SkeletonType.Circle" Width="48px" Height="48px" />
+                    </div>
+                </MudStack>
+            }
+            else
+            {
+                <MudStack Justify="Justify.FlexStart" Spacing="1" Row="true" Class="pb-3">
+                    <div>
+                        <MudSkeleton SkeletonType="SkeletonType.Circle" Width="48px" Height="48px" />
+                    </div>
+                    <MudStack Justify="Justify.FlexEnd" AlignItems="AlignItems.Center" Style="max-width: 80%">
+                        <MudSkeleton SkeletonType="SkeletonType.Rectangle" Class="pa-3 mt-1 ml-1" Width="400px" Height="80px" />
+                    </MudStack>
+                </MudStack>
+            }
+        }
+    }
+    else
+    {
+        @foreach (var item in Items)
+        {
+            @switch (item.UserType)
+            {
+                case ChatUserType.Sender:
+                    <MudStack Justify="Justify.FlexEnd" Spacing="1" Row="true" Class="pb-3">
+                        <MudStack Justify="Justify.FlexEnd" AlignItems="AlignItems.Center" Style="max-width: 80%">
+                            <ChatMsgContent IfTextUseRawText="true" Content="@item.Content" ContentType="@item.ContentType" TextStyle="background: rgb(149,236,105)"></ChatMsgContent>
+                        </MudStack>
+                        <div>
+                            @if (string.IsNullOrWhiteSpace(item.HeadIconURL))
+                            {
+                                <MudImage Src="/_content/TrustInnova/image/user.png" Width="48" Height="48" Elevation="25" Class="rounded-circle" />
+                            }
+                            else
+                            {
+                                <MudImage Src="@item.HeadIconURL" Width="48" Height="48" Elevation="25" Class="rounded-circle" />
+                            }
+                        </div>
+                    </MudStack>
+                    break;
+                case ChatUserType.Receiver:
+                    <MudStack Justify="Justify.FlexStart" Spacing="1" Row="true" Class="pb-3">
+                        <div>
+                            @if (string.IsNullOrWhiteSpace(item.HeadIconURL))
+                            {
+                                <MudImage Src="/_content/TrustInnova/image/ai.png" Width="48" Height="48" Elevation="25" Class="rounded-circle" />
+                            }
+                            else
+                            {
+                                <MudImage Src="@item.HeadIconURL" Width="48" Height="48" Elevation="25" Class="rounded-circle" />
+                            }
+                        </div>
+                        <MudStack Justify="Justify.FlexEnd" AlignItems="AlignItems.Start" Spacing="0" Style="max-width: 80%">
+                            <MudStack Row="true" Justify="Justify.Center" AlignItems="AlignItems.Center" Spacing="0">
+                                <MudText Typo="Typo.caption">@(item.AiApp?.Name ?? "")</MudText>
+@*                                 <MudMenu Icon="@Icons.Material.Filled.MoreHoriz" Size="Size.Small" Color="Color.Default" AnchorOrigin="Origin.BottomCenter" TransformOrigin="Origin.TopCenter">
+                                    <MudMenuItem>复制</MudMenuItem>
+                                    <MudMenuItem>修改</MudMenuItem>
+                                    <MudDivider />
+                                    <MudMenuItem>删除</MudMenuItem>
+                                </MudMenu> *@
+                            </MudStack>
+                            <MudStack Justify="Justify.FlexEnd" AlignItems="AlignItems.Center">
+                                <ChatMsgContent Content="@item.Content" ContentType="@item.ContentType" TextStyle="background: #F8F8FF"></ChatMsgContent>
+                            </MudStack>
+                        </MudStack>
+                    </MudStack>
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+</MudStack>
+
+@code {
+    private ElementReference _contentDiv;
+    private bool shouldAutoScroll = true;
+
+    bool showMenu = false;
+    double X = 0;
+    double Y = 0;
+
+    [Parameter]
+    public bool EnableLoadingState { get; set; }
+
+    [Parameter]
+    public List<ChatMsgItemInfo> Items { get; set; }
+
+    [Parameter]
+    public EventCallback<List<ChatMsgItemInfo>> ItemsChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<ChatMsgItemInfo> OnItemEdit { get; set; }
+
+    [Parameter]
+    public EventCallback<ChatMsgItemInfo> OnItemRemove { get; set; }
+
+    [Parameter]
+    public string Style { get; set; } = "";
+
+    [Parameter]
+    public string Class { get; set; } = "";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            //await ScrollService.SetupScrollListenerAsync(_contentDiv, DotNetObjectReference.Create(this));
+        }
+    }
+
+    [JSInvokable]
+    public void SetShouldAutoScroll(bool value)
+    {
+        shouldAutoScroll = value;
+    }
+
+    public async Task ScrollToBottomAndWaitElementAsync(string id)
+    {
+        //await ScrollService.ScrollToBottomAndWaitElementAsync(_contentDiv, id);
+    }
+
+    public async Task ScrollAutoToBottomAndWaitElementAsync(string id)
+    {
+        if (shouldAutoScroll)
+        {
+            //await ScrollService.ScrollToBottomAndWaitElementAsync(_contentDiv, id);
+        }
+    }
+
+    private async Task ShowMenu(MouseEventArgs args)
+    {
+        //showMenu = false;
+        //await Task.Delay(16);
+
+        //X = args.ClientX;
+        //Y = args.ClientY;
+        //showMenu = true;
+    }
+}

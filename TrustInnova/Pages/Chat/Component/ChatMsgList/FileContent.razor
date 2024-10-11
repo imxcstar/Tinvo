@@ -1,0 +1,68 @@
+﻿<MudPaper Width="200px" Height="60px" Style="background-color:#E6E6FA;border-radius: 5px;padding: 10px;">
+    <MudStack Spacing="1" Row="true">
+        @switch (Type)
+        {
+            case FileType.Audio:
+                <MudAvatar Rounded="true" Color="Color.Primary" Variant="Variant.Filled">
+                    <MudIcon Icon="@Icons.Material.Filled.SpatialAudioOff" Size="Size.Large" />
+                </MudAvatar>
+                break;
+            case FileType.Pdf:
+                <MudAvatar Rounded="true" Color="Color.Primary" Variant="Variant.Filled">
+                    <MudIcon Icon="@Icons.Material.Filled.PictureAsPdf" Size="Size.Large" />
+                </MudAvatar>
+                break;
+            default:
+                <MudAvatar Rounded="true" Color="Color.Primary" Variant="Variant.Filled">
+                    <MudIcon Icon="@Icons.Material.Filled.FilePresent" Size="Size.Large" />
+                </MudAvatar>
+                break;
+        }
+        <MudStack Justify="Justify.Center" Spacing="0">
+            <MudText Typo="Typo.body1" Style="width: 140px;text-overflow: ellipsis;white-space: nowrap;overflow: hidden;">@HName</MudText>
+        </MudStack>
+    </MudStack>
+</MudPaper>
+
+    @code {
+    [Parameter]
+    public string Name { get; set; } = "";
+
+    private string HName 
+    {
+        get
+        {
+            var tname = Name.Replace("</a>", "");
+            var i = tname.LastIndexOf(">");
+            if (i < 0)
+                return Name;
+            tname = tname[(i+1)..];
+            return tname;
+        }
+    }
+
+    private FileType Type
+    {
+        get
+        {
+            var ext = Path.GetExtension(HName.ToLower()).Trim('.');
+            if (string.IsNullOrWhiteSpace(ext))
+                return FileType.Other;
+            return ext switch
+            {
+                string audio when "pcm/wav/amr/m4a/aac".Contains(audio) => FileType.Audio,
+                string doc when "doc/docx".Contains(doc) => FileType.Doc,
+                string doc when "pdf".Contains(doc) => FileType.Pdf,
+                _ => FileType.Other
+            };
+        }
+    }
+
+    private enum FileType
+    {
+        Other,
+        Audio,
+        Doc,
+        Pdf
+    }
+}

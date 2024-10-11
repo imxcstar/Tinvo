@@ -1,0 +1,65 @@
+﻿@inherits LayoutComponentBase
+@inject NavigationManager navigationManager
+@inject ISnackbar _snackbar
+
+<MudThemeProvider />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<style>
+    .con-width {
+        width: calc(100% - 48px);
+    }
+
+    @@media only screen and (max-width: 599px) {
+        .xsh {
+            padding-top: 0px;
+        }
+
+        .con-width {
+            width: 100%;
+        }
+    }
+
+    .menu-button a {
+        padding: 0px;
+        width: 40px;
+        height: 40px;
+        padding-left: 8px;
+        border-radius: 4px;
+    }
+
+    .menu-button div {
+        padding: 0px;
+        width: 40px;
+        height: 40px;
+        padding-left: 8px;
+        border-radius: 4px;
+    }
+
+    .menu-button {
+        margin-top: 5px;
+    }
+</style>
+
+
+<MudStack Spacing="0" Row="true" Style="width: 100%;height: 100vh;background-color: transparent;">
+    <MudHidden Breakpoint="Breakpoint.Xs" Invert="false">
+        <MudDrawer Elevation="1" Variant="@DrawerVariant.Mini" Class="pb-3 pt-3" Style="background-color: transparent;">
+            <MudDrawerHeader Style="padding: 8px 8px 0px 8px;">
+                <MudImage Src="_content/TrustInnova/icon-128.png" Width="40" Height="40" Class="rounded-circle" />
+            </MudDrawerHeader>
+            <MudPaper Elevation="0" Style="padding-left: 8px">
+                <NavMenu />
+            </MudPaper>
+            <MudSpacer />
+            <MudPaper Elevation="0" Style="padding-left: 8px">
+                <BNavMenu />
+            </MudPaper>
+        </MudDrawer>
+    </MudHidden>
+    <MudPaper Class="con-width" Height="100vh" Elevation="0" Style="background-color: transparent;">
+        @Body
+    </MudPaper>
+</MudStack>

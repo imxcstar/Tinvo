@@ -1,0 +1,258 @@
+﻿@page "/assistantManage"
+@using TrustInnova.Application.AIAssistant.Entities
+@using TrustInnova.Application.AIAssistant
+@using TrustInnova.Application.Provider
+@using TrustInnova.Shared.Dialog
+@using TrustInnova.Shared.ProviderSetting
+@using TrustInnova.Shared.SkillProviderSelect
+@inject AIAssistantService _aiAssistantService
+@inject IDialogService _dialogService
+@inject ProviderService _providerService;
+
+<MudStack Row="true" Style="height: 100%;" Class="pa-5">
+    <MudPaper Width="350px" Style="background-color: transparent;">
+        <MudStack Style="height: 100%" Class="pl-2 pt-3 pr-1 pb-3">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                <MudText>助手管理</MudText>
+                <MudMenu Icon="@Icons.Material.Filled.Settings"
+                         Color="Color.Primary"
+                         AnchorOrigin="Origin.BottomCenter"
+                         TransformOrigin="Origin.TopCenter"
+                         Dense="true">
+                    <MudMenuItem OnClick="AddAsync">添加</MudMenuItem>
+                    <MudDivider />
+                    <MudMenuItem OnClick="CopyAsnyc" Disabled="@(_selectEntity == null)">复制</MudMenuItem>
+                    <MudDivider />
+                    <MudMenuItem OnClick="DelAsnyc" Disabled="@(_selectEntity == null)">删除</MudMenuItem>
+                    <MudDivider />
+                    <MudMenuItem OnClick="UpMoveAsnyc" Disabled="@(_selectEntity == null)">上移</MudMenuItem>
+                    <MudMenuItem OnClick="DownMoveAsnyc" Disabled="@(_selectEntity == null)">下移</MudMenuItem>
+                </MudMenu>
+            </MudStack>
+            <MudStack Style="flex: 1;overflow-y:scroll;overflow-x:hidden;" Class="sbc">
+                <MudList T="AssistantEntity" @bind-SelectedValue="_selectEntity" SelectionMode="SelectionMode.SingleSelection" Class="pr-1">
+                    @for (int i = 0; i < _allEntity.Count; i++)
+                    {
+                        <MudListItem Style="border-radius: 5px;" Text="@(_allEntity[i].Name)" Icon="@Icons.Material.Filled.Inbox" Value="_allEntity[i]" />
+                        <MudDivider Class="mt-1 mb-1" />
+                    }
+                </MudList>
+            </MudStack>
+        </MudStack>
+    </MudPaper>
+    <MudPaper Width="100%" Style="background-color: transparent;overflow-y:scroll;overflow-x:hidden;" Class="sbc">
+        <MudStack Class="pa-5">
+            @if (_selectEntity != null)
+            {
+                <MudTextField ShrinkLabel @bind-Value="_selectEntity.Name" OnBlur="SelectChangedAsync" Label="名字" Variant="Variant.Outlined"></MudTextField>
+                <MudTextField ShrinkLabel @bind-Value="_selectEntity.Prompt" OnBlur="SelectChangedAsync" Label="设定" Variant="Variant.Outlined" Lines="6"></MudTextField>
+                <MudDivider />
+                <MudStack Row="true" AlignItems="AlignItems.Center">
+                    <MudText>技能</MudText>
+                    <MudIconButton Icon="@Icons.Material.Filled.AddCircleOutline" Color="Color.Primary" OnClick="SelectSkill"></MudIconButton>
+                </MudStack>
+                @foreach (var skillInfo in _selectEntity.Skills.Select(x => (Info: x, Metadata: _providerService.GetProviderTaskParameterMetadataById(x.Id))))
+                {
+                    @if (skillInfo.Metadata == null)
+                        continue;
+                    <MudExpansionPanel Style="background-color: transparent;">
+                        <TitleContent>
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                <MudText>@skillInfo.Metadata.ProviderTask.Name</MudText>
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" OnClick="(async ()=>await DeleteSkillMetadata(skillInfo.Metadata.ProviderTask.ID))"></MudIconButton>
+                            </MudStack>
+                        </TitleContent>
+                        <ChildContent>
+                            <ProviderSetting Metadata="@skillInfo.Metadata" @bind-MetadataConfig="@skillInfo.Info.Content" OnBlur="SelectChangedAsync" Style="background-color: transparent;"></ProviderSetting>
+                        </ChildContent>
+                    </MudExpansionPanel>
+                }
+            }
+            else
+            {
+                <MudStack Justify="Justify.Center" AlignItems="AlignItems.Center" Style="height: 100vh">
+                    <MudText>请选择助手</MudText>
+                </MudStack>
+            }
+        </MudStack>
+    </MudPaper>
+</MudStack>
+
+@code {
+    private AssistantEntity? _selectEntity;
+    private List<AssistantEntity> _allEntity = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await _aiAssistantService.InitAsync();
+            var allEntity = _aiAssistantService.GetAssistants();
+            if (allEntity.Count > 1 && allEntity.Where(x => x.Index == 0).Count() == allEntity.Count)
+            {
+                for (int i = 0; i < allEntity.Count; i++)
+                {
+                    allEntity[i].Index = i;
+                    await _aiAssistantService.UpdateAssistantAsync(allEntity[i]);
+                }
+                _allEntity = allEntity.OrderByDescending(x => x.Index).ToList();
+            }
+            else
+            {
+                _allEntity = allEntity;
+            }
+            StateHasChanged();
+        }
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
+    private async Task AddAsync()
+    {
+        _selectEntity = new AssistantEntity()
+            {
+                Id = Guid.NewGuid().ToString(),
+                Name = "新的助手",
+                Index = (_allEntity.MaxBy(x => x.Index)?.Index ?? -1) + 1
+            };
+        _allEntity.Insert(0, _selectEntity);
+        await _aiAssistantService.AddAssistantAsync(_selectEntity);
+        var allEntity = new List<AssistantEntity>(_allEntity);
+        _allEntity.Clear();
+        StateHasChanged();
+        _allEntity = allEntity;
+        StateHasChanged();
+    }
+
+    private async Task SelectChangedAsync()
+    {
+        if (_selectEntity == null)
+            return;
+        await _aiAssistantService.UpdateAssistantAsync(_selectEntity);
+    }
+
+    private async Task DelAsnyc()
+    {
+        if (_selectEntity == null)
+            return;
+        var ret = await _dialogService.ShowMessageBox(
+            "警告",
+            "确认删除此助手吗？",
+            yesText: "确认", cancelText: "取消");
+        if (ret != null && ret.Value)
+        {
+            await _aiAssistantService.RemoveAssistantByIdAsync(_selectEntity.Id);
+            var allEntity = _aiAssistantService.GetAssistants();
+            _selectEntity = allEntity.FirstOrDefault();
+            _allEntity.Clear();
+            StateHasChanged();
+            _allEntity = allEntity;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CopyAsnyc()
+    {
+        if (_selectEntity == null)
+            return;
+        var newEntity = _selectEntity.Adapt<AssistantEntity>();
+        newEntity.Id = Guid.NewGuid().ToString();
+        newEntity.Name = $"{newEntity.Name}_Copy";
+        newEntity.Index = (_allEntity.MaxBy(x => x.Index)?.Index ?? -1) + 1;
+        _allEntity.Insert(0, newEntity);
+        await _aiAssistantService.AddAssistantAsync(newEntity);
+        _selectEntity = newEntity;
+    }
+
+    private async Task UpMoveAsnyc()
+    {
+        if (_selectEntity == null)
+            return;
+        var i = _allEntity.IndexOf(_selectEntity);
+        if (i == 0)
+            return;
+        var ue = _allEntity[i - 1];
+        var tindex = ue.Index;
+        ue.Index = _selectEntity.Index;
+        _selectEntity.Index = tindex;
+        await _aiAssistantService.UpdateAssistantAsync(_selectEntity);
+        await _aiAssistantService.UpdateAssistantAsync(ue);
+        var allEntity = _allEntity.OrderByDescending(x => x.Index).ToList();
+        _allEntity.Clear();
+        StateHasChanged();
+        _allEntity = allEntity;
+        StateHasChanged();
+    }
+
+    private async Task DownMoveAsnyc()
+    {
+        if (_selectEntity == null)
+            return;
+        var i = _allEntity.IndexOf(_selectEntity);
+        if (i >= _allEntity.Count - 1)
+            return;
+        var de = _allEntity[i + 1];
+        var tindex = de.Index;
+        de.Index = _selectEntity.Index;
+        _selectEntity.Index = tindex;
+        await _aiAssistantService.UpdateAssistantAsync(_selectEntity);
+        await _aiAssistantService.UpdateAssistantAsync(de);
+        var allEntity = _allEntity.OrderByDescending(x => x.Index).ToList();
+        _allEntity.Clear();
+        StateHasChanged();
+        _allEntity = allEntity;
+        StateHasChanged();
+    }
+
+    private async Task SelectSkill()
+    {
+        if (_selectEntity == null)
+            return;
+        var options = new DialogOptions { MaxWidth = MaxWidth.Large };
+        var dialog = await _dialogService.ShowAsync<SkillSelectDialog>("选择技能", options);
+        var result = await dialog.Result;
+        if (result == null || result.Canceled)
+            return;
+        var data = result.Data as SkillProviderSelectItemModel;
+        if (data == null)
+            return;
+        AssistantSupportSkillType? supportType = data.Type switch
+        {
+            SkillProviderSelectItemType.Chat => AssistantSupportSkillType.Chat,
+            SkillProviderSelectItemType.ASR => AssistantSupportSkillType.ASR,
+            SkillProviderSelectItemType.TTS => AssistantSupportSkillType.TTS,
+            SkillProviderSelectItemType.ImageAnalysis => AssistantSupportSkillType.ImageAnalysis,
+            SkillProviderSelectItemType.ImageGeneration => AssistantSupportSkillType.ImageGeneration,
+            SkillProviderSelectItemType.KBS => AssistantSupportSkillType.KBS,
+            _ => null
+        };
+        if (supportType == null)
+            return;
+        var metadata = _providerService.GetProviderTaskParameterMetadataById(data.Id);
+        if (metadata == null)
+            return;
+        _selectEntity.Skills.Add(new AssistantSkill()
+        {
+            Name = metadata.ProviderTask.Name,
+            Id = metadata.ProviderTask.ID,
+            SupportType = supportType.Value,
+            Type = AssistantSkillType.Provider,
+            Content = JsonSerializer.Serialize(metadata.GetAllParameterInstanceMetadata())
+        });
+        StateHasChanged();
+    }
+
+    private async Task DeleteSkillMetadata(string id)
+    {
+        if (_selectEntity == null)
+            return;
+        var ret = await _dialogService.ShowMessageBox(
+            "警告",
+            "确认删除此技能吗？",
+            yesText: "确认", cancelText: "取消");
+        if (ret != null && ret.Value)
+        {
+            _selectEntity.Skills.RemoveAll(x => x.Id == id && x.Type == AssistantSkillType.Provider);
+            StateHasChanged();
+        }
+    }
+}

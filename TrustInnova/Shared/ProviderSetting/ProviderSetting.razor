@@ -1,0 +1,103 @@
+﻿@using TrustInnova.Application.Provider
+@inject IDialogService _dialogService
+
+@if (Metadata != null)
+{
+    <MudStack Class="ml-2" Style="@Style">
+        @if (Metadata.Parameters != null)
+        {
+            @for (int j = 0; j < Metadata.Parameters.Count; j++)
+            {
+                var configMetadataParam = Metadata.Parameters[j];
+                @if (configMetadataParam.IsBaseType)
+                {
+                    @if (configMetadataParam.SimpleType == Application.Utils.TypeMetadataSimpleType.Enum)
+                    {
+                        <MudSelect OnBlur="TOnBlur" @bind-Value="@configMetadataParam.ValueStr" Required="@(!configMetadataParam.AllowNull)" Label="@configMetadataParam.ToString()" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Margin="Margin.Dense">
+                            @for (int e = 0; e < configMetadataParam.Enums!.Count; e++)
+                            {
+                                var enumValue = configMetadataParam.Enums[e];
+                                <MudSelectItem Value="@enumValue.Name" />
+                            }
+                        </MudSelect>
+                    }
+                    else
+                    {
+                        <MudTextField T="string" Lines="@configMetadataParam.DisplayStyles.LineNumber" OnBlur="TOnBlur" @bind-Value="@configMetadataParam.ValueStr" RequiredError="必选" Required="@(!configMetadataParam.AllowNull)" Label="@configMetadataParam.ToString()" Variant="Variant.Outlined" Margin="Margin.Dense"></MudTextField>
+                    }
+                }
+                else if (configMetadataParam.SubTypeMetadatas != null)
+                {
+                    <MudExpansionPanel Style="@Style" Text="@(configMetadataParam.Desc ?? configMetadataParam.DisplayName ?? configMetadataParam.Name)">
+                        <MudStack Style="@Style">
+                            @for (int k = 0; k < configMetadataParam.SubTypeMetadatas!.Count; k++)
+                            {
+                                var configMetadataParamConfig = configMetadataParam.SubTypeMetadatas[k];
+                                @if (configMetadataParamConfig.SimpleType == Application.Utils.TypeMetadataSimpleType.Enum)
+                                {
+                                    <MudSelect OnBlur="TOnBlur" @bind-Value="@configMetadataParamConfig.ValueStr" Required="@(!configMetadataParamConfig.AllowNull)" Label="@configMetadataParamConfig.ToString()" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Margin="Margin.Dense">
+                                        @for (int e = 0; e < configMetadataParamConfig.Enums!.Count; e++)
+                                        {
+                                            var enumValue = configMetadataParamConfig.Enums[e];
+                                            <MudSelectItem Value="@enumValue.Name" />
+                                        }
+                                    </MudSelect>
+                                }
+                                else
+                                {
+                                    <MudTextField T="string" Lines="@configMetadataParamConfig.DisplayStyles.LineNumber" OnBlur="TOnBlur" @bind-Value="@configMetadataParamConfig.ValueStr" RequiredError="必选" Required="@(!configMetadataParamConfig.AllowNull)" Label="@configMetadataParamConfig.ToString()" Variant="Variant.Outlined" Margin="Margin.Dense"></MudTextField>
+                                }
+                            }
+                        </MudStack>
+                    </MudExpansionPanel>
+                }
+            }
+        }
+    </MudStack>
+}
+
+@code {
+    [Parameter]
+    public ProviderTaskParameterMetadata? Metadata { get; set; }
+
+    [Parameter]
+    public string? MetadataConfig { get; set; }
+
+    [Parameter]
+    public EventCallback<string?> MetadataConfigChanged { get; set; }
+
+    [Parameter]
+    public EventCallback OnBlur { get; set; }
+
+    [Parameter]
+    public string? Style { get; set; }
+
+    public override async Task SetParametersAsync(ParameterView parameters)
+    {
+        await base.SetParametersAsync(parameters);
+        if (!string.IsNullOrWhiteSpace(MetadataConfig) && Metadata != null)
+        {
+            var config = JsonSerializer.Deserialize<List<Dictionary<string, JsonElement?>>>(MetadataConfig);
+            if (config == null)
+                return;
+            Metadata.LoadAllParameterInstanceMetadata(config);
+        }
+    }
+
+    private async Task BindButtonClick(string ret)
+    {
+        if (string.IsNullOrWhiteSpace(ret))
+            return;
+        await _dialogService.ShowMessageBox(
+            "消息",
+            message: ret,
+            yesText: "确认");
+    }
+
+    private async Task TOnBlur()
+    {
+        if (Metadata != null)
+            await MetadataConfigChanged.InvokeAsync(JsonSerializer.Serialize(Metadata.GetAllParameterInstanceMetadata()));
+        await OnBlur.InvokeAsync();
+    }
+}

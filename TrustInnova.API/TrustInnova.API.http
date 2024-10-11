@@ -1,0 +1,6 @@
+@TrustInnova.API_HostAddress = http://localhost:5261
+
+GET {{TrustInnova.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

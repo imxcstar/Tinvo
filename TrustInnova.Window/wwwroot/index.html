@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>TrustInnova</title>
+    <base href="/" />
+    <!--highlight-->
+    <!--     <link rel="stylesheet" href="_content/TrustInnova/lib/highlight/github.min.css">
+        <script src="_content/TrustInnova/lib/highlight/highlight.min.js"></script>
+        <script src="_content/TrustInnova/lib/highlight/cshtml-razor.min.js"></script> -->
+    <!--loadcss-->
+    <link href="_content/TrustInnova/css/loading.css" rel="stylesheet" />
+    <!--mudblazor-->
+    <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet" />
+    <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
+    <!--masa-->
+    <link rel="stylesheet" href="_content/Masa.Blazor/css/masa-blazor.min.css" />
+    <link rel="stylesheet" href="https://cdn.masastack.com/npm/@mdi/font@7.1.96/css/materialdesignicons.min.css">
+    <!--highlightjs-->
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/highlight.js/11.7.0/styles/github.min.css">
+    <!--default-->
+    <link rel="icon" type="image/png" href="_content/TrustInnova/favicon.png" />
+    <link href="TrustInnova.Window.styles.css" rel="stylesheet" />
+    <!--mobile-->
+    <style>
+        :root {
+            --app-height: 100%;
+        }
+
+        html,
+        body {
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            /* mobile viewport bug fix */
+            min-height: -webkit-fill-available;
+            background: radial-gradient(circle at top left, rgba(255, 253, 245, 0.8), transparent 50%), radial-gradient(circle at bottom right, rgba(231, 240, 253, 0.8), transparent 50%), radial-gradient(circle at center, rgba(255, 247, 227, 0.8), transparent 50%);
+            background-blend-mode: overlay;
+        }
+
+            html, body * {
+                scrollbar-color: unset !important;
+                scrollbar-width: unset !important;
+            }
+
+        /* 隐藏滚动条，但保留宽度 */
+        ::-webkit-scrollbar {
+            width: 12px; /* 滚动条的宽度 */
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent !important; /* 滚动条的背景色 */
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: transparent !important; /* 滚动条的颜色 */
+            border-radius: 4px !important; /* 滑块圆角 */
+        }
+
+        .sbc:hover::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.3) !important; /* 滑块颜色 */
+        }
+    </style>
+    <!--code标签-->
+    <style>
+        .code-container {
+            display: flex;
+            flex-direction: row;
+        }
+
+        @@media only screen and (max-width: 959px) {
+            .code-container {
+                max-width: calc(100vw - 100px);
+            }
+        }
+
+        .code-container-toolbar {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            max-width: 100%;
+            background-color: #c1c1c1;
+            border-radius: 4px 4px 0px 0px;
+            padding-left: 5px;
+            padding-right: 5px;
+            user-select: none;
+        }
+
+            .code-container-toolbar p {
+                padding-top: 2px;
+            }
+
+        .code-container pre {
+            max-width: 100%;
+        }
+
+        code {
+            padding: 2px 4px;
+            font-size: 90%;
+            background-color: #d1d1d1;
+            border-radius: 4px;
+            margin-bottom: 5px;
+        }
+
+        .source-code {
+            display: flex;
+            flex-direction: row;
+            max-width: 100vh;
+            padding: 2px 4px;
+            background-color: #d1d1d1;
+            font-size: 100%;
+            border-radius: 0px 0px 4px 4px;
+            margin-bottom: 5px;
+        }
+
+        .source-code-line {
+            height: 23px;
+        }
+
+        .source-code-line-numbers {
+            width: 50px;
+            user-select: none;
+            text-align: right;
+            padding-right: 25px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .source-code-line-values {
+            display: flex;
+            flex-direction: column;
+            overflow-x: scroll;
+        }
+    </style>
+    <script src="_content/TrustInnova/js/base.js"></script>
+    <script>
+        function clearCacheAndReload() {
+
+            if ('caches' in window) {
+                // 首先获取所有的缓存名
+                caches.keys().then(function (cacheNames) {
+                    // 使用Promise.all来确保所有缓存都被删除了
+                    Promise.all(cacheNames.map(function (cacheName) {
+                        return caches.open(cacheName).then(function (cache) {
+                            // 获取这个缓存中的所有请求
+                            return cache.keys().then(function (requests) {
+                                // 使用Promise.all来确保所有请求都被删除了
+                                return Promise.all(requests.map(function (request) {
+                                    // 删除请求
+                                    return cache.delete(request);
+                                }));
+                            });
+                        });
+                    })).then(function () {
+                        // 所有的缓存和请求都被删除后，刷新页面
+                        window.location.reload(true);
+                    });
+                });
+            } else {
+                window.location.reload(true);
+            }
+
+            event.preventDefault();
+        }
+    </script>
+</head>
+
+<body>
+    <div id="app" style="height: 100%">
+        <div class="loading" style="display: flex;flex-direction: column;justify-content:flex-end;align-items:center;height:100%">
+            <div style="display: flex;flex-direction: column;justify-content:center;align-items:center;height:100%">
+                <div class="loading-a">
+                    <div class="loading-progress-text"></div>
+                </div>
+            </div>
+            <div class="loading-t" style="display: flex;flex-direction: column;justify-content:center;align-items:center;text-align:center">
+            </div>
+        </div>
+        <svg xmlns="http://www.w3.org/2000/svg" version="1.1">
+            <defs>
+                <filter id="goo">
+                    <feGaussianBlur in="SourceGraphic" stdDeviation="6.3" result="blur" />
+                    <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 14 -4" result="goo" />
+                    <feBlend in="SourceGraphic" in2="goo" />
+                </filter>
+            </defs>
+        </svg>
+    </div>
+
+    <div id="blazor-error-ui">
+        发生了未处理的错误。
+        <a href="#" onclick="clearCacheAndReload()">刷新</a>
+        <a class="dismiss">🗙</a>
+    </div>
+
+    <!--default-->
+    <script src="_framework/blazor.webview.js"></script>
+    <!--mudblazor-->
+    <script src="_content/MudBlazor/MudBlazor.min.js"></script>
+    <!--masa-->
+    <script src="_content/Masa.Blazor/js/masa-blazor.js"></script>
+    <!--highlightjs-->
+    <script src="https://cdn.bootcdn.net/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/highlight.js/11.7.0/languages/csharp.min.js"></script>
+    <!--mobile-->
+    <script>
+        const appHeight = () => {
+            const doc = document.documentElement
+            doc.style.setProperty('--app-height', `${window.innerHeight}px`)
+        }
+        window.addEventListener('resize', appHeight)
+        window.addEventListener("DOMContentLoaded", appHeight);
+        appHeight()
+    </script>
+    <!--code标签-->
+    <script src="https://cdn.bootcdn.net/ajax/libs/lodash.js/4.17.21/lodash.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/clipboard.js/2.0.11/clipboard.min.js"></script>
+    <script>
+        new ClipboardJS('.markdown-it-code-copy');
+
+        const defaultOptions = {
+            iconStyle: 'font-size: 21px; opacity: 0.4;',
+            iconClass: 'mdi mdi-content-copy',
+        };
+
+        function renderCode(md, origRule, options) {
+            options = _.merge(defaultOptions, options);
+            return (...args) => {
+                const [tokens, idx] = args;
+                const content = tokens[idx].content
+                    .replaceAll('"', '&quot;');
+                const origRendered = origRule(...args);
+
+                if (content.length === 0)
+                    return origRendered;
+
+                const langName = tokens[idx].info.trim();
+                const lineNumbers = [];
+                const lineValues = [];
+                getCodeContent(origRendered).split('\n').forEach((line, i, arr) => {
+                    if (!(i === arr.length - 1 && line.trim() === '')) {
+                        lineNumbers.push(`
+                                                                                <div class="source-code-line source-code-line-number">${i + 1}</div>
+                                                                            `);
+                        lineValues.push(`
+                                                                                <div class="source-code-line source-code-line-value">${line}</div>
+                                                                            `);
+                    }
+                });
+                const lines = `
+                                                                    <div class="source-code-line-numbers">
+                                                                        ${lineNumbers.join('\n')}
+                                                                    </div>
+                                                                    <div class="source-code-line-values">
+                                                                        ${lineValues.join('\n')}
+                                                                    </div>
+                                                                `;
+                return `
+                                                            <div class="code-container">
+                                                                <div style="display: flex;flex-direction: column;max-width: 100%;">
+                                                                    <div class="code-container-toolbar">
+                                                                        <p>${langName}</p>
+                                                                        <button class="markdown-it-code-copy" data-clipboard-text="${content}" title="复制">
+                                                                            <span style="${options.iconStyle}" class="${options.iconClass}"></span>
+                                                                        </button>
+                                                                    </div>
+                                                                    <pre class="language-${langName}"><div class="source-code">${lines}</div></pre>
+                                                                </div>
+                                                            </div>
+                                                            `;
+            };
+        }
+
+        function getCodeContent(origRendered) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(origRendered, 'text/html');
+            const codeElement = doc.querySelector('code');
+            return codeElement ? codeElement.innerHTML : '';
+        }
+
+        window.MasaBlazor.extendMarkdownIt = function (parser) {
+            const { md } = parser;
+            md.use((md, options) => {
+                md.renderer.rules.code_block = renderCode(md, md.renderer.rules.code_block, options);
+                md.renderer.rules.fence = renderCode(md, md.renderer.rules.fence, options);
+            });
+        }
+    </script>
+    <script>
+        let timer = null
+
+        window.ChatContainerToBottom = (force = true, animation = true) => {
+            var div = document.getElementById('ChatContainer');
+            var threshold = 300;
+            if (force) {
+                if (animation)
+                    div.scrollTo({ top: 9999999, behavior: 'smooth' });
+                else
+                    div.scrollTo({ top: 9999999 });
+            } else {
+                if (div.scrollHeight - div.scrollTop - div.clientHeight < threshold) {
+                    if (animation)
+                        div.scrollTo({ top: 9999999, behavior: 'smooth' });
+                    else
+                        div.scrollTo({ top: 9999999 });
+                }
+            }
+        }
+
+        window.StartChatContainerCheck = () => {
+            if (timer != null)
+                clearInterval(timer);
+            var div = document.getElementById('ChatContainer');
+            var threshold = 300;
+            timer = setInterval(function () {
+                try {
+                    if (div.scrollHeight - div.scrollTop - div.clientHeight < threshold) {
+                        div.scrollTo({ top: 9999999, behavior: 'smooth' });
+                    }
+                }
+                catch (e) {
+                }
+            }, 800);
+        }
+
+        window.StopChatContainerCheck = () => {
+            if (timer != null)
+                clearInterval(timer);
+        }
+    </script>
+</body>
+
+</html>

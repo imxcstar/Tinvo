@@ -1,0 +1,42 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+	</PropertyGroup>
+	
+	<ItemGroup>
+	  <Compile Remove="Shared\Component\**" />
+	  <Content Remove="Shared\Component\**" />
+	  <EmbeddedResource Remove="Shared\Component\**" />
+	  <None Remove="Shared\Component\**" />
+	</ItemGroup>
+	
+	<ItemGroup>
+	  <Content Remove="Shared\SkillProviderSelect.razor" />
+	</ItemGroup>
+	
+	<ItemGroup>
+		<PackageReference Include="Mapster" Version="7.4.0" />
+		<PackageReference Include="Masa.Blazor" Version="1.6.8" />
+		<PackageReference Include="MudBlazor" Version="7.6.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\TrustInnova.Application\TrustInnova.Application.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <UpToDateCheckInput Remove="Shared\SkillProviderSelect.razor" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <_ContentIncludedByDefault Remove="Shared\SkillProviderSelect.razor" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Include="Shared\SkillProviderSelect\SkillProviderSelect.razor" />
+	</ItemGroup>
+	
+</Project>

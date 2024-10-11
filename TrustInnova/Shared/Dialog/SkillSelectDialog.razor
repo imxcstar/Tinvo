@@ -1,0 +1,140 @@
+﻿@using TrustInnova.Application.Provider
+@using TrustInnova.Shared.SkillProviderSelect
+@inject ProviderService _providerService;
+
+<MudDialog>
+    <TitleContent>
+        技能选择
+    </TitleContent>
+    <DialogContent>
+        <MudPaper Width="600px">
+            <MudTabs Outlined="true" Position="Position.Left" Rounded="true" Border="true" MinimumTabWidth="60px" ApplyEffectsToContainer="true">
+                <MudTabPanel Text="聊天">
+                    <SkillProviderSelect Items="@_chatItems" @bind-SelectItem="@_selectItem"></SkillProviderSelect>
+                </MudTabPanel>
+                <MudTabPanel Text="语音">
+                    <SkillProviderSelect Items="@_audioItems" @bind-SelectItem="@_selectItem"></SkillProviderSelect>
+                </MudTabPanel>
+                <MudTabPanel Text="图片">
+                    <SkillProviderSelect Items="@_imageItems" @bind-SelectItem="@_selectItem"></SkillProviderSelect>
+                </MudTabPanel>
+                <MudTabPanel Text="视频">
+                    <SkillProviderSelect Items="@_videoItems" @bind-SelectItem="@_selectItem"></SkillProviderSelect>
+                </MudTabPanel>
+                <MudTabPanel Text="知识库">
+                    <SkillProviderSelect Items="@_kbsItems" @bind-SelectItem="@_selectItem"></SkillProviderSelect>
+                </MudTabPanel>
+                <MudTabPanel Text="系统">
+                    <SkillProviderSelect Items="@_systemItems" @bind-SelectItem="@_selectItem"></SkillProviderSelect>
+                </MudTabPanel>
+                <MudTabPanel Text="其它">
+                    <SkillProviderSelect Items="@_otherItems" @bind-SelectItem="@_selectItem"></SkillProviderSelect>
+                </MudTabPanel>
+            </MudTabs>
+        </MudPaper>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">取消</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">确定</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private MudDialogInstance MudDialog { get; set; } = null!;
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(_selectItem));
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private SkillProviderSelectItemModel? _selectItem;
+
+    private List<SkillProviderSelectModel> _chatItems = [];
+    private List<SkillProviderSelectModel> _audioItems = [];
+    private List<SkillProviderSelectModel> _imageItems = [];
+    private List<SkillProviderSelectModel> _videoItems = [];
+    private List<SkillProviderSelectModel> _kbsItems = [];
+    private List<SkillProviderSelectModel> _systemItems = [];
+    private List<SkillProviderSelectModel> _otherItems = [];
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _chatItems.Add(new SkillProviderSelectModel()
+                {
+                    Icon = Icons.Material.Filled.Adb,
+                    Name = "聊天",
+                    Items = _providerService.GetChatList().Select(x => new SkillProviderSelectItemModel()
+                    {
+                        Id = x.ID,
+                        Name = x.Name,
+                        Type = SkillProviderSelectItemType.Chat
+                    }).ToList()
+                });
+            _audioItems.AddRange([
+                new SkillProviderSelectModel()
+                {
+                    Icon = Icons.Material.Filled.SpatialAudioOff,
+                    Name = "语音识别",
+                    Items = _providerService.GetASRList().Select(x => new SkillProviderSelectItemModel()
+                    {
+                        Id = x.ID,
+                        Name = x.Name,
+                        Type = SkillProviderSelectItemType.ASR
+                    }).ToList()
+                },
+                new SkillProviderSelectModel()
+                {
+                    Icon = Icons.Material.Filled.SpatialAudio,
+                    Name = "语音合成",
+                    Items = _providerService.GetTTSList().Select(x => new SkillProviderSelectItemModel()
+                    {
+                        Id = x.ID,
+                        Name = x.Name,
+                        Type = SkillProviderSelectItemType.TTS
+                    }).ToList()
+                },
+            ]);
+            _imageItems.AddRange([
+                new SkillProviderSelectModel()
+                {
+                    Icon = Icons.Material.Filled.ImageSearch,
+                    Name = "图片识别",
+                    Items = _providerService.GetImageAnalysisList().Select(x => new SkillProviderSelectItemModel()
+                    {
+                        Id = x.ID,
+                        Name = x.Name,
+                        Type = SkillProviderSelectItemType.ImageAnalysis
+                    }).ToList()
+                },
+                new SkillProviderSelectModel()
+                {
+                    Icon = Icons.Material.Filled.Draw,
+                    Name = "图片生成",
+                    Items = _providerService.GetImageGenerationList().Select(x => new SkillProviderSelectItemModel()
+                    {
+                        Id = x.ID,
+                        Name = x.Name,
+                        Type = SkillProviderSelectItemType.ImageGeneration
+                    }).ToList()
+                },
+            ]);
+            _kbsItems.AddRange([
+                new SkillProviderSelectModel()
+                {
+                    Icon = Icons.Material.Filled.LiveHelp,
+                    Name = "知识库",
+                    Items = _providerService.GetKBSList().Select(x => new SkillProviderSelectItemModel()
+                    {
+                        Id = x.ID,
+                        Name = x.Name,
+                        Type = SkillProviderSelectItemType.KBS
+                    }).ToList()
+                },
+            ]);
+            StateHasChanged();
+        }
+        await base.OnAfterRenderAsync(firstRender);
+    }
+}

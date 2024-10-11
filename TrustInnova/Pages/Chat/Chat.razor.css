@@ -1,0 +1,39 @@
+﻿.chatHistoryGradual {
+    position: relative;
+    width: 100%;
+    height: auto;
+    white-space: nowrap;
+    overflow: hidden;
+    user-select: none;
+}
+
+    .chatHistoryGradual:hover {
+        background-color: var(--mud-palette-primary-hover) !important;
+        border-radius: 5px;
+    }
+
+    .chatHistoryGradual::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 20%;
+        height: 100%;
+        background: linear-gradient(to right, rgba(255,255,255,0), rgba(255,255,255,1) 90%);
+        pointer-events: none;
+        transition: background 0.3s ease;
+    }
+
+    .chatHistoryGradual:hover::after {
+        background: linear-gradient(to right, rgba(255,255,255,0), rgba(255,255,255,0));
+    }
+
+.chatHistoryGradual-select {
+    color: var(--mud-palette-primary) !important;
+    background-color: var(--mud-palette-primary-hover) !important;
+    border-radius: 5px;
+}
+
+    .chatHistoryGradual-select::after {
+        background: linear-gradient(to right, rgba(255,255,255,0), rgba(255,255,255,0));
+    }

@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "TrustInnova.Window": {
+      "commandName": "Project",
+      "remoteDebugEnabled": false
+    }
+  }
+}

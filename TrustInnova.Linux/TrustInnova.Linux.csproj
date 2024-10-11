@@ -1,0 +1,51 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net8.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<RootNamespace>TrustInnova</RootNamespace>
+		<ApplicationIcon>icon.ico</ApplicationIcon>
+		<InvariantGlobalization>true</InvariantGlobalization>
+
+		<PublishSingleFile>true</PublishSingleFile>
+		<PublishTrimmed>false</PublishTrimmed>
+		<TrimMode>partial</TrimMode>
+		<IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+		<Platforms>AnyCPU;x64;x86</Platforms>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Remove="icon.ico" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Content Include="icon.ico" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Serilog.Sinks.Debug" Version="2.0.0" />
+		<PackageReference Include="Microsoft.AspNetCore.Components.WebView" Version="8.0.5" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\TrustInnova\TrustInnova.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Update="runtimes\linux-arm64\native\miniblink.so">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+	  <None Update="runtimes\linux-x64\native\miniblink.so">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+	  <None Update="runtimes\win-x64\native\miniblink.dll">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+	  <None Update="runtimes\win-x86\native\miniblink.dll">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+	</ItemGroup>
+
+</Project>

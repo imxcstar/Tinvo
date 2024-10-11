@@ -1,0 +1,14 @@
+﻿@inherits LayoutComponentBase
+@layout MainLayout
+
+<style>
+    .chatcon-height {
+        height: 100vh;
+    }
+</style>
+
+<MudStack Spacing="0" Style="width: 100%;height: 100vh;background-color: transparent;">
+    <MudPaper Elevation="0" Width="100%" Class="chatcon-height" Style="background-color: transparent;">
+        @Body
+    </MudPaper>
+</MudStack>

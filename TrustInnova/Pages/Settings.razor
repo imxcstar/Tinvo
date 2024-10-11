@@ -1,0 +1,92 @@
+﻿@page "/settings"
+@implements IDisposable
+@inject ISnackbar _snackbar
+@inject IJSRuntime _js
+@inject IDataStorageService _dataStorageService
+@inject IDialogService _dialogService
+
+<MudStack Class="pa-3 sbc ma-2" Style="flex: 1;overflow-y:scroll;overflow-x:hidden;height: 100%">
+    <MudPaper>
+        <MudExpansionPanels MultiExpansion="true">
+            <MudExpansionPanel Text="聊天记录" Expanded="true">
+                <MudStack Row="true">
+                    <MudFileUpload T="IBrowserFile" FilesChanged="ImportChatHistory" Accept=".json">
+                        <ActivatorContent>
+                            <MudButton Variant="Variant.Filled">导入</MudButton>
+                        </ActivatorContent>
+                    </MudFileUpload>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ExportChatHistory">导出</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="CleanChatHistory">清空</MudButton>
+                </MudStack>
+            </MudExpansionPanel>
+        </MudExpansionPanels>
+    </MudPaper>
+</MudStack>
+
+@code {
+    private bool isBrowser;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            isBrowser = OperatingSystem.IsBrowser();
+            StateHasChanged();
+        }
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
+    private async Task ImportChatHistory(IBrowserFile file)
+    {
+        try
+        {
+            using var stream = file.OpenReadStream(100 * 1024 * 1024);
+            var data = await JsonSerializer.DeserializeAsync<List<MsgCacheInfo>>(stream);
+            await _dataStorageService.SetItemAsync("msgCache", data);
+            _snackbar.Add("导入成功！", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            _snackbar.Add(ex.Message, Severity.Error, config => { config.RequireInteraction = true; });
+        }
+    }
+
+    private async Task ExportChatHistory()
+    {
+        try
+        {
+            var ret = await _dataStorageService.GetItemAsync<List<MsgCacheInfo>>("msgCache");
+            using var streamRef = new DotNetStreamReference(new MemoryStream(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(ret))));
+            await _js.InvokeVoidAsync("blazorHelper.DownloadFileFromStream", "msgCache.json", streamRef);
+            _snackbar.Add("导出成功！", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            _snackbar.Add(ex.Message, Severity.Error, config => { config.RequireInteraction = true; });
+        }
+    }
+
+    private async Task CleanChatHistory()
+    {
+        try
+        {
+            var ret = await _dialogService.ShowMessageBox(
+            "警告",
+            "确认清空聊天记录吗？",
+            yesText: "确认", cancelText: "取消");
+            if (ret != null && ret.Value)
+            {
+                await _dataStorageService.RemoveItemAsync("msgCache");
+                _snackbar.Add("清空成功！", Severity.Success);
+            }
+        }
+        catch (Exception ex)
+        {
+            _snackbar.Add(ex.Message, Severity.Error, config => { config.RequireInteraction = true; });
+        }
+    }
+
+    public void Dispose()
+    {
+    }
+}
