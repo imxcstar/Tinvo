@@ -70,7 +70,7 @@ namespace TrustInnova.Provider.OpenAI.AIScheduler
                     break;
                 case HandleState.Function:
                     var targuments = choices.Message.FunctionCall?.Arguments;
-                    if (choices.FinishReason == "function_call")
+                    if (choices.FinishReason == "function_call" || choices.FinishReason == "tool_calls")
                     {
                         var argStr = _functionContentBuilder.ToString();
                         _logger.Debug("调用函数前触发：{name}, {argStr}", _handleFunctionName, argStr);
