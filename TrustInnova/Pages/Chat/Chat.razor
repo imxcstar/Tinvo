@@ -14,6 +14,7 @@
 @inject IKBSService _kbsService
 @inject IJSRuntime _js
 @inject IDialogService _dialogService
+@inject NavigationManager _navigationManager
 
 <PageTitle>TrustInnovaAI-聊天</PageTitle>
 
@@ -108,67 +109,76 @@
     }
 </style>
 
-<MudStack Row="true" Style="width: 100%;height: 100%;" Class="pa-5">
-    <MudPaper Class="d-none d-md-flex d-lg-flex d-xl-flex d-xxl-flex pr-1" Height="100%" MaxWidth="350px" Width="350px" Style="overflow: hidden;background-color: transparent;">
-        <MudStack Spacing="0" Style=" height: 100%;width: 100%" Class="pb-3">
-            <MudStack AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="pl-3 pt-3" Spacing="1" Row="true">
-                <MudText>会话记录</MudText>
-                <MudTooltip Text="新建聊天">
-                    <MudIconButton Icon="@Icons.Material.Filled.AddCircle" OnClick="NewMsgGroup"
-                                   Disabled="@(!string.IsNullOrWhiteSpace(searchChatMsgGroupName))"></MudIconButton>
-                </MudTooltip>
+<MudStack Row="true" Style="width: 100%;height: 100%;" Class="pa-5" Justify="Justify.Center">
+    <MudStack AlignItems="AlignItems.Start" Class="ml-2">
+        <MudPaper Class="@(_isShowChatHistory ? "" : "d-none")" Width="350px" Style="background-color: transparent;">
+            <MudStack Row="true" Class="pl-2">
+                <MudIconButton Size="Size.Medium" Class="chat-history-show" Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="ShowChatHistory" />
+                <MudIconButton Size="Size.Medium" Icon="@Icons.Material.Filled.Assistant" Color="Color.Inherit" Edge="Edge.Start" OnClick="ShowAssistantManage" />
+                <MudIconButton Size="Size.Medium" Icon="@Icons.Material.Filled.Settings" Color="Color.Inherit" Edge="Edge.Start" OnClick="ShowSettings" />
             </MudStack>
-            <MudStack Class="pl-3 pt-1 pr-3 pb-2">
-                <MudTextField @bind-Value="@searchChatMsgGroupName" AdornmentIcon="@Icons.Material.Filled.Search"
-                              Adornment="Adornment.End" Immediate="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
-            </MudStack>
-            <MudPaper Elevation="0" Style="flex: 1;overflow-y:scroll;overflow-x:hidden;background-color: transparent;" Class="sbc pl-2 pr-1 msg-history-group">
-                @if (isLoadingMsgGroupList)
-                {
-                    @for (int i = 0; i < 30; i++)
-                    {
-                        <MudStack Spacing="1" Style="margin-top: 3px">
-                            <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="50px" />
-                            <MudSkeleton />
-                        </MudStack>
-                    }
-                }
-                else
-                {
-                    @foreach (var chatHistory in _chatService.MsgGroupList)
-                    {
-                        @if (!string.IsNullOrWhiteSpace(searchChatMsgGroupName) &&
-                       !chatHistory.Title.Contains(searchChatMsgGroupName))
-                        {
-                            continue;
-                        }
-                        <MudStack Spacing="0" Style="margin-top: 3px">
-                            <div style="height: 50px"
-                                 class="@($"chatHistoryGradual {(((selectMsgGroup != null && chatHistory.Id == selectMsgGroup.Id) || (selectMsgGroup == null && string.IsNullOrWhiteSpace(chatHistory.Id))) ? "chatHistoryGradual-select" : "")}")"
-                                 @onclick="@(async () => { await GetMsgList(chatHistory); })">
-                                <MudStack Row="true" Style="height: 100%" AlignItems="AlignItems.Center" Class="pl-6 pr-6">
-                                    <MudText>@chatHistory.Title</MudText>
-                                    <MudSpacer />
-                                </MudStack>
-                            </div>
-                            <MudDivider Class="mt-1" />
-                        </MudStack>
-                    }
-                }
-            </MudPaper>
-            @if (isShowLoadGroupLoading)
-            {
-                <MudStack Spacing="1" Style="margin-top: 3px" AlignItems="AlignItems.Center">
-                    <MudProgressCircular Size="Size.Medium" Color="Color.Info" Indeterminate="true" />
+        </MudPaper>
+        <MudPaper Class="@(_isShowChatHistory ? "" : "d-none " + "d-md-flex d-lg-flex d-xl-flex d-xxl-flex pr-1")" Height="100%" MaxWidth="350px" Width="350px" Style="overflow: hidden;background-color: transparent;">
+            <MudStack Spacing="0" Style=" height: 100%;width: 100%" Class="pb-3">
+                <MudStack AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="pl-3 pt-3" Spacing="1" Row="true">
+                    <MudText>会话记录</MudText>
+                    <MudTooltip Text="新建聊天">
+                        <MudIconButton Icon="@Icons.Material.Filled.AddCircle" OnClick="NewMsgGroup"
+                                       Disabled="@(!string.IsNullOrWhiteSpace(searchChatMsgGroupName))"></MudIconButton>
+                    </MudTooltip>
                 </MudStack>
-            }
-        </MudStack>
-    </MudPaper>
+                <MudStack Class="pl-3 pt-1 pr-3 pb-2">
+                    <MudTextField @bind-Value="@searchChatMsgGroupName" AdornmentIcon="@Icons.Material.Filled.Search"
+                                  Adornment="Adornment.End" Immediate="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+                </MudStack>
+                <MudPaper Elevation="0" Style="flex: 1;overflow-y:scroll;overflow-x:hidden;background-color: transparent;" Class="sbc pl-2 pr-1 msg-history-group">
+                    @if (isLoadingMsgGroupList)
+                    {
+                        @for (int i = 0; i < 30; i++)
+                        {
+                            <MudStack Spacing="1" Style="@("margin-top: 3px;" + _mr)">
+                                <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="50px"/>
+                                <MudSkeleton/>
+                            </MudStack>
+                        }
+                    }
+                    else
+                    {
+                        @foreach (var chatHistory in _chatService.MsgGroupList)
+                        {
+                            @if (!string.IsNullOrWhiteSpace(searchChatMsgGroupName) &&
+                                 !chatHistory.Title.Contains(searchChatMsgGroupName))
+                            {
+                                continue;
+                            }
 
-    <MudPaper Height="100%" Width="100%" Class="chat-width" Style="background-color: transparent;">
+                            <MudStack Spacing="0" Style="@("margin-top: 3px;" + _mr)">
+                                <div style="height: 50px"
+                                     class="@($"chatHistoryGradual {(((selectMsgGroup != null && chatHistory.Id == selectMsgGroup.Id) || (selectMsgGroup == null && string.IsNullOrWhiteSpace(chatHistory.Id))) ? "chatHistoryGradual-select" : "")}")"
+                                     @onclick="@(async () => { await GetMsgList(chatHistory); })">
+                                    <MudStack Row="true" Style="height: 100%" AlignItems="AlignItems.Center" Class="pl-6 pr-6">
+                                        <MudText>@chatHistory.Title</MudText>
+                                        <MudSpacer/>
+                                    </MudStack>
+                                </div>
+                                <MudDivider Class="mt-1"/>
+                            </MudStack>
+                        }
+                    }
+                </MudPaper>
+                @if (isShowLoadGroupLoading)
+                {
+                    <MudStack Spacing="1" Style="margin-top: 3px" AlignItems="AlignItems.Center">
+                        <MudProgressCircular Size="Size.Medium" Color="Color.Info" Indeterminate="true"/>
+                    </MudStack>
+                }
+            </MudStack>
+        </MudPaper>
+    </MudStack>
+    <MudPaper Height="100%" Width="100%" Class="@(_isShowChatHistory ? "d-none" : "chat-width")" Style="background-color: transparent;">
         <MudPaper Elevation="0" Class="rounded-0" Style="max-width:100%;height: 48px;background-color: transparent;">
             <MudToolBar Dense="true" Style="width:100%">
-                <MudIconButton Class="chat-history-show" Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" />
+                <MudIconButton Class="chat-history-show" Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="ShowChatHistory" />
                 <MudText Class="chat-title">@(selectMsgGroup == null ? "新的聊天" : selectMsgGroup.Title)</MudText>
                 <MudText Class="pl-1 pr-1">-</MudText>
                 <MudText>@(selectAiApp?.Name ?? "")</MudText>
@@ -265,6 +275,8 @@
     private bool isShowLoadGroupLoading = false;
     private bool shouldPreventDefault = false;
 
+    private string _mr = "";
+    private bool _isShowChatHistory = false;
 
     private ChatMsgGroupItemInfo? selectMsgGroup;
     private AiAppInfo? selectAiApp;
@@ -272,6 +284,22 @@
     private AiAppInfo? chatSetSelectAiApp;
 
     private CancellationTokenSource? chatMsgGenerateCancellationTokenSource;
+
+    private void ShowSettings()
+    {
+        _navigationManager.NavigateTo("/settings");
+    }
+    
+    private void ShowAssistantManage()
+    {
+        _navigationManager.NavigateTo("/assistantManage");
+    }
+    
+    private void ShowChatHistory()
+    {
+        _isShowChatHistory = !_isShowChatHistory;
+        StateHasChanged();
+    }
 
     private async Task<string> GetInputMsgValue()
     {
@@ -336,6 +364,8 @@
     {
         if (firstRender)
         {
+            if (OperatingSystem.IsMacCatalyst())
+                _mr = "margin-right: 8px;";
             try
             {
                 await Task.Delay(500);

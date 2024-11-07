@@ -4,27 +4,42 @@
 @inject IJSRuntime _js
 @inject IDataStorageService _dataStorageService
 @inject IDialogService _dialogService
+@inject NavigationManager _navigationManager
 
-<MudStack Class="pa-3 sbc ma-2" Style="flex: 1;overflow-y:scroll;overflow-x:hidden;height: 100%">
-    <MudPaper>
-        <MudExpansionPanels MultiExpansion="true">
-            <MudExpansionPanel Text="聊天记录" Expanded="true">
-                <MudStack Row="true">
-                    <MudFileUpload T="IBrowserFile" FilesChanged="ImportChatHistory" Accept=".json">
-                        <ActivatorContent>
-                            <MudButton Variant="Variant.Filled">导入</MudButton>
-                        </ActivatorContent>
-                    </MudFileUpload>
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ExportChatHistory">导出</MudButton>
-                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="CleanChatHistory">清空</MudButton>
-                </MudStack>
-            </MudExpansionPanel>
-        </MudExpansionPanels>
-    </MudPaper>
+<MudStack>
+    <MudHidden Breakpoint="Breakpoint.MdAndDown" Invert="true">
+        <MudPaper Style="background-color: transparent;" Class="ma-2">
+            <MudStack AlignItems="AlignItems.Start" Class="ml-2">
+                <MudIconButton Size="Size.Medium" Icon="@Icons.Material.Filled.Home" Color="Color.Inherit" Edge="Edge.Start" OnClick="GoHome"/>
+            </MudStack>
+        </MudPaper>
+    </MudHidden>
+    <MudStack Class="pa-3 sbc ma-2" Style="flex: 1;overflow-y:scroll;overflow-x:hidden;height: 100%">
+        <MudPaper>
+            <MudExpansionPanels MultiExpansion="true">
+                <MudExpansionPanel Text="聊天记录" Expanded="true">
+                    <MudStack Row="true">
+                        <MudFileUpload T="IBrowserFile" FilesChanged="ImportChatHistory" Accept=".json">
+                            <ActivatorContent>
+                                <MudButton Variant="Variant.Filled">导入</MudButton>
+                            </ActivatorContent>
+                        </MudFileUpload>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ExportChatHistory">导出</MudButton>
+                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="CleanChatHistory">清空</MudButton>
+                    </MudStack>
+                </MudExpansionPanel>
+            </MudExpansionPanels>
+        </MudPaper>
+    </MudStack>
 </MudStack>
 
 @code {
     private bool isBrowser;
+
+    private void GoHome()
+    {
+        _navigationManager.NavigateTo("/");
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -33,6 +48,7 @@
             isBrowser = OperatingSystem.IsBrowser();
             StateHasChanged();
         }
+
         await base.OnAfterRenderAsync(firstRender);
     }
 
@@ -71,9 +87,9 @@
         try
         {
             var ret = await _dialogService.ShowMessageBox(
-            "警告",
-            "确认清空聊天记录吗？",
-            yesText: "确认", cancelText: "取消");
+                "警告",
+                "确认清空聊天记录吗？",
+                yesText: "确认", cancelText: "取消");
             if (ret != null && ret.Value)
             {
                 await _dataStorageService.RemoveItemAsync("msgCache");
@@ -89,4 +105,5 @@
     public void Dispose()
     {
     }
+
 }

@@ -48,4 +48,24 @@
 	  </None>
 	</ItemGroup>
 
+	<PropertyGroup>
+		<ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<LlamaSharpBackendCpu Include="$(NuGetPackageRoot)\llamasharp.backend.cpu\0.16.0\runtimes\**\*.*" />
+		<LlamaSharpBackendVulkan Include="$(NuGetPackageRoot)\llamasharp.backend.vulkan\0.16.0\runtimes\**\*.*" />
+	</ItemGroup>
+
+	<Target Name="CopyRuntimesFolderOnPublish" AfterTargets="Publish">
+		<Delete Files="$(PublishDir)llama.dll" />
+		<Delete Files="$(PublishDir)llava_shared.dll" />
+		<Delete Files="$(PublishDir)libllama.so" />
+		<Delete Files="$(PublishDir)libllava_shared.so" />
+		<Delete Files="$(PublishDir)libllama.dylib" />
+		<Delete Files="$(PublishDir)libllava_shared.dylib" />
+		<Copy SourceFiles="@(LlamaSharpBackendCpu)" DestinationFolder="$(PublishDir)\runtimes\%(RecursiveDir)" />
+		<Copy SourceFiles="@(LlamaSharpBackendVulkan)" DestinationFolder="$(PublishDir)\runtimes\%(RecursiveDir)" />
+	</Target>
+	
 </Project>

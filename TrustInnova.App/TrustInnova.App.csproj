@@ -58,11 +58,11 @@
     </ItemGroup>
 
     <ItemGroup>
-		<PackageReference Include="Serilog.Sinks.Debug" Version="2.0.0" />
-        <PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
-        <PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="$(MauiVersion)" />
-        <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="$(MauiVersion)" />
-        <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.0" />
+		<PackageReference Include="Serilog.Sinks.Debug" Version="3.0.0" />
+        <PackageReference Include="Microsoft.Maui.Controls" Version="8.0.93" />
+        <PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="8.0.93" />
+        <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="8.0.93" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.1" />
     </ItemGroup>
 
     <ItemGroup>
