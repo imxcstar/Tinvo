@@ -21,6 +21,16 @@ using TrustInnova.Application.Provider;
 using TrustInnova.Provider.Ollama;
 using TrustInnova.Provider.LLama;
 
+var renderMode = args.ElementAtOrDefault(0) ?? "Server";
+
+if (renderMode.Equals("wasm", StringComparison.OrdinalIgnoreCase))
+{
+    GlobalConfig.RenderMode = Microsoft.AspNetCore.Components.Web.RenderMode.InteractiveWebAssembly;
+    renderMode = "WebAssembly";
+}
+
+Console.WriteLine("RenderMode: " + renderMode);
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseSerilog((context, services, configuration) => configuration

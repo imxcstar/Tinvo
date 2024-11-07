@@ -207,12 +207,12 @@
             event.preventDefault();
         }
     </script>
-    <HeadOutlet @rendermode="@RenderMode.InteractiveServer" />
+    <HeadOutlet @rendermode="@GlobalConfig.RenderMode" />
 </head>
 
 <body>
     <div id="app" style="height: 100%">
-        <TrustInnova.Main @rendermode="@RenderMode.InteractiveServer" />
+        <TrustInnova.Main @rendermode="@GlobalConfig.RenderMode" />
     </div>
 
     <div id="blazor-error-ui">
@@ -223,6 +223,7 @@
 
     <!--default-->
     <script src="_framework/blazor.web.js"></script>
+    <script>navigator.serviceWorker.register('service-worker.js', { updateViaCache: "none" });</script>
     <!--mudblazor-->
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
     <!--masa-->
