@@ -6,20 +6,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>TrustInnova</title>
     <base href="/" />
-    <!--highlight-->
-    <!--     <link rel="stylesheet" href="_content/TrustInnova/lib/highlight/github.min.css">
-        <script src="_content/TrustInnova/lib/highlight/highlight.min.js"></script>
-        <script src="_content/TrustInnova/lib/highlight/cshtml-razor.min.js"></script> -->
     <!--loadcss-->
     <link href="_content/TrustInnova/css/loading.css" rel="stylesheet" />
     <!--mudblazor-->
-    <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet" />
+    <link href="_content/TrustInnova/libs/mudblazor/fonts.css" rel="stylesheet" />
     <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
     <!--masa-->
     <link href="_content/Masa.Blazor/css/masa-blazor.min.css" rel="stylesheet" />
-    <link href="https://cdn.masastack.com/npm/@mdi/font@7.1.96/css/materialdesignicons.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="_content/TrustInnova/libs/materialdesign/v7.1.96/css/materialdesignicons.min.css">
     <!--highlightjs-->
-    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/highlight.js/11.7.0/styles/github.min.css">
+    <link rel="stylesheet" href="_content/TrustInnova/libs/highlight/styles/github.min.css">
     <!--default-->
     <link rel="icon" type="image/png" href="_content/TrustInnova/favicon.png" />
     <link href="TrustInnova.App.styles.css" rel="stylesheet" />
@@ -43,10 +39,10 @@
         }
 
 
-        html, body * {
-            scrollbar-color: unset !important;
-            scrollbar-width: unset !important;
-        }
+            html, body * {
+                scrollbar-color: unset !important;
+                scrollbar-width: unset !important;
+            }
 
         /* 隐藏滚动条，但保留宽度 */
         ::-webkit-scrollbar {
@@ -204,9 +200,10 @@
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
     <!--masa-->
     <script src="_content/Masa.Blazor/js/masa-blazor.js"></script>
+    <script src="_content/TrustInnova/libs/markdown-it-emoji/markdown-it-emoji.min.js"></script>
     <!--highlightjs-->
-    <script src="https://cdn.bootcdn.net/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
-    <script src="https://cdn.bootcdn.net/ajax/libs/highlight.js/11.7.0/languages/csharp.min.js"></script>
+    <script src="_content/TrustInnova/libs/highlight/highlight.min.js"></script>
+    <script src="_content/TrustInnova/libs/highlight-ext/cshtml-razor.min.js"></script>
     <!--mobile-->
     <script>
         const appHeight = () => {
@@ -218,8 +215,8 @@
         appHeight()
     </script>
     <!--code标签-->
-    <script src="https://cdn.bootcdn.net/ajax/libs/lodash.js/4.17.21/lodash.min.js"></script>
-    <script src="https://cdn.bootcdn.net/ajax/libs/clipboard.js/2.0.11/clipboard.min.js"></script>
+    <script src="_content/TrustInnova/libs/lodash.js/lodash.min.js"></script>
+    <script src="_content/TrustInnova/libs/clipboard.js/clipboard.min.js"></script>
     <script>
         new ClipboardJS('.markdown-it-code-copy');
 
@@ -245,34 +242,34 @@
                 getCodeContent(origRendered).split('\n').forEach((line, i, arr) => {
                     if (!(i === arr.length - 1 && line.trim() === '')) {
                         lineNumbers.push(`
-                                                                                        <div class="source-code-line source-code-line-number">${i + 1}</div>
-                                                                                    `);
+                                                                                                    <div class="source-code-line source-code-line-number">${i + 1}</div>
+                                                                                                `);
                         lineValues.push(`
-                                                                                        <div class="source-code-line source-code-line-value">${line}</div>
-                                                                                    `);
+                                                                                                    <div class="source-code-line source-code-line-value">${line}</div>
+                                                                                                `);
                     }
                 });
                 const lines = `
-                                                                            <div class="source-code-line-numbers">
-                                                                                ${lineNumbers.join('\n')}
-                                                                            </div>
-                                                                            <div class="source-code-line-values">
-                                                                                ${lineValues.join('\n')}
-                                                                            </div>
-                                                                        `;
+                                                                                        <div class="source-code-line-numbers">
+                                                                                            ${lineNumbers.join('\n')}
+                                                                                        </div>
+                                                                                        <div class="source-code-line-values">
+                                                                                            ${lineValues.join('\n')}
+                                                                                        </div>
+                                                                                    `;
                 return `
-                                                                    <div class="code-container">
-                                                                        <div style="display: flex;flex-direction: column;max-width: 100%;">
-                                                                            <div class="code-container-toolbar">
-                                                                                <p>${langName}</p>
-                                                                                <button class="markdown-it-code-copy" data-clipboard-text="${content}" title="复制">
-                                                                                    <span style="${options.iconStyle}" class="${options.iconClass}"></span>
-                                                                                </button>
-                                                                            </div>
-                                                                            <pre class="language-${langName}"><div class="source-code">${lines}</div></pre>
-                                                                        </div>
-                                                                    </div>
-                                                                    `;
+                                                                                <div class="code-container">
+                                                                                    <div style="display: flex;flex-direction: column;max-width: 100%;">
+                                                                                        <div class="code-container-toolbar">
+                                                                                            <p>${langName}</p>
+                                                                                            <button class="markdown-it-code-copy" data-clipboard-text="${content}" title="复制">
+                                                                                                <span style="${options.iconStyle}" class="${options.iconClass}"></span>
+                                                                                            </button>
+                                                                                        </div>
+                                                                                        <pre class="language-${langName}"><div class="source-code">${lines}</div></pre>
+                                                                                    </div>
+                                                                                </div>
+                                                                                `;
             };
         }
 
