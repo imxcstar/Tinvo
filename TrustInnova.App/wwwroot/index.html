@@ -6,6 +6,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>TrustInnova</title>
     <base href="/" />
+    <!--devtool-->
+    <script src="_content/TrustInnova/libs/vconsole/vconsole.min.js"></script>
+    <style>
+        #__vconsole {
+            display: none;
+        }
+    </style>
+    <script>
+        var vConsole = new window.VConsole();
+    </script>
     <!--loadcss-->
     <link href="_content/TrustInnova/css/loading.css" rel="stylesheet" />
     <!--mudblazor-->
@@ -188,11 +198,55 @@
         </svg>
     </div>
 
+    <script>
+        function HideVConsole() {
+            document.getElementById("__vconsole").style.display = "none";
+        }
+        function ShowVConsole() {
+            document.getElementById("__vconsole").style.display = "block";
+        }
+    </script>
+    
     <div id="blazor-error-ui">
         发生了未处理的错误。
         <a href="#" onclick="clearCacheAndReload()">刷新</a>
         <a class="dismiss">🗙</a>
     </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // 定义要观察的目标节点
+            var targetNode = document.getElementById('blazor-error-ui');
+
+            // 如果目标节点不存在，直接返回
+            if (!targetNode) return;
+
+            // 定义观察器的配置
+            var config = { attributes: true, childList: true, subtree: true };
+
+            // 当观察到变动时执行的回调函数
+            var callback = function (mutationsList, observer) {
+                for (var mutation of mutationsList) {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                        // 检查 blazor-error-ui 是否被显示
+                        if (targetNode.style.display !== 'none') {
+                            ShowVConsole();
+                        }
+                    }
+                }
+            };
+
+            // 创建一个观察器实例并传入回调函数
+            var observer = new MutationObserver(callback);
+
+            // 开始观察目标节点
+            observer.observe(targetNode, config);
+        });
+
+        document.getElementById("close-blazor-error-button").addEventListener("click", function () {
+            HideVConsole();
+        });
+    </script>
 
     <!--default-->
     <script src="_framework/blazor.webview.js" autostart="false"></script>
