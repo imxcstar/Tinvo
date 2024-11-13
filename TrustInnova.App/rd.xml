@@ -1,0 +1,12 @@
+<Directives xmlns="http://schemas.microsoft.com/netfx/2013/01/metadata">
+    <Application>
+        <Assembly Name="TrustInnova.Abstractions" Dynamic="Required All" />
+        <Assembly Name="TrustInnova" Dynamic="Required All" />
+        <Assembly Name="TrustInnova.Application" Dynamic="Required All" />
+        <Assembly Name="TrustInnova.Provider.Baidu" Dynamic="Required All" />
+        <Assembly Name="TrustInnova.Provider.LLama" Dynamic="Required All" />
+        <Assembly Name="TrustInnova.Provider.Ollama" Dynamic="Required All" />
+        <Assembly Name="TrustInnova.Provider.OpenAI" Dynamic="Required All" />
+        <Assembly Name="TrustInnova.Provider.XunFei" Dynamic="Required All" />
+    </Application>
+</Directives>

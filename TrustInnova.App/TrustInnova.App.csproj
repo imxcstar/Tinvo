@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
 
     <PropertyGroup>
-		<TargetFrameworks>net8.0-android;net8.0-ios;net8.0-maccatalyst</TargetFrameworks>
-		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net8.0-windows10.0.19041.0</TargetFrameworks>
+		<TargetFrameworks>net9.0-android;net9.0-ios;net9.0-maccatalyst</TargetFrameworks>
+		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net9.0-windows10.0.19041.0</TargetFrameworks>
         <!-- Uncomment to also build the tizen app. You will need to install tizen by following this: https://github.com/Samsung/Tizen.NET -->
         <!-- <TargetFrameworks>$(TargetFrameworks);net8.0-tizen</TargetFrameworks> -->
 
@@ -12,7 +12,7 @@
             The Mac App Store will NOT accept apps with ONLY maccatalyst-arm64 indicated;
             either BOTH runtimes must be indicated or ONLY macatalyst-x64. -->
          <!-- For example: <RuntimeIdentifiers>maccatalyst-x64;maccatalyst-arm64</RuntimeIdentifiers> -->
-
+        
         <OutputType>Exe</OutputType>
         <RootNamespace>TrustInnova</RootNamespace>
 		<UseMaui>true</UseMaui>
@@ -20,6 +20,13 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<EnableDefaultCssItems>false</EnableDefaultCssItems>
 		<Nullable>enable</Nullable>
+
+        <!-- enable trimming and AOT analyzers on all platforms -->
+        <IsAotCompatible>true</IsAotCompatible>
+
+        <!-- select platforms to use with NativeAOT -->
+        <PublishAot Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">true</PublishAot>
+        <PublishAot Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">true</PublishAot>
 
         <!-- Display name -->
         <ApplicationTitle>TrustInnova</ApplicationTitle>
@@ -31,14 +38,25 @@
         <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
         <ApplicationVersion>1</ApplicationVersion>
 
-		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">14.2</SupportedOSPlatformVersion>
-		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">14.0</SupportedOSPlatformVersion>
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">15.0</SupportedOSPlatformVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">24.0</SupportedOSPlatformVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
 		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'tizen'">6.5</SupportedOSPlatformVersion>
     </PropertyGroup>
-
+    
+    <ItemGroup>
+        <TrimmerRootAssembly Include="TrustInnova" />
+        <TrimmerRootAssembly Include="TrustInnova.Abstractions" />
+        <TrimmerRootAssembly Include="TrustInnova.Application" />
+        <TrimmerRootAssembly Include="TrustInnova.Provider.Baidu" />
+        <TrimmerRootAssembly Include="TrustInnova.Provider.LLama" />
+        <TrimmerRootAssembly Include="TrustInnova.Provider.Ollama" />
+        <TrimmerRootAssembly Include="TrustInnova.Provider.OpenAI" />
+        <TrimmerRootAssembly Include="TrustInnova.Provider.XunFei" />
+    </ItemGroup>
+    
     <ItemGroup>
         <!-- App Icon -->
 		<MauiIcon Include="Resources\AppIcon\appicon.svg" />
@@ -59,62 +77,33 @@
 
     <ItemGroup>
 		<PackageReference Include="Serilog.Sinks.Debug" Version="3.0.0" />
-        <PackageReference Include="Microsoft.Maui.Controls" Version="8.0.93" />
-        <PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="8.0.93" />
-        <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="8.0.93" />
-        <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.1" />
+        <PackageReference Include="Microsoft.Maui.Controls" Version="9.0.0" />
+        <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="9.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.0" />
     </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\TrustInnova\TrustInnova.csproj" />
     </ItemGroup>
 
-  <!-- Build Properties must be defined within these property groups to ensure successful publishing
-       to the Mac App Store. See: https://aka.ms/maui-publish-app-store#define-build-properties-in-your-project-file -->
-  <PropertyGroup Condition="$(TargetFramework.Contains('-maccatalyst')) and '$(Configuration)' == 'Debug'">
-    <CodesignEntitlements>Platforms/MacCatalyst/Entitlements.Debug.plist</CodesignEntitlements>
-  </PropertyGroup>
+    <PropertyGroup>
+        <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
+    </PropertyGroup>
 
-  <PropertyGroup Condition="$(TargetFramework.Contains('-maccatalyst')) and '$(Configuration)' == 'Release'">
-    <CodesignEntitlements>Platforms/MacCatalyst/Entitlements.Release.plist</CodesignEntitlements>
-    <UseHardenedRuntime>true</UseHardenedRuntime>
-  </PropertyGroup>
+    <ItemGroup>
+        <LlamaSharpBackendCpu Include="$(NuGetPackageRoot)\llamasharp.backend.cpu\0.19.0\runtimes\**\*.*" />
+        <LlamaSharpBackendVulkan Include="$(NuGetPackageRoot)\llamasharp.backend.vulkan\0.19.0\runtimes\**\*.*" />
+    </ItemGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net8.0-android|AnyCPU'">
-    <ApplicationTitle>TrustInnova</ApplicationTitle>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net8.0-ios|AnyCPU'">
-    <ApplicationTitle>TrustInnova</ApplicationTitle>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net8.0-maccatalyst|AnyCPU'">
-    <ApplicationTitle>TrustInnova</ApplicationTitle>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net8.0-windows10.0.19041.0|AnyCPU'">
-    <ApplicationTitle>TrustInnova</ApplicationTitle>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net8.0-android|AnyCPU'">
-    <ApplicationTitle>TrustInnova</ApplicationTitle>
-    <AndroidPackageFormat>apk</AndroidPackageFormat>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net8.0-ios|AnyCPU'">
-    <ApplicationTitle>TrustInnova</ApplicationTitle>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net8.0-maccatalyst|AnyCPU'">
-    <ApplicationTitle>TrustInnova</ApplicationTitle>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net8.0-windows10.0.19041.0|AnyCPU'">
-    <ApplicationTitle>TrustInnova</ApplicationTitle>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(TargetFramework)'=='net8.0-ios'">
-    <CodesignKey>Apple Development: Created via API (J3KZM5Y9SX)</CodesignKey>
-    <CodesignProvision>VS: WildCard Development</CodesignProvision>
-  </PropertyGroup>
+    <Target Name="CopyRuntimesFolderOnPublish" AfterTargets="Publish">
+        <Delete Files="$(PublishDir)llama.dll" />
+        <Delete Files="$(PublishDir)llava_shared.dll" />
+        <Delete Files="$(PublishDir)libllama.so" />
+        <Delete Files="$(PublishDir)libllava_shared.so" />
+        <Delete Files="$(PublishDir)libllama.dylib" />
+        <Delete Files="$(PublishDir)libllava_shared.dylib" />
+        <Copy SourceFiles="@(LlamaSharpBackendCpu)" DestinationFolder="$(PublishDir)\runtimes\%(RecursiveDir)" />
+        <Copy SourceFiles="@(LlamaSharpBackendVulkan)" DestinationFolder="$(PublishDir)\runtimes\%(RecursiveDir)" />
+    </Target>
+    
 </Project>
