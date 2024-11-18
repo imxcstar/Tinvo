@@ -25,7 +25,6 @@ namespace TrustInnova.Service.Chat
     {
         private readonly Serilog.ILogger _logger;
         private readonly IDataStorageService _dataStorageService;
-        private readonly IHttpClientFactory _httpClientFactory;
         private readonly ProviderRegisterer _providerRegisterer;
         private readonly AIAssistantService _aiAssistantService;
         private readonly ProviderService _providerService;

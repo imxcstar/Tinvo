@@ -33,10 +33,7 @@ namespace TrustInnova
             var builder = MauiApp.CreateBuilder();
             builder
                 .UseMauiApp<App>()
-                .ConfigureFonts(fonts =>
-                {
-                    fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
-                });
+                .ConfigureFonts(fonts => { fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular"); });
 
             var services = builder.Services;
 
@@ -44,7 +41,8 @@ namespace TrustInnova
 
             services.AddSingleton<IDataStorageService>(s =>
             {
-                return new FileStorageService(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "TrustInnova"));
+                return new FileStorageService(Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "TrustInnova"));
             });
 
             services.AddSingleton<DBData<AssistantEntity>>();
@@ -54,11 +52,11 @@ namespace TrustInnova
             services.AddScoped<IKBSService, LocalKBSService>();
 
             services.AddProviderRegisterer()
-                    .RegistererBaiduProvider()
-                    .RegistererOpenAIProvider()
-                    .RegistererXunFeiProvider()
-                    .RegistererOllamaProvider()
-                    .RegistererLLamaProvider();
+                .RegistererBaiduProvider()
+                .RegistererOpenAIProvider()
+                .RegistererXunFeiProvider()
+                .RegistererOllamaProvider()
+                .RegistererLLamaProvider();
 
             services.AddSingleton<ProviderService>();
 

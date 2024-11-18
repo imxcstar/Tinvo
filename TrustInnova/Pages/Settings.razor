@@ -6,30 +6,31 @@
 @inject IDialogService _dialogService
 @inject NavigationManager _navigationManager
 
-<MudStack>
-    <MudHidden Breakpoint="Breakpoint.MdAndDown" Invert="true">
-        <MudPaper Style="background-color: transparent;" Class="ma-2">
-            <MudStack AlignItems="AlignItems.Start" Class="ml-2">
-                <MudIconButton Size="Size.Medium" Icon="@Icons.Material.Filled.Home" Color="Color.Inherit" Edge="Edge.Start" OnClick="GoHome"/>
-            </MudStack>
-        </MudPaper>
-    </MudHidden>
-    <MudStack Class="pa-3 sbc ma-2" Style="flex: 1;overflow-y:scroll;overflow-x:hidden;height: 100%">
-        <MudPaper>
-            <MudExpansionPanels MultiExpansion="true">
-                <MudExpansionPanel Text="聊天记录" Expanded="true">
-                    <MudStack Row="true">
-                        <MudFileUpload T="IBrowserFile" FilesChanged="ImportChatHistory" Accept=".json">
-                            <ActivatorContent>
-                                <MudButton Variant="Variant.Filled">导入</MudButton>
-                            </ActivatorContent>
-                        </MudFileUpload>
-                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ExportChatHistory">导出</MudButton>
-                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="CleanChatHistory">清空</MudButton>
-                    </MudStack>
-                </MudExpansionPanel>
-            </MudExpansionPanels>
-        </MudPaper>
+<MudStack Row="false" Style="height: 100%;" Class="pa-5" AlignItems="AlignItems.Center">
+    <MudStack AlignItems="AlignItems.Start" Class="ml-2">
+        <MudHidden Breakpoint="Breakpoint.MdAndDown" Invert="true">
+            <MudPaper Width="350px" Style="background-color: transparent;">
+                <MudStack Row="true" Class="pl-2">
+                    <MudIconButton Size="Size.Medium" Icon="@Icons.Material.Filled.Home" Color="Color.Inherit" Edge="Edge.Start" OnClick="GoHome"/>
+                </MudStack>
+            </MudPaper>
+        </MudHidden>
+        <MudExpansionPanels Style="width: 350px" MultiExpansion="true">
+            <MudExpansionPanel Text="聊天记录" Expanded="true">
+                <MudStack Row="true">
+                    <MudFileUpload T="IBrowserFile" FilesChanged="ImportChatHistory" Accept=".json">
+                        <ActivatorContent>
+                            <MudButton Variant="Variant.Filled">导入</MudButton>
+                        </ActivatorContent>
+                    </MudFileUpload>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ExportChatHistory">导出
+                    </MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="CleanChatHistory">
+                        清空
+                    </MudButton>
+                </MudStack>
+            </MudExpansionPanel>
+        </MudExpansionPanels>
     </MudStack>
 </MudStack>
 
