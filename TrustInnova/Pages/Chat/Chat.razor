@@ -109,8 +109,8 @@
     }
 </style>
 
-<MudStack Row="true" Style="width: 100%;height: 100%;" Class="pa-5" Justify="Justify.Center">
-    <MudStack AlignItems="AlignItems.Start" Class="ml-2">
+<MudStack Row="true" Style="width: 100%;height: 100%;" Class="pa-5" Justify="Justify.Center" Spacing="0">
+    <MudStack AlignItems="AlignItems.Start" Class="@(_isShowChatHistory ? "ml-2" : "")">
         <MudPaper Class="@(_isShowChatHistory ? "" : "d-none")" Width="350px" Style="background-color: transparent;">
             <MudStack Row="true" Class="pl-2">
                 <MudIconButton Size="Size.Medium" Class="chat-history-show" Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="ShowChatHistory" />
@@ -175,6 +175,7 @@
             </MudStack>
         </MudPaper>
     </MudStack>
+    <div style="width: 12px" class="d-none d-md-flex d-lg-flex d-xl-flex d-xxl-flex"></div>
     <MudPaper Height="100%" Width="100%" Class="@(_isShowChatHistory ? "d-none" : "chat-width")" Style="background-color: transparent;">
         <MudPaper Elevation="0" Class="rounded-0" Style="max-width:100%;height: 48px;background-color: transparent;">
             <MudToolBar Dense="true" Style="width:100%">
@@ -434,6 +435,8 @@
                 selectAiApp = _chatService.AiAppList.FirstOrDefault(x => x.Id == uAiapp.Id);
             }
             isLoadingMsgList = false;
+            if (_isShowChatHistory)
+                _isShowChatHistory = false;
             StateHasChanged();
             await Task.Delay(100);
             await _js.InvokeVoidAsyncIgnoreErrors("ChatContainerToBottom", true, false);

@@ -20,9 +20,14 @@
 		<PackageReference Include="Microsoft.AspNetCore.Components.WebView.WindowsForms" Version="9.0.0" />
 		<PackageReference Include="Serilog.Sinks.Debug" Version="3.0.0" />
 	</ItemGroup>
-
+	
 	<ItemGroup>
 		<ProjectReference Include="..\TrustInnova\TrustInnova.csproj" />
+		<ProjectReference Include="..\TrustInnova.Provider.Baidu\TrustInnova.Provider.Baidu.csproj" />
+		<ProjectReference Include="..\TrustInnova.Provider.LLama\TrustInnova.Provider.LLama.csproj" />
+		<ProjectReference Include="..\TrustInnova.Provider.Ollama\TrustInnova.Provider.Ollama.csproj" />
+		<ProjectReference Include="..\TrustInnova.Provider.OpenAI\TrustInnova.Provider.OpenAI.csproj" />
+		<ProjectReference Include="..\TrustInnova.Provider.XunFei\TrustInnova.Provider.XunFei.csproj" />
 	</ItemGroup>
 
 	<PropertyGroup>

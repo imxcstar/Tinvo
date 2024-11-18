@@ -17,6 +17,13 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\TrustInnova.Provider.Baidu\TrustInnova.Provider.Baidu.csproj" />
+		<ProjectReference Include="..\TrustInnova.Provider.Ollama\TrustInnova.Provider.Ollama.csproj" />
+		<ProjectReference Include="..\TrustInnova.Provider.OpenAI\TrustInnova.Provider.OpenAI.csproj" />
+		<ProjectReference Include="..\TrustInnova.Provider.XunFei\TrustInnova.Provider.XunFei.csproj" />
+	</ItemGroup>
+	
+	<ItemGroup>
 		<ProjectReference Include="..\TrustInnova\TrustInnova.csproj" />
 	</ItemGroup>
 

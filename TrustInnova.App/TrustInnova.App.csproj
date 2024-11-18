@@ -1,32 +1,25 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
 
     <PropertyGroup>
-		<TargetFrameworks>net9.0-android;net9.0-ios;net9.0-maccatalyst</TargetFrameworks>
-		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net9.0-windows10.0.19041.0</TargetFrameworks>
+        <TargetFrameworks>net9.0-android;net9.0-ios;net9.0-maccatalyst</TargetFrameworks>
+        <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net9.0-windows10.0.19041.0</TargetFrameworks>
         <!-- Uncomment to also build the tizen app. You will need to install tizen by following this: https://github.com/Samsung/Tizen.NET -->
         <!-- <TargetFrameworks>$(TargetFrameworks);net8.0-tizen</TargetFrameworks> -->
 
-         <!-- Note for MacCatalyst:
+        <!-- Note for MacCatalyst:
             The default runtime is maccatalyst-x64, except in Release config, in which case the default is maccatalyst-x64;maccatalyst-arm64.
             When specifying both architectures, use the plural <RuntimeIdentifiers> instead of the singular <RuntimeIdentifer>.
             The Mac App Store will NOT accept apps with ONLY maccatalyst-arm64 indicated;
             either BOTH runtimes must be indicated or ONLY macatalyst-x64. -->
-         <!-- For example: <RuntimeIdentifiers>maccatalyst-x64;maccatalyst-arm64</RuntimeIdentifiers> -->
-        
+        <!-- For example: <RuntimeIdentifiers>maccatalyst-x64;maccatalyst-arm64</RuntimeIdentifiers> -->
+
         <OutputType>Exe</OutputType>
         <RootNamespace>TrustInnova</RootNamespace>
-		<UseMaui>true</UseMaui>
-		<SingleProject>true</SingleProject>
-		<ImplicitUsings>enable</ImplicitUsings>
-		<EnableDefaultCssItems>false</EnableDefaultCssItems>
-		<Nullable>enable</Nullable>
-
-        <!-- enable trimming and AOT analyzers on all platforms -->
-        <IsAotCompatible>true</IsAotCompatible>
-
-        <!-- select platforms to use with NativeAOT -->
-        <PublishAot Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">true</PublishAot>
-        <PublishAot Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">true</PublishAot>
+        <UseMaui>true</UseMaui>
+        <SingleProject>true</SingleProject>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <EnableDefaultCssItems>false</EnableDefaultCssItems>
+        <Nullable>enable</Nullable>
 
         <!-- Display name -->
         <ApplicationTitle>TrustInnova</ApplicationTitle>
@@ -45,22 +38,11 @@
 		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'tizen'">6.5</SupportedOSPlatformVersion>
     </PropertyGroup>
-    
-    <ItemGroup>
-        <TrimmerRootAssembly Include="TrustInnova" />
-        <TrimmerRootAssembly Include="TrustInnova.Abstractions" />
-        <TrimmerRootAssembly Include="TrustInnova.Application" />
-        <TrimmerRootAssembly Include="TrustInnova.Provider.Baidu" />
-        <TrimmerRootAssembly Include="TrustInnova.Provider.LLama" />
-        <TrimmerRootAssembly Include="TrustInnova.Provider.Ollama" />
-        <TrimmerRootAssembly Include="TrustInnova.Provider.OpenAI" />
-        <TrimmerRootAssembly Include="TrustInnova.Provider.XunFei" />
-    </ItemGroup>
-    
+
     <ItemGroup>
         <!-- App Icon -->
-		<MauiIcon Include="Resources\AppIcon\appicon.svg" />
-		
+        <MauiIcon Include="Resources\AppIcon\appicon.svg" />
+
         <!-- Splash Screen -->
         <MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#512BD4" BaseSize="128,128" />
 
@@ -76,14 +58,19 @@
     </ItemGroup>
 
     <ItemGroup>
-		<PackageReference Include="Serilog.Sinks.Debug" Version="3.0.0" />
-        <PackageReference Include="Microsoft.Maui.Controls" Version="9.0.0" />
-        <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="9.0.0" />
+        <PackageReference Include="Serilog.Sinks.Debug" Version="3.0.0" />
+        <PackageReference Include="Microsoft.Maui.Controls" Version="9.0.10" />
+        <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="9.0.10" />
         <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.0" />
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\TrustInnova\TrustInnova.csproj" />
+        <ProjectReference Include="..\TrustInnova\TrustInnova.csproj" />
+        <ProjectReference Include="..\TrustInnova.Provider.Baidu\TrustInnova.Provider.Baidu.csproj" />
+        <ProjectReference Include="..\TrustInnova.Provider.LLama\TrustInnova.Provider.LLama.csproj" />
+        <ProjectReference Include="..\TrustInnova.Provider.Ollama\TrustInnova.Provider.Ollama.csproj" />
+        <ProjectReference Include="..\TrustInnova.Provider.OpenAI\TrustInnova.Provider.OpenAI.csproj" />
+        <ProjectReference Include="..\TrustInnova.Provider.XunFei\TrustInnova.Provider.XunFei.csproj" />
     </ItemGroup>
 
     <PropertyGroup>
@@ -105,5 +92,5 @@
         <Copy SourceFiles="@(LlamaSharpBackendCpu)" DestinationFolder="$(PublishDir)\runtimes\%(RecursiveDir)" />
         <Copy SourceFiles="@(LlamaSharpBackendVulkan)" DestinationFolder="$(PublishDir)\runtimes\%(RecursiveDir)" />
     </Target>
-    
+
 </Project>
