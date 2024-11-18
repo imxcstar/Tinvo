@@ -7,15 +7,11 @@ using TrustInnova.Application.DataStorage;
 using MudBlazor.Services;
 using Microsoft.Extensions.Logging;
 using TrustInnova.Abstractions;
-using TrustInnova.Provider.Baidu;
 using TrustInnova.Provider.OpenAI;
-using TrustInnova.Provider.XunFei;
 using TrustInnova.Application.AIAssistant.Entities;
 using TrustInnova.Application.AIAssistant;
 using TrustInnova.Application.DB;
 using TrustInnova.Application.Provider;
-using TrustInnova.Provider.LLama;
-using TrustInnova.Provider.Ollama;
 
 namespace TrustInnova
 {
@@ -52,11 +48,7 @@ namespace TrustInnova
             services.AddScoped<IKBSService, LocalKBSService>();
 
             services.AddProviderRegisterer()
-                .RegistererBaiduProvider()
-                .RegistererOpenAIProvider()
-                .RegistererXunFeiProvider()
-                .RegistererOllamaProvider()
-                .RegistererLLamaProvider();
+                .RegistererOpenAIProvider();
 
             services.AddSingleton<ProviderService>();
 

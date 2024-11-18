@@ -25,7 +25,7 @@
         <ApplicationTitle>TrustInnova</ApplicationTitle>
 
         <!-- App Identifier -->
-        <ApplicationId>com.companyname.trustinnova</ApplicationId>
+        <ApplicationId>com.xcssa.trustinnova</ApplicationId>
 
         <!-- Versions -->
         <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
@@ -37,6 +37,11 @@
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
 		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'tizen'">6.5</SupportedOSPlatformVersion>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(TargetFramework)'=='net9.0-ios'">
+      <CodesignKey>Apple Development: Created via API (XSBZKR5UX4)</CodesignKey>
+      <CodesignProvision>VS: WildCard Development</CodesignProvision>
     </PropertyGroup>
 
     <ItemGroup>
@@ -66,31 +71,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\TrustInnova\TrustInnova.csproj" />
-        <ProjectReference Include="..\TrustInnova.Provider.Baidu\TrustInnova.Provider.Baidu.csproj" />
-        <ProjectReference Include="..\TrustInnova.Provider.LLama\TrustInnova.Provider.LLama.csproj" />
-        <ProjectReference Include="..\TrustInnova.Provider.Ollama\TrustInnova.Provider.Ollama.csproj" />
         <ProjectReference Include="..\TrustInnova.Provider.OpenAI\TrustInnova.Provider.OpenAI.csproj" />
-        <ProjectReference Include="..\TrustInnova.Provider.XunFei\TrustInnova.Provider.XunFei.csproj" />
     </ItemGroup>
-
-    <PropertyGroup>
-        <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
-    </PropertyGroup>
-
-    <ItemGroup>
-        <LlamaSharpBackendCpu Include="$(NuGetPackageRoot)\llamasharp.backend.cpu\0.19.0\runtimes\**\*.*" />
-        <LlamaSharpBackendVulkan Include="$(NuGetPackageRoot)\llamasharp.backend.vulkan\0.19.0\runtimes\**\*.*" />
-    </ItemGroup>
-
-    <Target Name="CopyRuntimesFolderOnPublish" AfterTargets="Publish">
-        <Delete Files="$(PublishDir)llama.dll" />
-        <Delete Files="$(PublishDir)llava_shared.dll" />
-        <Delete Files="$(PublishDir)libllama.so" />
-        <Delete Files="$(PublishDir)libllava_shared.so" />
-        <Delete Files="$(PublishDir)libllama.dylib" />
-        <Delete Files="$(PublishDir)libllava_shared.dylib" />
-        <Copy SourceFiles="@(LlamaSharpBackendCpu)" DestinationFolder="$(PublishDir)\runtimes\%(RecursiveDir)" />
-        <Copy SourceFiles="@(LlamaSharpBackendVulkan)" DestinationFolder="$(PublishDir)\runtimes\%(RecursiveDir)" />
-    </Target>
 
 </Project>
