@@ -65,10 +65,13 @@
 	<Target Name="CopyRuntimesFolderOnPublish" AfterTargets="Publish">
 		<Delete Files="$(PublishDir)llama.dll" />
 		<Delete Files="$(PublishDir)llava_shared.dll" />
+		<Delete Files="$(PublishDir)ggml.dll" />
 		<Delete Files="$(PublishDir)libllama.so" />
 		<Delete Files="$(PublishDir)libllava_shared.so" />
+		<Delete Files="$(PublishDir)libggml.so" />
 		<Delete Files="$(PublishDir)libllama.dylib" />
 		<Delete Files="$(PublishDir)libllava_shared.dylib" />
+		<Delete Files="$(PublishDir)libggml.dylib" />
 		<Copy SourceFiles="@(LlamaSharpBackendCpu)" DestinationFolder="$(PublishDir)\runtimes\%(RecursiveDir)" />
 		<Copy SourceFiles="@(LlamaSharpBackendVulkan)" DestinationFolder="$(PublishDir)\runtimes\%(RecursiveDir)" />
 	</Target>
