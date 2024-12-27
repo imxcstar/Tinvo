@@ -68,7 +68,8 @@ namespace TrustInnova.Provider.OpenAI.AIScheduler
             _config = config;
             _chatClient = new ChatClient(_config.Model, new ApiKeyCredential(_config.Token ?? ""), new OpenAIClientOptions()
             {
-                Endpoint = new Uri(_config.BaseURL)
+                Endpoint = new Uri(_config.BaseURL),
+                NetworkTimeout = TimeSpan.FromDays(10)
             });
             _parser = new OpenAIProviderParser();
         }
