@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using WebApiClientCore.Attributes;
 using WebApiClientCore;
 
-namespace TrustInnova.Provider.OpenAI.API
+namespace TrustInnova.Provider.Thor.API
 {
     internal class APILoggingFilterAttribute : LoggingFilterAttribute
     {

@@ -17,7 +17,13 @@ namespace TrustInnova.Abstractions.AIScheduler
         TextMessage,
         ImageMessage,
         FunctionStart,
-        FunctionCall
+        FunctionCall,
+        Refusal
+    }
+
+    public class AIProviderHandleRefusalMessageResponse : IAIChatHandleResponse
+    {
+        public AIChatHandleResponseType Type => AIChatHandleResponseType.Refusal;
     }
 
     public class AIProviderHandleTextMessageResponse : IAIChatHandleResponse

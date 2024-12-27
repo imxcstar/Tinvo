@@ -10,17 +10,17 @@ using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using TrustInnova.Utils.Extend;
 
-namespace TrustInnova.Provider.OpenAI.API
+namespace TrustInnova.Provider.Thor.API
 {
-    public class OpenAIChatCompletionAPI
+    public class ThorChatCompletionAPI
     {
-        private readonly IOpenAIChatAPI _api;
+        private readonly IThorChatAPI _api;
         private readonly ILogger _logger;
 
-        public OpenAIChatCompletionAPI(IOpenAIChatAPI chatAPI)
+        public ThorChatCompletionAPI(IThorChatAPI chatAPI)
         {
             _api = chatAPI;
-            _logger = Log.ForContext<OpenAIChatCompletionAPI>();
+            _logger = Log.ForContext<ThorChatCompletionAPI>();
         }
 
         public async IAsyncEnumerable<OpenAIChatCompletionCreateResponse> SendChat(OpenAIChatCompletionCreateRequest request, [EnumeratorCancellation] CancellationToken cancellationToken = default)
@@ -52,7 +52,7 @@ namespace TrustInnova.Provider.OpenAI.API
 
                 line = line.RemoveIfStartWith("data: ");
 
-                if (line.StartsWith("[DONE]"))
+                if (line.StartsWith("[DONE]") || line == "stop")
                 {
                     break;
                 }

@@ -7,15 +7,14 @@ using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using WebApiClientCore.Attributes;
 
-namespace TrustInnova.Provider.OpenAI.API
+namespace TrustInnova.Provider.Thor.API
 {
     [APILoggingFilter]
-    public interface IOpenAIChatAPI
+    public interface IThorChatAPI
     {
         [Timeout(60 * 10 * 1000)]
-        [HttpPost("v1/chat/completions")]
+        [HttpPost("api/chat/openai")]
         [APIStreamEnableFilter]
-        [APIAuthFilter]
         public Task<HttpResponseMessage> ChatCompletionsStreamAsync([NotNullJsonContent] OpenAIChatCompletionCreateRequest request, CancellationToken token = default);
     }
 

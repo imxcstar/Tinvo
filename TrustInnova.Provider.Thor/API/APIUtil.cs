@@ -6,11 +6,11 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace TrustInnova.Provider.OpenAI.API
+namespace TrustInnova.Provider.Thor.API
 {
     internal class APIUtil
     {
-        internal static T GetAPI<T>(string baseURL, string? token, string? proxy) where T : class
+        internal static T GetAPI<T>(string baseURL, string? auth, string? proxy) where T : class
         {
             var apiServices = new ServiceCollection();
             var apiBuilder = apiServices
@@ -21,7 +21,8 @@ namespace TrustInnova.Provider.OpenAI.API
                 }).ConfigureHttpClient(c =>
                 {
                     c.Timeout = TimeSpan.FromMinutes(10);
-                    c.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token ?? "");
+                    if (!string.IsNullOrWhiteSpace(auth))
+                        c.DefaultRequestHeaders.Add("x-thor-chat-auth", auth);
                 });
             if (!string.IsNullOrWhiteSpace(proxy))
             {

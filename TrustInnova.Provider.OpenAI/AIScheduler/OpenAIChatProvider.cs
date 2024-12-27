@@ -7,9 +7,13 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using TrustInnova.Abstractions.AIScheduler;
-using TrustInnova.Provider.OpenAI.API;
 using TrustInnova.Abstractions;
 using System.ComponentModel;
+using OpenAI.Chat;
+using System.ClientModel;
+using OpenAI;
+using OpenAIChatMessage = OpenAI.Chat.ChatMessage;
+using OpenAIChatMessageContent = OpenAI.Chat.ChatMessageContent;
 
 namespace TrustInnova.Provider.OpenAI.AIScheduler
 {
@@ -20,29 +24,52 @@ namespace TrustInnova.Provider.OpenAI.AIScheduler
         [DefaultValue("https://api.openai.com")]
         public string BaseURL { get; set; } = "https://api.openai.com";
 
-        [Description("代理(可选)")]
-        [TypeMetadataAllowNull]
-        public string? Proxy { get; set; }
-
         [Description("密钥")]
         [TypeMetadataAllowNull]
         public string? Token { get; set; }
 
         [Description("模型")]
         public string Model { get; set; } = null!;
+
+        [Description("MaxTokens")]
+        [DefaultValue(4096)]
+        public int MaxTokens { get; set; } = 4096;
+
+        [Description("FrequencyPenalty")]
+        [DefaultValue(0)]
+        public float FrequencyPenalty { get; set; } = 0;
+
+        [Description("PresencePenalty")]
+        [DefaultValue(0)]
+        public float PresencePenalty { get; set; } = 0;
+
+        [Description("Temperature")]
+        [DefaultValue(0.6f)]
+        public float Temperature { get; set; } = 0.6f;
+
+        [Description("TopP")]
+        [DefaultValue(1)]
+        public float TopP { get; set; } = 1;
+
+        [Description("流式")]
+        [DefaultValue(true)]
+        public bool IsStream { get; set; } = true;
     }
 
     [ProviderTask("OpenAIChat", "OpenAI")]
     public class OpenAIChatProvider : IAIChatTask
     {
-        private readonly OpenAIChatCompletionAPI _chatApi;
+        private readonly ChatClient _chatClient;
         private readonly OpenAIChatConfig _config;
         private readonly IAIChatParser _parser;
 
         public OpenAIChatProvider(OpenAIChatConfig config)
         {
             _config = config;
-            _chatApi = new OpenAIChatCompletionAPI(APIUtil.GetAPI<IOpenAIChatAPI>(_config.BaseURL, _config.Token, _config.Proxy));
+            _chatClient = new ChatClient(_config.Model, new ApiKeyCredential(_config.Token ?? ""), new OpenAIClientOptions()
+            {
+                Endpoint = new Uri(_config.BaseURL)
+            });
             _parser = new OpenAIProviderParser();
         }
 
@@ -57,88 +84,80 @@ Current date: {DateTime.Now.ToString("yyyy-MM-dd")}", ChatMessageContentType.Tex
             return ret;
         }
 
+        private OpenAIChatMessage CreateOpenAIChatMessage(AuthorRole role, List<Abstractions.AIScheduler.ChatMessageContent> contents)
+        {
+            var msg = contents.Select(x =>
+            {
+                switch (x.ContentType)
+                {
+                    case ChatMessageContentType.Text:
+                        return ChatMessageContentPart.CreateTextPart((string)x.Content);
+                    case ChatMessageContentType.ImageBase64:
+                        return ChatMessageContentPart.CreateImagePart(BinaryData.FromBytes(Convert.FromBase64String((string)x.Content)), "image/png");
+                    case ChatMessageContentType.ImageURL:
+                        return ChatMessageContentPart.CreateImagePart(new Uri((string)x.Content));
+                    default:
+                        throw new NotImplementedException();
+                }
+            });
+
+            return role switch
+            {
+                AuthorRole.User => OpenAIChatMessage.CreateUserMessage(msg),
+                AuthorRole.System => OpenAIChatMessage.CreateSystemMessage(msg),
+                AuthorRole.Assistant => OpenAIChatMessage.CreateAssistantMessage(msg),
+                AuthorRole.Tool => OpenAIChatMessage.CreateToolMessage(string.Join('-', contents.Select(x => x.ContentId)), msg),
+                _ => throw new NotImplementedException(),
+            };
+        }
+
         public async IAsyncEnumerable<IAIChatHandleResponse> ChatAsync(ChatHistory chat, ChatSettings? requestSettings = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            var ret = _chatApi.SendChat(new OpenAIChatCompletionCreateRequest()
+            var options = new ChatCompletionOptions()
             {
-                Messages = chat.Select(x =>
+                ToolChoice = (requestSettings?.FunctionManager == null || requestSettings.FunctionManager.FunctionInfos.Count <= 0) ? null : ChatToolChoice.CreateAutoChoice(),
+                FrequencyPenalty = (float?)requestSettings?.FrequencyPenalty ?? _config.FrequencyPenalty,
+                MaxOutputTokenCount = requestSettings?.MaxTokens ?? _config.MaxTokens,
+                PresencePenalty = (float?)requestSettings?.PresencePenalty ?? _config.PresencePenalty,
+                Temperature = (float?)requestSettings?.Temperature ?? _config.Temperature,
+                TopP = (float?)requestSettings?.TopP ?? _config.TopP,
+            };
+            if (requestSettings != null)
+            {
+                if (options.StopSequences != null)
+                    foreach (var item in requestSettings.StopSequences)
+                    {
+                        options.StopSequences.Add(item);
+                    }
+                if (requestSettings.FunctionManager != null && options.Tools != null)
+                    foreach (var item in requestSettings.FunctionManager.FunctionInfos)
+                    {
+                        options.Tools.Add(ChatTool.CreateFunctionTool(item.Name, item.Description, BinaryData.FromObjectAsJson(item.Parameters), true));
+                    }
+            }
+
+            var chatMessages = chat.Select(x => CreateOpenAIChatMessage(x.Role, x.Contents)).ToList();
+
+            if (_config.IsStream)
+            {
+                AsyncCollectionResult<StreamingChatCompletionUpdate> ret = _chatClient.CompleteChatStreamingAsync(
+                    chatMessages, options, cancellationToken
+                );
+                await foreach (var msg in ret)
                 {
-                    var fContnet = x.Contents.FirstOrDefault();
-                    if (fContnet == null)
-                        return null;
-
-                    var roleName = x.Role.ToString().ToLower();
-                    if (x.Role != AuthorRole.User)
+                    var handleRet = _parser.Handle(msg, requestSettings?.FunctionManager);
+                    await foreach (var item2 in handleRet)
                     {
-                        switch (fContnet.ContentType)
-                        {
-                            case ChatMessageContentType.Text:
-                                return new OpenAIChatMessage(roleName, (string)fContnet.Content);
-                            case ChatMessageContentType.ImageBase64:
-                            case ChatMessageContentType.ImageURL:
-                                return new OpenAIChatMessage(roleName, $"![图片]({fContnet.ContentId}.png)");
-                            case ChatMessageContentType.DocStream:
-                            case ChatMessageContentType.DocURL:
-                                return new OpenAIChatMessage(roleName, $"[文档]({fContnet.ContentId}{Path.GetExtension(fContnet.ContentName)})");
-                            default:
-                                throw new NotSupportedException("OpenAI其它角色发送不支持的内容类型");
-                        }
+                        yield return item2;
                     }
-
-                    if (x.Contents.Count == 1 && x.Contents.First().ContentType == ChatMessageContentType.Text)
-                    {
-                        return new OpenAIChatMessage(roleName, (string)x.Contents.First().Content);
-                    }
-
-                    var retContent = new List<object>();
-                    var ret = new OpenAIChatMessage(roleName, retContent);
-                    foreach (var content in x.Contents)
-                    {
-                        switch (content.ContentType)
-                        {
-                            case ChatMessageContentType.Text:
-                                retContent.Add(new
-                                {
-                                    type = "text",
-                                    text = (string)content.Content
-                                });
-                                break;
-                            case ChatMessageContentType.ImageBase64:
-                            case ChatMessageContentType.ImageURL:
-                                retContent.Add(new
-                                {
-                                    type = "text",
-                                    text = $"![图片]({content.ContentId}.png)"
-                                });
-                                break;
-                            case ChatMessageContentType.DocStream:
-                            case ChatMessageContentType.DocURL:
-                                retContent.Add(new
-                                {
-                                    type = "text",
-                                    text = $"[文档]({content.ContentId}{Path.GetExtension(content.ContentName)})"
-                                });
-                                break;
-                            default:
-                                throw new NotSupportedException("OpenAI发送不支持的内容类型");
-                        }
-                    }
-                    return ret;
-                }).Where(x => x != null).ToList()!,
-                ToolChoice = (requestSettings?.FunctionManager == null || requestSettings.FunctionManager.FunctionInfos.Count <= 0) ? null : "auto",
-                StopAsList = requestSettings == null ? null : requestSettings.StopSequences.Any() ? requestSettings.StopSequences : null,
-                FrequencyPenalty = (float?)requestSettings?.FrequencyPenalty,
-                MaxTokens = requestSettings?.MaxTokens,
-                PresencePenalty = (float?)requestSettings?.PresencePenalty,
-                Stream = true,
-                Temperature = (float?)requestSettings?.Temperature,
-                TopP = (float?)requestSettings?.TopP,
-                Model = _config.Model,
-                Functions = (requestSettings?.FunctionManager == null || requestSettings.FunctionManager.FunctionInfos.Count <= 0) ? null : requestSettings.FunctionManager.FunctionInfos.Adapt<List<OpenAIFunctionInfo>>()
-            }, cancellationToken);
-            await foreach (var item in ret)
+                }
+            }
+            else
             {
-                var handleRet = _parser.Handle(item, requestSettings?.FunctionManager);
+                ChatCompletion ret = await _chatClient.CompleteChatAsync(
+                    chatMessages, options, cancellationToken
+                );
+                var handleRet = _parser.Handle(ret, requestSettings?.FunctionManager);
                 await foreach (var item2 in handleRet)
                 {
                     yield return item2;
