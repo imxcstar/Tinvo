@@ -21,7 +21,25 @@ namespace TrustInnova.Application.AIAssistant.Entities
 
         public string Prompt { get; set; } = "";
 
+        public List<AssistantHistoryMsgContent> HistoryMsg { get; set; } = [];
+
         public List<AssistantSkill> Skills { get; set; } = [];
+    }
+
+    public class AssistantHistoryMsgContent
+    {
+        public string Name { get; set; } = "";
+        public string Content { get; set; } = "";
+
+        public AssistantHistoryMsgContent()
+        {
+        }
+
+        public AssistantHistoryMsgContent(string name, string content)
+        {
+            Name = name;
+            Content = content;
+        }
     }
 
     public class AssistantSkill

@@ -1,5 +1,7 @@
-﻿using Serilog;
+﻿using OpenAI.Chat;
+using Serilog;
 using System;
+using System.ClientModel;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Mail;
@@ -9,21 +11,13 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using TrustInnova.Abstractions;
 using TrustInnova.Abstractions.AIScheduler;
-using TrustInnova.Provider.OpenAI.API;
 
 namespace TrustInnova.Provider.OpenAI.AIScheduler
 {
     public class OpenAIProviderParser : IAIChatParser
     {
-        private enum HandleState
-        {
-            Message,
-            Function
-        }
-
         private string _handleFunctionName = "";
         private StringBuilder _functionContentBuilder = new();
-        private HandleState _handleState = HandleState.Message;
         private Serilog.ILogger _logger;
 
         public OpenAIProviderParser()
@@ -33,70 +27,125 @@ namespace TrustInnova.Provider.OpenAI.AIScheduler
 
         public void ResetHandleState()
         {
-            _handleState = HandleState.Message;
         }
 
         public async IAsyncEnumerable<IAIChatHandleResponse> Handle(object msg, IFunctionManager? functionManager)
         {
-            _logger.Debug("{State}: AddHandleMsg: {value}", _handleState, msg == null ? "null" : JsonSerializer.Serialize(msg));
-            var choices = (msg as OpenAIChatCompletionCreateResponse)?.Choices?.FirstOrDefault();
-            if (choices == null || choices.Message == null)
+            if (msg is ChatCompletion tmsg)
             {
-                _logger.Debug("{State}: AddHandleMsg: choices is null", _handleState);
-                yield break;
-            }
-            _logger.Debug("{State}: AddHandleMsg函数信息：{value}", _handleState, _functionContentBuilder.ToString());
-            switch (_handleState)
-            {
-                case HandleState.Message:
-                    if (choices.Message.FunctionCall?.Name == null)
+                foreach (var item in tmsg.Content)
+                {
+                    _logger.Debug("AddHandleMsg 触发 {value} 信息", item.Kind.ToString());
+                    switch (item.Kind)
                     {
-                        var contentStr = choices.Message.Content?.ToString();
-                        if (!string.IsNullOrEmpty(contentStr))
+                        case ChatMessageContentPartKind.Text:
+                            _logger.Debug("AddHandleMsg文本信息：{value}", item.Text);
                             yield return new AIProviderHandleTextMessageResponse()
                             {
-                                Message = contentStr
+                                Message = item.Text
                             };
-                        break;
+                            break;
+                        case ChatMessageContentPartKind.Refusal:
+                            yield return new AIProviderHandleRefusalMessageResponse();
+                            break;
+                        case ChatMessageContentPartKind.Image:
+                            yield return new AIProviderHandleImageMessageResponse()
+                            {
+                                Image = item.ImageBytes.ToStream()
+                            };
+                            break;
+                        default:
+                            break;
                     }
-                    _handleFunctionName = choices.Message.FunctionCall.Name;
-                    _functionContentBuilder = new StringBuilder();
-                    _handleState = HandleState.Function;
-                    yield return new AIProviderHandleFunctionStartResponse()
+                }
+
+                switch (tmsg.FinishReason)
+                {
+                    case ChatFinishReason.ToolCalls:
+                    case ChatFinishReason.FunctionCall:
+                        foreach (var item in tmsg.ToolCalls)
+                        {
+                            switch (item.Kind)
+                            {
+                                case ChatToolCallKind.Function:
+                                    var functionText = item.FunctionArguments.ToString();
+                                    _handleFunctionName = item.FunctionName;
+                                    _logger.Debug("AddHandleMsg函数信息：{name}, {value}", _handleFunctionName, functionText);
+                                    _functionContentBuilder.Append(functionText);
+                                    break;
+                                default:
+                                    break;
+                            }
+                        }
+                        break;
+                    default:
+                        break;
+                }
+            }
+            else if (msg is StreamingChatCompletionUpdate streamMsg)
+            {
+                if (streamMsg.ContentUpdate.Count > 0)
+                {
+                    _handleFunctionName = "";
+                    _functionContentBuilder.Clear();
+                    foreach (var item in streamMsg.ContentUpdate)
+                    {
+                        _logger.Debug("AddHandleMsg 触发 {value} 信息", item.Kind.ToString());
+                        switch (item.Kind)
+                        {
+                            case ChatMessageContentPartKind.Text:
+                                _logger.Debug("AddHandleMsg文本信息：{value}", item.Text);
+                                yield return new AIProviderHandleTextMessageResponse()
+                                {
+                                    Message = item.Text
+                                };
+                                break;
+                            case ChatMessageContentPartKind.Refusal:
+                                yield return new AIProviderHandleRefusalMessageResponse();
+                                break;
+                            case ChatMessageContentPartKind.Image:
+                                yield return new AIProviderHandleImageMessageResponse()
+                                {
+                                    Image = item.ImageBytes.ToStream()
+                                };
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                }
+
+                foreach (var item in streamMsg.ToolCallUpdates)
+                {
+                    switch (item.Kind)
+                    {
+                        case ChatToolCallKind.Function:
+                            var functionText = item.FunctionArgumentsUpdate.ToString();
+                            _handleFunctionName = item.FunctionName;
+                            _logger.Debug("AddHandleMsg函数信息：{name}, {value}", _handleFunctionName, functionText);
+                            _functionContentBuilder.Append(functionText);
+                            break;
+                        default:
+                            break;
+                    }
+                }
+
+                if (streamMsg.FinishReason == ChatFinishReason.ToolCalls || streamMsg.FinishReason == ChatFinishReason.FunctionCall)
+                {
+                    var argStr = _functionContentBuilder.ToString();
+                    _logger.Debug("调用函数前触发：{name}, {argStr}", _handleFunctionName, argStr);
+                    yield return new AIProviderHandleFunctionCallResponse()
                     {
                         FunctionManager = functionManager!,
-                        FunctionName = _handleFunctionName
+                        FunctionName = _handleFunctionName,
+                        Arguments = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(argStr)
                     };
-                    break;
-                case HandleState.Function:
-                    var targuments = choices.Message.FunctionCall?.Arguments;
-                    if (choices.FinishReason == "function_call" || choices.FinishReason == "tool_calls")
-                    {
-                        var argStr = _functionContentBuilder.ToString();
-                        _logger.Debug("调用函数前触发：{name}, {argStr}", _handleFunctionName, argStr);
-                        yield return new AIProviderHandleFunctionCallResponse()
-                        {
-                            FunctionManager = functionManager!,
-                            FunctionName = _handleFunctionName,
-                            Arguments = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(argStr)
-                        };
-                        break;
-                    }
-                    else if (!string.IsNullOrEmpty(choices.Message.Content?.ToString()))
-                    {
-                        var contentStr = choices.Message.Content.ToString()!;
-                        yield return new AIProviderHandleTextMessageResponse()
-                        {
-                            Message = contentStr
-                        };
-                        _handleState = HandleState.Message;
-                    }
-                    else if (targuments == null)
-                        break;
-                    _functionContentBuilder.Append(targuments);
-                    break;
-                default:
-                    break;
+                }
+            }
+            else
+            {
+                _logger.Debug("AddHandleMsg: msg is not handle");
+                yield break;
             }
         }
     }

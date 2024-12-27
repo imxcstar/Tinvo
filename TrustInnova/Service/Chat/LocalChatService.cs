@@ -12,6 +12,8 @@ using TrustInnova.Abstractions;
 using TrustInnova.Application.Provider;
 using TrustInnova.Application.AIAssistant;
 using System.Text;
+using static MudBlazor.CategoryTypes;
+using System.Net.Mime;
 
 namespace TrustInnova.Service.Chat
 {
@@ -160,6 +162,17 @@ namespace TrustInnova.Service.Chat
                 await OnStateHasChange.InvokeAsync();
                 var ai = aiApp.GetAIProvider(_providerService);
                 var msgChat = ai.CreateNewChat(aiApp.Assistant.Prompt);
+                var defaultMsgHistory = aiApp.Assistant.HistoryMsg.Where(x => !string.IsNullOrWhiteSpace(x.Name));
+                foreach (var tmsg in defaultMsgHistory)
+                {
+                    msgChat.AddMessage(tmsg.Name.ToLower() switch
+                    {
+                        "user" => AuthorRole.User,
+                        "system" => AuthorRole.System,
+                        "assistant" => AuthorRole.Assistant,
+                        _ => AuthorRole.User
+                    }, [new(Guid.NewGuid().ToString(), tmsg.Content, ChatMessageContentType.Text)]);
+                }
                 var msgHistory = msgCache.MsgList[..^1];
                 foreach (var item in msgHistory)
                 {

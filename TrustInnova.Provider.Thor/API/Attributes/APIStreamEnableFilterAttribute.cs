@@ -7,7 +7,7 @@ using WebApiClientCore.Attributes;
 using WebApiClientCore;
 using Microsoft.AspNetCore.Components.WebAssembly.Http;
 
-namespace TrustInnova.Provider.OpenAI.API
+namespace TrustInnova.Provider.Thor.API
 {
     internal class APIStreamEnableFilterAttribute : ApiFilterAttribute
     {

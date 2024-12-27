@@ -33,10 +33,10 @@
                     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
                         <MudText>助手管理</MudText>
                         <MudMenu Icon="@Icons.Material.Filled.Settings"
-                                 Color="Color.Primary"
-                                 AnchorOrigin="Origin.BottomCenter"
-                                 TransformOrigin="Origin.TopCenter"
-                                 Dense="true">
+                        Color="Color.Primary"
+                        AnchorOrigin="Origin.BottomCenter"
+                        TransformOrigin="Origin.TopCenter"
+                        Dense="true">
                             <MudMenuItem OnClick="AddAsync">添加</MudMenuItem>
                             <MudDivider/>
                             <MudMenuItem OnClick="CopyAsnyc" Disabled="@(_selectEntity == null)">复制</MudMenuItem>
@@ -65,35 +65,50 @@
             <MudStack Class="pa-5">
                 @if (_selectEntity != null)
                 {
-                <MudTextField ShrinkLabel @bind-Value="_selectEntity.Name" OnBlur="SelectChangedAsync" Label="名字" Variant="Variant.Outlined"></MudTextField>
-                <MudTextField ShrinkLabel @bind-Value="_selectEntity.Prompt" OnBlur="SelectChangedAsync" Label="设定" Variant="Variant.Outlined" Lines="6"></MudTextField>
-                <MudDivider/>
-                <MudStack Row="true" AlignItems="AlignItems.Center">
-                    <MudText>技能</MudText>
-                    <MudIconButton Icon="@Icons.Material.Filled.AddCircleOutline" Color="Color.Primary" OnClick="SelectSkill"></MudIconButton>
-                </MudStack>
-                @foreach (var skillInfo in _selectEntity.Skills.Select(x => (Info: x, Metadata: _providerService.GetProviderTaskParameterMetadataById(x.Id))))
-                {
-                @if (skillInfo.Metadata == null)
-                continue;
-                <MudExpansionPanel Style="background-color: transparent;">
-                    <TitleContent>
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                            <MudText>@skillInfo.Metadata.ProviderTask.Name</MudText>
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete" OnClick="(async () => await DeleteSkillMetadata(skillInfo.Metadata.ProviderTask.ID))"></MudIconButton>
+                    <MudTextField ShrinkLabel @bind-Value="_selectEntity.Name" OnBlur="SelectChangedAsync" Label="名字" Variant="Variant.Outlined"></MudTextField>
+                    <MudTextField ShrinkLabel @bind-Value="_selectEntity.Prompt" OnBlur="SelectChangedAsync" Label="设定" Variant="Variant.Outlined" Lines="6"></MudTextField>
+                    <MudDivider />
+                    <MudStack AlignItems="AlignItems.Start">
+                        <MudStack Row="true" AlignItems="AlignItems.Center">
+                            <MudText>消息历史</MudText>
+                            <MudIconButton Icon="@Icons.Material.Filled.AddCircleOutline" Color="Color.Primary" OnClick="AddHistoryMsg"></MudIconButton>
                         </MudStack>
-                    </TitleContent>
-                    <ChildContent>
-                        <ProviderSetting Metadata="@skillInfo.Metadata" @bind-MetadataConfig="@skillInfo.Info.Content" OnBlur="SelectChangedAsync" Style="background-color: transparent;"></ProviderSetting>
-                    </ChildContent>
-                </MudExpansionPanel>
-                }
+                        @foreach (var item in _selectEntity.HistoryMsg)
+                        {
+                            <MudStack Row="true" AlignItems="AlignItems.Center">
+                                <MudTextField ShrinkLabel @bind-Value="item.Name" OnBlur="SelectChangedAsync" Label="角色" Variant="Variant.Outlined"></MudTextField>
+                                <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline" Color="Color.Primary" OnClick="(async ()=> await DeleteHistoryMsg(item))"></MudIconButton>
+                            </MudStack>
+                            <MudTextField ShrinkLabel @bind-Value="item.Content" FullWidth="true" OnBlur="SelectChangedAsync" Label="内容" Variant="Variant.Outlined" Lines="6"></MudTextField>
+                        }
+                    </MudStack>
+                    <MudDivider/>
+                    <MudStack Row="true" AlignItems="AlignItems.Center">
+                        <MudText>技能</MudText>
+                        <MudIconButton Icon="@Icons.Material.Filled.AddCircleOutline" Color="Color.Primary" OnClick="SelectSkill"></MudIconButton>
+                    </MudStack>
+                    @foreach (var skillInfo in _selectEntity.Skills.Select(x => (Info: x, Metadata: _providerService.GetProviderTaskParameterMetadataById(x.Id))))
+                    {
+                        @if (skillInfo.Metadata == null)
+                            continue;
+                        <MudExpansionPanel Style="background-color: transparent;">
+                            <TitleContent>
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                    <MudText>@skillInfo.Metadata.ProviderTask.Name</MudText>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" OnClick="(async () => await DeleteSkillMetadata(skillInfo.Metadata.ProviderTask.ID))"></MudIconButton>
+                                </MudStack>
+                            </TitleContent>
+                            <ChildContent>
+                                <ProviderSetting Metadata="@skillInfo.Metadata" @bind-MetadataConfig="@skillInfo.Info.Content" OnBlur="SelectChangedAsync" Style="background-color: transparent;"></ProviderSetting>
+                            </ChildContent>
+                        </MudExpansionPanel>
+                    }
                 }
                 else
                 {
-                <MudStack Justify="Justify.Center" AlignItems="AlignItems.Center" Style="height: 100vh">
-                    <MudText>请选择助手</MudText>
-                </MudStack>
+                    <MudStack Justify="Justify.Center" AlignItems="AlignItems.Center" Style="height: 100vh">
+                        <MudText>请选择助手</MudText>
+                    </MudStack>
                 }
             </MudStack>
         </MudPaper>
@@ -105,7 +120,7 @@
     private List<AssistantEntity> _allEntity = new();
     private bool _isHideAssistantSettings = true;
     private bool _assistantSettingsHideState = false;
-    
+
 
     private void OnHiddenChanged(bool value)
     {
@@ -172,6 +187,22 @@
         _allEntity.Clear();
         StateHasChanged();
         _allEntity = allEntity;
+        StateHasChanged();
+    }
+
+    private async Task AddHistoryMsg()
+    {
+        if (_selectEntity == null)
+            return;
+        _selectEntity.HistoryMsg.Add(new());
+        StateHasChanged();
+    }
+
+    private async Task DeleteHistoryMsg(AssistantHistoryMsgContent content)
+    {
+        if (_selectEntity == null)
+            return;
+        _selectEntity.HistoryMsg.Remove(content);
         StateHasChanged();
     }
 

@@ -90,7 +90,8 @@ namespace TrustInnova.Abstractions.AIScheduler
     {
         System,
         Assistant,
-        User
+        User,
+        Tool
     }
 
     public enum ChatMessageContentType
