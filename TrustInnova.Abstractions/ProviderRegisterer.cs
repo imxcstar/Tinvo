@@ -22,8 +22,11 @@ namespace TrustInnova.Abstractions
 
         public List<ProviderInfo> Providers => _providers;
 
-        internal ProviderRegisterer()
+        public IServiceCollection Services { get; }
+
+        internal ProviderRegisterer(IServiceCollection services)
         {
+            Services = services;
             _providers = new List<ProviderInfo>();
         }
 
@@ -38,7 +41,7 @@ namespace TrustInnova.Abstractions
     {
         public static ProviderRegisterer AddProviderRegisterer(this IServiceCollection services)
         {
-            var ret = new ProviderRegisterer();
+            var ret = new ProviderRegisterer(services);
             services.AddSingleton(ret);
             return ret;
         }

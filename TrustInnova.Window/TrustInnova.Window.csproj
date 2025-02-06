@@ -22,6 +22,7 @@
 	</ItemGroup>
 	
 	<ItemGroup>
+		<ProjectReference Include="..\TrustInnova.Provider.Onnx\TrustInnova.Provider.Onnx.csproj" />
 		<ProjectReference Include="..\TrustInnova\TrustInnova.csproj" />
 		<ProjectReference Include="..\TrustInnova.Provider.Baidu\TrustInnova.Provider.Baidu.csproj" />
 		<ProjectReference Include="..\TrustInnova.Provider.LLama\TrustInnova.Provider.LLama.csproj" />

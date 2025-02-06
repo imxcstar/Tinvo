@@ -35,6 +35,13 @@ namespace TrustInnova.Application.Provider
 
     public class ProviderTaskParameterMetadata
     {
+        private readonly IServiceProvider _serviceProvider;
+
+        public ProviderTaskParameterMetadata(IServiceProvider serviceProvider)
+        {
+            _serviceProvider = serviceProvider;
+        }
+
         public ProviderTaskInfo ProviderTask { get; set; } = null!;
 
         public List<TypeMetadata>? Parameters { get; set; }
@@ -90,7 +97,11 @@ namespace TrustInnova.Application.Provider
                 }
                 else
                 {
-                    throw new ArgumentException($"Missing parameter '{param.Name}' for constructor of type {ProviderTask.Type.FullName}");
+                    var service = _serviceProvider.GetService(param.ParameterType);
+                    if (service != null)
+                        args[i] = service;
+                    else
+                        throw new ArgumentException($"Missing parameter '{param.Name}' for constructor of type {ProviderTask.Type.FullName}");
                 }
             }
 
@@ -101,10 +112,14 @@ namespace TrustInnova.Application.Provider
     public class ProviderService
     {
         private readonly ProviderRegisterer _providerRegisterer;
+        private readonly IServiceProvider _serviceProvider;
 
-        public ProviderService(ProviderRegisterer providerRegisterer)
+        public IServiceProvider ServiceProvider => _serviceProvider;
+
+        public ProviderService(ProviderRegisterer providerRegisterer, IServiceProvider serviceProvider)
         {
             _providerRegisterer = providerRegisterer;
+            _serviceProvider = serviceProvider;
         }
 
         public List<ProviderTaskInfo> GetAllProviderTasks()
@@ -175,7 +190,7 @@ namespace TrustInnova.Application.Provider
             var taskConfigs = GetProviderTaskConfigs();
             return tasks.Select(x =>
             {
-                return new ProviderTaskParameterMetadata
+                return new ProviderTaskParameterMetadata(ServiceProvider)
                 {
                     ProviderTask = x,
                     Parameters = x.Type.GetConstructors().FirstOrDefault()?.GetParameters()
@@ -191,7 +206,7 @@ namespace TrustInnova.Application.Provider
             if (task == null)
                 return null;
             var taskConfigs = GetProviderTaskConfigs();
-            return new ProviderTaskParameterMetadata
+            return new ProviderTaskParameterMetadata(ServiceProvider)
             {
                 ProviderTask = task,
                 Parameters = task.Type.GetConstructors().FirstOrDefault()?.GetParameters()
