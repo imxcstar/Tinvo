@@ -1,6 +1,8 @@
-﻿using System;
+﻿using Microsoft.ML.OnnxRuntimeGenAI;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
@@ -12,96 +14,89 @@ namespace TrustInnova.Provider.Onnx
     [TypeMetadataDisplayName("聊天配置")]
     public class OnnxChatConfig
     {
-        public string Url { get; set; } = "";
-        public string Model { get; set; } = "";
+        public string ModelPath { get; set; } = "";
+
+        public string Template { get; set; } = "";
+
+        public List<string> Stop { get; set; } = [];
+    }
+
+    public class OnnxChatProviderLoadInfo : IDisposable
+    {
+        public Model Model { get; set; }
+        public Tokenizer Tokenizer { get; set; }
+
+        public OnnxChatProviderLoadInfo(Model model, Tokenizer tokenizer)
+        {
+            Model = model;
+            Tokenizer = tokenizer;
+        }
+
+        public void Dispose()
+        {
+            Tokenizer.Dispose();
+            Model.Dispose();
+        }
+    }
+
+    public class OnnxChatProviderLoader : IDisposable
+    {
+        private Dictionary<string, OnnxChatProviderLoadInfo> _loadinfo = [];
+
+        public OnnxChatProviderLoadInfo Load(string modelPath)
+        {
+            if (_loadinfo.TryGetValue(modelPath, out var ret))
+                return ret;
+            var model = new Model(modelPath);
+            var tokenizer = new Tokenizer(model);
+            ret = new OnnxChatProviderLoadInfo(model, tokenizer);
+            _loadinfo[modelPath] = ret;
+            return ret;
+        }
+
+        public void Dispose()
+        {
+            foreach (var item in _loadinfo)
+            {
+                item.Value.Dispose();
+            }
+            _loadinfo.Clear();
+        }
     }
 
     [ProviderTask("OnnxChat", "Onnx")]
     public class OnnxChatProvider : IAIChatTask
     {
-        private string _url;
-        private string _model;
-        private OllamaApiClient _client;
+        private OnnxChatConfig _config;
+        private OnnxChatProviderLoadInfo _modelInfo;
 
-        public OnnxChatProvider(OllamaChatConfig config)
+        public OnnxChatProvider(OnnxChatConfig config, OnnxChatProviderLoader loader)
         {
-            _url = config.Url;
-            _model = config.Model;
-            if (!_url.EndsWith("/api"))
-                _url = $"{_url.TrimEnd('/')}/api";
-            _client = new OllamaApiClient(baseUri: new Uri(_url));
+            _config = config;
+            _modelInfo = loader.Load(config.ModelPath);
         }
 
         public async IAsyncEnumerable<IAIChatHandleResponse> ChatAsync(ChatHistory chat, ChatSettings? chatSettings = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            var request = new GenerateChatCompletionRequest()
-            {
-                Model = _model,
-                Options = new RequestOptions()
-                {
-                    Temperature = (float?)chatSettings?.Temperature,
-                    TopP = (float?)chatSettings?.TopP,
-                    Stop = chatSettings?.StopSequences.Select(x => (string?)x).ToList(),
-                },
-                Messages = chat.Select(x =>
-                {
-                    var fContnet = x.Contents.FirstOrDefault();
-                    if (fContnet == null)
-                        return null;
+            string prompt = _config.Template.Replace("{user}", (string)chat.Last(x => x.Role == AuthorRole.User).Contents.First().Content);
+            var sequences = _modelInfo.Tokenizer.Encode(prompt);
 
-                    if (x.Role == AuthorRole.Assistant)
-                    {
-                        if (fContnet.ContentType != ChatMessageContentType.Text)
-                            throw new NotSupportedException("Ollama其它角色发送不支持的内容类型");
-                        return new Message()
-                        {
-                            Role = MessageRole.Assistant,
-                            Content = (string)fContnet.Content
-                        };
-                    }
-                    else
-                    {
-                        var role = x.Role switch
-                        {
-                            AuthorRole.User => MessageRole.User,
-                            _ => MessageRole.System
-                        };
-                        if (x.Contents.Count >= 2 && x.Contents.Any(x => x.ContentType == ChatMessageContentType.ImageBase64))
-                        {
-                            return new Message()
-                            {
-                                Role = role,
-                                Content = (string?)x.Contents.FirstOrDefault(x => x.ContentType == ChatMessageContentType.Text)?.Content ?? "解释下这图片内容",
-                                Images = [(string)x.Contents.First(x => x.ContentType == ChatMessageContentType.ImageBase64).Content]
-                            };
-                        }
-                        switch (fContnet.ContentType)
-                        {
-                            case ChatMessageContentType.Text:
-                                return new Message()
-                                {
-                                    Role = role,
-                                    Content = (string)fContnet.Content,
-                                };
-                            case ChatMessageContentType.ImageBase64:
-                            case ChatMessageContentType.ImageURL:
-                            case ChatMessageContentType.DocStream:
-                            case ChatMessageContentType.DocURL:
-                            default:
-                                throw new NotSupportedException("Ollama发送不支持的内容类型");
-                        }
-                    }
-                }).Where(x => x != null).ToList()!
-            };
-            var ret = _client.Chat.GenerateChatCompletionAsync(request, cancellationToken);
-            await foreach (var item in ret)
+            using GeneratorParams generatorParams = new GeneratorParams(_modelInfo.Model);
+
+            using var tokenizerStream = _modelInfo.Tokenizer.CreateStream();
+            using var generator = new Generator(_modelInfo.Model, generatorParams);
+            generator.AppendTokenSequences(sequences);
+            while (!generator.IsDone())
             {
-                if (string.IsNullOrEmpty(item?.Message?.Content))
-                    continue;
+                generator.GenerateNextToken();
+                var msg = tokenizerStream.Decode(generator.GetSequence(0)[^1]);
+                if (_config.Stop.Count > 0 && _config.Stop.Contains(msg))
+                    break;
                 yield return new AIProviderHandleTextMessageResponse()
                 {
-                    Message = item.Message.Content
+                    Message = msg
                 };
+                await Task.Delay(10, cancellationToken);
             }
         }
 

@@ -16,6 +16,7 @@ using TrustInnova.Application.AIAssistant;
 using TrustInnova.Application.Provider;
 using TrustInnova.Provider.Ollama;
 using TrustInnova.Provider.LLama;
+using TrustInnova.Provider.Onnx;
 
 namespace TrustInnova
 {
@@ -53,7 +54,8 @@ namespace TrustInnova
                     .RegistererOpenAIProvider()
                     .RegistererXunFeiProvider()
                     .RegistererOllamaProvider()
-                    .RegistererLLamaProvider();
+                    .RegistererLLamaProvider()
+                    .RegistererOnnxProvider();
 
             services.AddSingleton<ProviderService>();
 

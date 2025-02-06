@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Extensions.DependencyInjection;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -13,6 +14,7 @@ namespace TrustInnova.Provider.Onnx
         public static ProviderRegisterer RegistererOnnxProvider(this ProviderRegisterer registerer)
         {
             var types = Assembly.GetExecutingAssembly().GetTypes();
+            registerer.Services.AddSingleton<OnnxChatProviderLoader>();
             registerer.AddProviderInfo(new ProviderInfo()
             {
                 ID = "Onnx",
