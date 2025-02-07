@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net9.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Mapster" Version="7.4.0" />
+		<PackageReference Include="OpenAI" Version="2.1.0" />
+		<PackageReference Include="WebApiClientCore" Version="2.1.4" />
+		<PackageReference Include="SixLabors.ImageSharp" Version="3.1.5" />
+		<PackageReference Include="TiktokenSharp" Version="1.1.5" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\Tinvo.Abstractions\Tinvo.Abstractions.csproj" />
+	  <ProjectReference Include="..\Tinvo.Utils\Tinvo.Utils.csproj" />
+	</ItemGroup>
+
+</Project>

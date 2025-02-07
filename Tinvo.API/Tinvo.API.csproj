@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="7.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Tinvo.Application\Tinvo.Application.csproj" />
+    <ProjectReference Include="..\Tinvo.Provider.Baidu\Tinvo.Provider.Baidu.csproj" />
+    <ProjectReference Include="..\Tinvo.Provider.LLama\Tinvo.Provider.LLama.csproj" />
+    <ProjectReference Include="..\Tinvo.Provider.Ollama\Tinvo.Provider.Ollama.csproj" />
+    <ProjectReference Include="..\Tinvo.Provider.OpenAI\Tinvo.Provider.OpenAI.csproj" />
+    <ProjectReference Include="..\Tinvo.Provider.XunFei\Tinvo.Provider.XunFei.csproj" />
+  </ItemGroup>
+
+</Project>

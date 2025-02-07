@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Tinvo.Window": {
+      "commandName": "Project",
+      "remoteDebugEnabled": false
+    }
+  }
+}

@@ -1,0 +1,12 @@
+<Directives xmlns="http://schemas.microsoft.com/netfx/2013/01/metadata">
+    <Application>
+        <Assembly Name="Tinvo.Abstractions" Dynamic="Required All" />
+        <Assembly Name="Tinvo" Dynamic="Required All" />
+        <Assembly Name="Tinvo.Application" Dynamic="Required All" />
+        <Assembly Name="Tinvo.Provider.Baidu" Dynamic="Required All" />
+        <Assembly Name="Tinvo.Provider.LLama" Dynamic="Required All" />
+        <Assembly Name="Tinvo.Provider.Ollama" Dynamic="Required All" />
+        <Assembly Name="Tinvo.Provider.OpenAI" Dynamic="Required All" />
+        <Assembly Name="Tinvo.Provider.XunFei" Dynamic="Required All" />
+    </Application>
+</Directives>
