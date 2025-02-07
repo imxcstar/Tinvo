@@ -1,0 +1,6 @@
+@Tinvo.API_HostAddress = http://localhost:5261
+
+GET {{Tinvo.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
