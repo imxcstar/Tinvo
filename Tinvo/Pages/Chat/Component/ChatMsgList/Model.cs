@@ -83,6 +83,7 @@ namespace Tinvo.Pages.Chat.Component.ChatMsgList
         public string Id { get; set; }
         public string Name { get; set; }
         public string Content { get; set; }
+        public string ReasoningContent { get; set; } = "";
         public string HeadIconURL { get; set; }
         public ChatUserType UserType { get; set; }
         public ChatContentType ContentType { get; set; }

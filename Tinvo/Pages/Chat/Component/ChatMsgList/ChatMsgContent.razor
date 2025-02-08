@@ -19,39 +19,56 @@
     }
 </style>
 
-@switch (ContentType)
+@if (!string.IsNullOrEmpty(ReasoningContent))
 {
-    case ChatContentType.Image:
-        <MudImage ObjectFit="ObjectFit.ScaleDown" Style="max-width: 250px;max-height:250px;" Src="@($"{(Content.StartsWith("http")?"":"data:image/png;base64, ")}{Content}")" Elevation="25" Class="rounded-lg" />
-        break;
+    <MudExpansionPanels>
+        <MudExpansionPanel Text="思考" Expanded="true">
+            <MudText Typo="Typo.subtitle1" Style="color: #BDBDBD">
+                @((MarkupString)ReasoningContent.Replace("\n", "<br>"))
+            </MudText>
+        </MudExpansionPanel>
+    </MudExpansionPanels>
+}
 
-    case ChatContentType.File:
-    case ChatContentType.Audio:
-    case ChatContentType.Video:
-        <FileContent Name="@Content"></FileContent>
-        break;
+@if (!string.IsNullOrEmpty(Content))
+{
+    @switch (ContentType)
+    {
+        case ChatContentType.Image:
+            <MudImage ObjectFit="ObjectFit.ScaleDown" Style="max-width: 250px;max-height:250px;" Src="@($"{(Content.StartsWith("http")?"":"data:image/png;base64, ")}{Content}")" Elevation="25" Class="rounded-lg" />
+            break;
 
-    default:
-        <MudPaper Elevation="1" Width="100%" Class="pa-3 mt-1 mr-1" Style="@TextStyle">
-            @if (IfTextUseRawText)
-            {
-                <pre class="wordWrap" style="font-size: initial;font-family: var(--mud-typography-default-family);">
-                    @Content
-                </pre>
-            }
-            else
-            {
-                <MMarkdownIt Source="@Content"
-                             Html="true"
-                             Class="markdown-parser__basic" Style="font-size: initial;" />
-            }
-        </MudPaper>
-        break;
+        case ChatContentType.File:
+        case ChatContentType.Audio:
+        case ChatContentType.Video:
+            <FileContent Name="@Content"></FileContent>
+            break;
+
+        default:
+            <MudPaper Elevation="1" Width="100%" Class="pa-3 mt-1 mr-1" Style="@TextStyle">
+                @if (IfTextUseRawText)
+                {
+                    <pre class="wordWrap" style="font-size: initial;font-family: var(--mud-typography-default-family);">
+                        @Content
+                    </pre>
+                }
+                else
+                {
+                    <MMarkdownIt Source="@Content"
+                                 Html="true"
+                                 Class="markdown-parser__basic" Style="font-size: initial;" />
+                }
+            </MudPaper>
+            break;
+    }
 }
 
 @code {
     [Parameter]
     public string Content { get; set; }
+
+    [Parameter]
+    public string ReasoningContent { get; set; }
 
     [Parameter]
     public ChatContentType ContentType { get; set; }

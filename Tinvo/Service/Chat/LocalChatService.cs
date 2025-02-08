@@ -202,6 +202,7 @@ namespace Tinvo.Service.Chat
                     }
                 }
                 var isFirstMsg = true;
+                var isInReasoning = false;
                 var functionManager = new FunctionManager();
                 //functionManager.AddFunction(typeof(AIUtilsSkill), nameof(AIUtilsSkill.DrawImage));
                 //functionManager.AddFunction(typeof(AIUtilsSkill), nameof(AIUtilsSkill.QuerySystemInformation));
@@ -227,14 +228,29 @@ namespace Tinvo.Service.Chat
                             }
                             if (isFirstMsg)
                             {
-                                newRetMsg.Content = messageResponse.Message;
+                                if (isInReasoning)
+                                {
+                                    newRetMsg.Content = "";
+                                    newRetMsg.ReasoningContent = messageResponse.Message;
+                                }
+                                else
+                                    newRetMsg.Content = messageResponse.Message;
                                 isFirstMsg = false;
                             }
                             else
                             {
-                                newRetMsg.Content += messageResponse.Message;
+                                if (isInReasoning)
+                                    newRetMsg.ReasoningContent += messageResponse.Message;
+                                else
+                                    newRetMsg.Content += messageResponse.Message;
                             }
                             await OnStateHasChange.InvokeAsync();
+                            break;
+                        case AIChatHandleResponseType.ReasoningStart:
+                            isInReasoning = true;
+                            break;
+                        case AIChatHandleResponseType.ReasoningEnd:
+                            isInReasoning = false;
                             break;
                         case AIChatHandleResponseType.ImageMessage:
                             var imageMessageResponse = item as AIProviderHandleImageMessageResponse;

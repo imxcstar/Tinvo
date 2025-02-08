@@ -18,12 +18,24 @@ namespace Tinvo.Abstractions.AIScheduler
         ImageMessage,
         FunctionStart,
         FunctionCall,
-        Refusal
+        Refusal,
+        ReasoningStart,
+        ReasoningEnd,
     }
 
     public class AIProviderHandleRefusalMessageResponse : IAIChatHandleResponse
     {
         public AIChatHandleResponseType Type => AIChatHandleResponseType.Refusal;
+    }
+
+    public class AIProviderHandleReasoningStartResponse : IAIChatHandleResponse
+    {
+        public AIChatHandleResponseType Type => AIChatHandleResponseType.ReasoningStart;
+    }
+
+    public class AIProviderHandleReasoningEndResponse : IAIChatHandleResponse
+    {
+        public AIChatHandleResponseType Type => AIChatHandleResponseType.ReasoningEnd;
     }
 
     public class AIProviderHandleTextMessageResponse : IAIChatHandleResponse
