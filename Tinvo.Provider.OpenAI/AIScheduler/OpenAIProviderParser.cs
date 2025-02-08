@@ -11,6 +11,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Tinvo.Abstractions;
 using Tinvo.Abstractions.AIScheduler;
+using Tinvo.Utils.Extend;
 
 namespace Tinvo.Provider.OpenAI.AIScheduler
 {
@@ -19,6 +20,7 @@ namespace Tinvo.Provider.OpenAI.AIScheduler
         private string _handleFunctionName = "";
         private StringBuilder _functionContentBuilder = new();
         private Serilog.ILogger _logger;
+        private bool _isInReasoning = false;
 
         public OpenAIProviderParser()
         {
@@ -27,6 +29,12 @@ namespace Tinvo.Provider.OpenAI.AIScheduler
 
         public void ResetHandleState()
         {
+        }
+
+        private IDictionary<string, BinaryData>? GetAdditionalRawData(StreamingChatCompletionUpdate item)
+        {
+            var choice = item.GetPrivatePropertyValue<object>("InternalChoiceDelta");
+            return choice?.GetPrivatePropertyValue<IDictionary<string, BinaryData>>("SerializedAdditionalRawData");
         }
 
         public async IAsyncEnumerable<IAIChatHandleResponse> Handle(object msg, IFunctionManager? functionManager)
@@ -84,6 +92,31 @@ namespace Tinvo.Provider.OpenAI.AIScheduler
             }
             else if (msg is StreamingChatCompletionUpdate streamMsg)
             {
+                var additionalRawData = GetAdditionalRawData(streamMsg);
+                if (additionalRawData?.TryGetValue("reasoning_content", out var val) == true)
+                {
+                    var reasoningContent = val?.ToObjectFromJson<string>();
+                    if (!string.IsNullOrEmpty(reasoningContent))
+                    {
+                        if (!_isInReasoning)
+                        {
+                            _isInReasoning = true;
+                            yield return new AIProviderHandleReasoningStartResponse();
+                        }
+
+                        yield return new AIProviderHandleTextMessageResponse()
+                        {
+                            Message = reasoningContent
+                        };
+                    }
+                }
+
+                if (_isInReasoning)
+                {
+                    _isInReasoning = false;
+                    yield return new AIProviderHandleReasoningEndResponse();
+                }
+
                 if (streamMsg.ContentUpdate.Count > 0)
                 {
                     _handleFunctionName = "";
