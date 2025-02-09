@@ -1,6 +1,7 @@
 ﻿using Ollama;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -15,17 +16,23 @@ namespace Tinvo.Provider.Ollama
     {
         public string Url { get; set; } = "";
         public string Model { get; set; } = "";
+        [TypeMetadataAllowNull]
+        public string? ReasoningStartToken { get; set; }
+        [TypeMetadataAllowNull]
+        public string? ReasoningEndToken { get; set; }
     }
 
     [ProviderTask("OllamaChat", "Ollama")]
     public class OllamaChatProvider : IAIChatTask
     {
+        private OllamaChatConfig _config;
         private string _url;
         private string _model;
         private OllamaApiClient _client;
 
         public OllamaChatProvider(OllamaChatConfig config)
         {
+            _config = config;
             _url = config.Url;
             _model = config.Model;
             if (!_url.EndsWith("/api"))
@@ -99,6 +106,20 @@ namespace Tinvo.Provider.Ollama
             {
                 if (string.IsNullOrEmpty(item?.Message?.Content))
                     continue;
+                var content = item.Message.Content;
+                if (!string.IsNullOrEmpty(_config.ReasoningStartToken) && !string.IsNullOrEmpty(_config.ReasoningEndToken))
+                {
+                    if (content == _config.ReasoningStartToken)
+                    {
+                        yield return new AIProviderHandleReasoningStartResponse();
+                        continue;
+                    }
+                    if (content == _config.ReasoningEndToken)
+                    {
+                        yield return new AIProviderHandleReasoningEndResponse();
+                        continue;
+                    }
+                }
                 yield return new AIProviderHandleTextMessageResponse()
                 {
                     Message = item.Message.Content
