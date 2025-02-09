@@ -14,6 +14,8 @@ using System.ClientModel;
 using OpenAI;
 using OpenAIChatMessage = OpenAI.Chat.ChatMessage;
 using OpenAIChatMessageContent = OpenAI.Chat.ChatMessageContent;
+using Microsoft.AspNetCore.Components.WebAssembly.Http;
+using System.ClientModel.Primitives;
 
 namespace Tinvo.Provider.OpenAI.AIScheduler
 {
@@ -56,6 +58,14 @@ namespace Tinvo.Provider.OpenAI.AIScheduler
         public bool IsStream { get; set; } = true;
     }
 
+    public class BlazorHttpClientTransport : HttpClientPipelineTransport
+    {
+        protected override void OnSendingRequest(PipelineMessage message, HttpRequestMessage httpRequest)
+        {
+            httpRequest.SetBrowserResponseStreamingEnabled(true);
+        }
+    }
+
     [ProviderTask("OpenAIChat", "OpenAI")]
     public class OpenAIChatProvider : IAIChatTask
     {
@@ -69,7 +79,8 @@ namespace Tinvo.Provider.OpenAI.AIScheduler
             _chatClient = new ChatClient(_config.Model, new ApiKeyCredential(_config.Token ?? ""), new OpenAIClientOptions()
             {
                 Endpoint = new Uri(_config.BaseURL),
-                NetworkTimeout = TimeSpan.FromDays(10)
+                NetworkTimeout = TimeSpan.FromDays(10),
+                Transport = new BlazorHttpClientTransport()
             });
             _parser = new OpenAIProviderParser();
         }

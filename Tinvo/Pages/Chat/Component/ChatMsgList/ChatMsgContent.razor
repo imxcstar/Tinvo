@@ -19,15 +19,23 @@
     }
 </style>
 
-@if (!string.IsNullOrEmpty(ReasoningContent))
+@if (!string.IsNullOrEmpty(ReasoningContent?.Replace("\n", "")?.Replace(" ", "")))
 {
-    <MudExpansionPanels>
-        <MudExpansionPanel Text="思考" Expanded="true">
-            <MudText Typo="Typo.subtitle1" Style="color: #BDBDBD">
-                @((MarkupString)ReasoningContent.Replace("\n", "<br>"))
-            </MudText>
-        </MudExpansionPanel>
-    </MudExpansionPanels>
+    <MExpansionPanels @bind-Values="panel" Multiple>
+        <MExpansionPanel>
+            <MExpansionPanelHeader>
+                <MudStack AlignItems="AlignItems.Start">
+                    <MudText>思考</MudText>
+                </MudStack>
+            </MExpansionPanelHeader>
+            <MExpansionPanelContent>
+                <MMarkdownIt Source="@ReasoningContent"
+                             Html="false"
+                             Breaks="true"
+                             Class="markdown-parser__basic" Style="font-size: initial;color: #BDBDBD" />
+            </MExpansionPanelContent>
+        </MExpansionPanel>
+    </MExpansionPanels>
 }
 
 @if (!string.IsNullOrEmpty(Content))
@@ -55,7 +63,7 @@
                 else
                 {
                     <MMarkdownIt Source="@Content"
-                                 Html="true"
+                                 Html="false"
                                  Class="markdown-parser__basic" Style="font-size: initial;" />
                 }
             </MudPaper>
@@ -64,6 +72,8 @@
 }
 
 @code {
+    private List<StringNumber> panel = new() { 0 };
+
     [Parameter]
     public string Content { get; set; }
 
