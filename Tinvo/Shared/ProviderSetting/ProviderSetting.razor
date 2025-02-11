@@ -21,6 +21,12 @@
                             }
                         </MudSelect>
                     }
+                    else if (configMetadataParam.SimpleType == Application.Utils.TypeMetadataSimpleType.Bool)
+                    {
+                        <MudStack Row="true" Justify="Justify.FlexStart">
+                            <MudSwitch @onblur="TOnBlur" Label="@configMetadataParam.ToString()" LabelPlacement="Placement.Start" @bind-Value="@configMetadataParam.ValueBool" />
+                        </MudStack>
+                    }
                     else
                     {
                         <MudTextField T="string" Lines="@configMetadataParam.DisplayStyles.LineNumber" OnBlur="TOnBlur" @bind-Value="@configMetadataParam.ValueStr" RequiredError="必选" Required="@(!configMetadataParam.AllowNull)" Label="@configMetadataParam.ToString()" Variant="Variant.Outlined" Margin="Margin.Dense"></MudTextField>
@@ -28,7 +34,7 @@
                 }
                 else if (configMetadataParam.SubTypeMetadatas != null)
                 {
-                    <MudExpansionPanel Style="@Style" Text="@(configMetadataParam.Desc ?? configMetadataParam.DisplayName ?? configMetadataParam.Name)">
+                    <MudExpansionPanel Style="@Style" Text="@(configMetadataParam.Desc ?? configMetadataParam.DisplayName ?? configMetadataParam.Name)" Expanded="true">
                         <MudStack Style="@Style">
                             @for (int k = 0; k < configMetadataParam.SubTypeMetadatas!.Count; k++)
                             {
@@ -42,6 +48,12 @@
                                             <MudSelectItem Value="@enumValue.Name" />
                                         }
                                     </MudSelect>
+                                }
+                                else if (configMetadataParamConfig.SimpleType == Application.Utils.TypeMetadataSimpleType.Bool)
+                                {
+                                    <MudStack Row="true" Justify="Justify.FlexStart">
+                                        <MudSwitch @onblur="TOnBlur" Label="@configMetadataParamConfig.ToString()" LabelPlacement="Placement.Start" @bind-Value="@configMetadataParamConfig.ValueBool" />
+                                    </MudStack>
                                 }
                                 else
                                 {
