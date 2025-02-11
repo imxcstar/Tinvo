@@ -96,6 +96,23 @@ Current date: {DateTime.Now.ToString("yyyy-MM-dd")}", ChatMessageContentType.Tex
             return ret;
         }
 
+        [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "get_SerializedAdditionalRawData")]
+        private extern static IDictionary<string, BinaryData>? GetSerializedAdditionalRawData(ChatCompletionOptions @this);
+
+        [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "set_SerializedAdditionalRawData")]
+        private extern static void SetSerializedAdditionalRawData(ChatCompletionOptions @this, IDictionary<string, BinaryData>? value);
+
+        private void SetMaxTokens(ChatCompletionOptions options, int value)
+        {
+            IDictionary<string, BinaryData>? rawData = GetSerializedAdditionalRawData(options);
+            if (rawData == null)
+            {
+                rawData = new Dictionary<string, BinaryData>();
+                SetSerializedAdditionalRawData(options, rawData);
+            }
+            rawData["max_tokens"] = BinaryData.FromObjectAsJson(value);
+        }
+
         private OpenAIChatMessage CreateOpenAIChatMessage(AuthorRole role, List<Abstractions.AIScheduler.ChatMessageContent> contents)
         {
             var msg = contents.Select(x =>
@@ -149,6 +166,7 @@ Current date: {DateTime.Now.ToString("yyyy-MM-dd")}", ChatMessageContentType.Tex
             }
 
             var chatMessages = chat.Select(x => CreateOpenAIChatMessage(x.Role, x.Contents)).ToList();
+            SetMaxTokens(options, requestSettings?.MaxTokens ?? _config.MaxTokens);
 
             if (_config.IsStream)
             {

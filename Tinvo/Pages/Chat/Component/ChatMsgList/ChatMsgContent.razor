@@ -21,21 +21,14 @@
 
 @if (!string.IsNullOrEmpty(ReasoningContent?.Replace("\n", "")?.Replace(" ", "")))
 {
-    <MExpansionPanels @bind-Values="panel" Multiple>
-        <MExpansionPanel>
-            <MExpansionPanelHeader>
-                <MudStack AlignItems="AlignItems.Start">
-                    <MudText>思考</MudText>
-                </MudStack>
-            </MExpansionPanelHeader>
-            <MExpansionPanelContent>
-                <MMarkdownIt Source="@ReasoningContent"
-                             Html="false"
-                             Breaks="true"
-                             Class="markdown-parser__basic" Style="font-size: initial;color: #BDBDBD" />
-            </MExpansionPanelContent>
-        </MExpansionPanel>
-    </MExpansionPanels>
+    <MudExpansionPanels>
+        <MudExpansionPanel Text="思考" Expanded="true">
+            <MMarkdownIt Source="@ReasoningContent"
+                         Html="false"
+                         Breaks="true"
+                         Class="markdown-parser__basic" Style="font-size: initial;color: #BDBDBD" />
+        </MudExpansionPanel>
+    </MudExpansionPanels>
 }
 
 @if (!string.IsNullOrEmpty(Content))

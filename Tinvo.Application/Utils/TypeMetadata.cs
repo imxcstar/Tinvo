@@ -206,6 +206,8 @@ namespace Tinvo.Application.Utils
                 return TypeMetadataSimpleType.Text;
             if (type == typeof(char))
                 return TypeMetadataSimpleType.Text;
+            if (type == typeof(bool))
+                return TypeMetadataSimpleType.Bool;
             return TypeMetadataSimpleType.Other;
         }
 
@@ -335,6 +337,12 @@ namespace Tinvo.Application.Utils
             set => Value = value;
         }
 
+        public bool ValueBool
+        {
+            get => (bool)(Value ?? false);
+            set => Value = value;
+        }
+
         public TypeMetadataSimpleType SimpleType { get; set; }
         public string? Desc { get; set; }
         public bool AllowNull { get; set; }
@@ -415,6 +423,7 @@ namespace Tinvo.Application.Utils
         Integer,
         Float,
         Text,
-        Enum
+        Enum,
+        Bool
     }
 }
