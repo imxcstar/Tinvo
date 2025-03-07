@@ -26,5 +26,5 @@ WORKDIR /app
 COPY --from=publish /app/publish .
 ENV TZ=Asia/Shanghai
 ENV ASPNETCORE_HTTP_PORTS=80
-
-ENTRYPOINT ["dotnet", "Tinvo.Web.dll", "wasm"]
+ENV MODE=Server
+ENTRYPOINT dotnet Tinvo.Web.dll $MODE
