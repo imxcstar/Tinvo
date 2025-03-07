@@ -1,0 +1,114 @@
+/* mobile */
+:root {
+    --app-height: 100%;
+}
+
+html,
+body {
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+    /* mobile viewport bug fix */
+    min-height: -webkit-fill-available;
+    background: radial-gradient(circle at top left, rgba(255, 253, 245, 0.8), transparent 50%), radial-gradient(circle at bottom right, rgba(231, 240, 253, 0.8), transparent 50%), radial-gradient(circle at center, rgba(255, 247, 227, 0.8), transparent 50%);
+    background-blend-mode: overlay;
+}
+
+html, body * {
+    scrollbar-color: unset !important;
+    scrollbar-width: unset !important;
+}
+
+/* 隐藏滚动条，但保留宽度 */
+::-webkit-scrollbar {
+    width: 12px; /* 滚动条的宽度 */
+}
+
+::-webkit-scrollbar-track {
+    background: transparent !important; /* 滚动条的背景色 */
+}
+
+::-webkit-scrollbar-thumb {
+    background: transparent !important; /* 滚动条的颜色 */
+    border-radius: 4px !important; /* 滑块圆角 */
+}
+
+.sbc:hover::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.3) !important; /* 滑块颜色 */
+}
+
+/* code标签 */
+.code-container {
+    display: flex;
+    flex-direction: row;
+}
+
+@media only screen and (max-width: 959px) {
+    .code-container {
+        max-width: calc(100vw - 150px);
+    }
+}
+
+.code-container-toolbar {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    max-width: 100%;
+    background-color: #c1c1c1;
+    border-radius: 4px 4px 0px 0px;
+    padding-left: 5px;
+    padding-right: 5px;
+    user-select: none;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.code-container-toolbar p {
+    padding-top: 2px;
+}
+
+.code-container pre {
+    max-width: 100%;
+    position: relative;
+}
+
+code {
+    padding: 2px 4px;
+    font-size: 90%;
+    background-color: #d1d1d1;
+    border-radius: 4px;
+    margin-bottom: 5px;
+}
+
+.source-code {
+    display: flex;
+    flex-direction: row;
+    max-width: 100vh;
+    padding: 2px 4px;
+    background-color: #d1d1d1;
+    font-size: 100%;
+    border-radius: 0px 0px 4px 4px;
+    margin-bottom: 5px;
+}
+
+.source-code-line {
+    height: 23px;
+}
+
+.source-code-line-numbers {
+    width: 50px;
+    user-select: none;
+    text-align: right;
+    padding-right: 25px;
+    display: flex;
+    flex-direction: column;
+}
+
+.source-code-line-values {
+    display: flex;
+    flex-direction: column;
+    overflow-x: scroll;
+}

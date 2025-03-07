@@ -35,7 +35,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseSerilog((context, services, configuration) => configuration
     .MinimumLevel.Information()
+#if DEBUG
     .MinimumLevel.Override("Tinvo", LogEventLevel.Debug)
+#endif
     .ReadFrom.Services(services)
     .Enrich.FromLogContext()
     .WriteTo.Console());

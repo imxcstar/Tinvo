@@ -18,6 +18,35 @@ function loadScript(url, callback) {
     document.getElementsByTagName("head")[0].appendChild(script);
 }
 
+function clearCacheAndReload() {
+
+    if ('caches' in window) {
+        // 首先获取所有的缓存名
+        caches.keys().then(function (cacheNames) {
+            // 使用Promise.all来确保所有缓存都被删除了
+            Promise.all(cacheNames.map(function (cacheName) {
+                return caches.open(cacheName).then(function (cache) {
+                    // 获取这个缓存中的所有请求
+                    return cache.keys().then(function (requests) {
+                        // 使用Promise.all来确保所有请求都被删除了
+                        return Promise.all(requests.map(function (request) {
+                            // 删除请求
+                            return cache.delete(request);
+                        }));
+                    });
+                });
+            })).then(function () {
+                // 所有的缓存和请求都被删除后，刷新页面
+                window.location.reload(true);
+            });
+        });
+    } else {
+        window.location.reload(true);
+    }
+
+    event.preventDefault();
+}
+
 window.blazorHelper = {
     checkScrollEnd: function (id) {
         var d = document.getElementById(id);
@@ -138,6 +167,30 @@ window.blazorHelper = {
         anchorElement.click();
         anchorElement.remove();
         URL.revokeObjectURL(url);
+    },
+    RegisterInfoMessageFun: function(dotNetReference, methodName)
+    {
+        window.sendInfoMessage = async value => {
+            await dotNetReference.invokeMethodAsync(methodName, value);
+        }
+    },
+    RegisterSuccessMessageFun: function(dotNetReference, methodName)
+    {
+        window.sendSuccessMessage = async value => {
+            await dotNetReference.invokeMethodAsync(methodName, value);
+        }
+    },
+    RegisterErrorMessageFun: function(dotNetReference, methodName)
+    {
+        window.sendErrorMessage = async value => {
+            await dotNetReference.invokeMethodAsync(methodName, value);
+        }
+    },
+    RegisterWarnMessageFun: function(dotNetReference, methodName)
+    {
+        window.sendWarnMessage = async value => {
+            await dotNetReference.invokeMethodAsync(methodName, value);
+        }
     }
 }
 

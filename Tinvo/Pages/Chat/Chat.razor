@@ -313,6 +313,30 @@
     }
 
     [JSInvokable]
+    public void SendInfoMessage(string value)
+    {
+        _snackbar.Add(value, Severity.Info);
+    }
+
+    [JSInvokable]
+    public void SendSuccessMessage(string value)
+    {
+        _snackbar.Add(value, Severity.Success);
+    }
+    
+    [JSInvokable]
+    public void SendErrorMessage(string value)
+    {
+        _snackbar.Add(value, Severity.Error);
+    }
+
+    [JSInvokable]
+    public void SendWarnMessage(string value)
+    {
+        _snackbar.Add(value, Severity.Warning);
+    }
+    
+    [JSInvokable]
     public bool OnMsgInputKeyDownBefore(string value)
     {
         return enableSend;
@@ -383,6 +407,12 @@
                     await NewMsgGroup();
                 await _js.InvokeVoidAsync("blazorHelper.InitScrollEndListener", "msg-history-group", DotNetObjectReference.Create(this), nameof(OnMsgGroupScrollToEnd));
                 await _js.InvokeVoidAsync("blazorHelper.OnKeyDownListen", "input-msg", "!shift + !ctrl + Enter", DotNetObjectReference.Create(this), nameof(OnMsgInputKeyDownBefore), nameof(OnMsgInputKeyDownAfter));
+                
+                await _js.InvokeVoidAsync("blazorHelper.RegisterInfoMessageFun", DotNetObjectReference.Create(this), nameof(SendInfoMessage));
+                await _js.InvokeVoidAsync("blazorHelper.RegisterSuccessMessageFun", DotNetObjectReference.Create(this), nameof(SendSuccessMessage));
+                await _js.InvokeVoidAsync("blazorHelper.RegisterErrorMessageFun", DotNetObjectReference.Create(this), nameof(SendErrorMessage));
+                await _js.InvokeVoidAsync("blazorHelper.RegisterWarnMessageFun", DotNetObjectReference.Create(this), nameof(SendWarnMessage));
+                
                 isLoadingMsgList = false;
             }
             catch (Exception ex)
