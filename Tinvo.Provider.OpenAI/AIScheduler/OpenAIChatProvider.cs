@@ -56,6 +56,10 @@ namespace Tinvo.Provider.OpenAI.AIScheduler
         [Description("流式")]
         [DefaultValue(true)]
         public bool IsStream { get; set; } = true;
+        
+        [Description("思考处理")]
+        [DefaultValue(false)]
+        public bool ThinkHandle { get; set; } = false;
     }
 
     public class BlazorHttpClientTransport : HttpClientPipelineTransport
@@ -82,7 +86,7 @@ namespace Tinvo.Provider.OpenAI.AIScheduler
                 NetworkTimeout = TimeSpan.FromDays(10),
                 Transport = new BlazorHttpClientTransport()
             });
-            _parser = new OpenAIProviderParser();
+            _parser = new OpenAIProviderParser(_config.ThinkHandle);
         }
 
         public ChatHistory CreateNewChat(string? instructions = null)

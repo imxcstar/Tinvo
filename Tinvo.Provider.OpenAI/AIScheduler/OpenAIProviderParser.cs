@@ -21,10 +21,12 @@ namespace Tinvo.Provider.OpenAI.AIScheduler
         private StringBuilder _functionContentBuilder = new();
         private Serilog.ILogger _logger;
         private bool _isInReasoning = false;
+        private bool _isThinkHandle = false;
 
-        public OpenAIProviderParser()
+        public OpenAIProviderParser(bool isThinkHandle)
         {
             _logger = Log.ForContext<OpenAIProviderParser>();
+            _isThinkHandle = isThinkHandle;
         }
 
         public void ResetHandleState()
@@ -78,13 +80,15 @@ namespace Tinvo.Provider.OpenAI.AIScheduler
                                 case ChatToolCallKind.Function:
                                     var functionText = item.FunctionArguments.ToString();
                                     _handleFunctionName = item.FunctionName;
-                                    _logger.Debug("AddHandleMsg函数信息：{name}, {value}", _handleFunctionName, functionText);
+                                    _logger.Debug("AddHandleMsg函数信息：{name}, {value}", _handleFunctionName,
+                                        functionText);
                                     _functionContentBuilder.Append(functionText);
                                     break;
                                 default:
                                     break;
                             }
                         }
+
                         break;
                     default:
                         break;
@@ -127,11 +131,30 @@ namespace Tinvo.Provider.OpenAI.AIScheduler
                         switch (item.Kind)
                         {
                             case ChatMessageContentPartKind.Text:
-                                _logger.Debug("AddHandleMsg文本信息：{value}", item.Text);
-                                yield return new AIProviderHandleTextMessageResponse()
+                                if (_isThinkHandle)
                                 {
-                                    Message = item.Text
-                                };
+                                    if (item.Text.Replace("\n", "") == "<think>")
+                                        yield return new AIProviderHandleReasoningStartResponse();
+                                    else if (item.Text.Replace("\n", "") == "</think>")
+                                        yield return new AIProviderHandleReasoningEndResponse();
+                                    else
+                                    {
+                                        _logger.Debug("AddHandleMsg文本信息：{value}", item.Text);
+                                        yield return new AIProviderHandleTextMessageResponse()
+                                        {
+                                            Message = item.Text
+                                        };
+                                    }
+                                }
+                                else
+                                {
+                                    _logger.Debug("AddHandleMsg文本信息：{value}", item.Text);
+                                    yield return new AIProviderHandleTextMessageResponse()
+                                    {
+                                        Message = item.Text
+                                    };
+                                }
+
                                 break;
                             case ChatMessageContentPartKind.Refusal:
                                 yield return new AIProviderHandleRefusalMessageResponse();
@@ -163,7 +186,8 @@ namespace Tinvo.Provider.OpenAI.AIScheduler
                     }
                 }
 
-                if (streamMsg.FinishReason == ChatFinishReason.ToolCalls || streamMsg.FinishReason == ChatFinishReason.FunctionCall)
+                if (streamMsg.FinishReason == ChatFinishReason.ToolCalls ||
+                    streamMsg.FinishReason == ChatFinishReason.FunctionCall)
                 {
                     var argStr = _functionContentBuilder.ToString();
                     _logger.Debug("调用函数前触发：{name}, {argStr}", _handleFunctionName, argStr);
