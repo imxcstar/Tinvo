@@ -40,7 +40,7 @@ namespace Tinvo.Provider.XunFei.AIScheduler
         {
             var chatRet = _chatApi.SendChat(new XFSparkDeskChatAPIRequest()
             {
-                MaxTokens = requestSettings?.MaxTokens ?? 1024,
+                MaxTokens = requestSettings?.MaxOutputTokens ?? 1024,
                 Messages = chat.Select(x =>
                 {
                     var fContnet = x.Contents.FirstOrDefault();

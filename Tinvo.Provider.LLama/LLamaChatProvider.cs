@@ -126,7 +126,7 @@ namespace Tinvo.Provider.LLama
             }).Where(x => x != null).ToArray()!);
             var inferenceParams = new InferenceParams()
             {
-                MaxTokens = chatSettings?.MaxTokens ?? _config.MaxTokens,
+                MaxTokens = chatSettings?.MaxOutputTokens ?? _config.MaxTokens,
                 SamplingPipeline = new DefaultSamplingPipeline()
                 {
                     Temperature = Convert.ToSingle(chatSettings?.Temperature ?? _config.Temperature),
