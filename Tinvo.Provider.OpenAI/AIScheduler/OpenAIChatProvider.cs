@@ -33,9 +33,9 @@ namespace Tinvo.Provider.OpenAI.AIScheduler
         [Description("模型")]
         public string Model { get; set; } = null!;
 
-        [Description("MaxTokens")]
-        [DefaultValue(4096)]
-        public int MaxTokens { get; set; } = 4096;
+        [Description("最大输出Token")]
+        [DefaultValue(8192)]
+        public int MaxOutputTokens { get; set; } = 8192;
 
         [Description("FrequencyPenalty")]
         [DefaultValue(0)]
@@ -56,10 +56,14 @@ namespace Tinvo.Provider.OpenAI.AIScheduler
         [Description("流式")]
         [DefaultValue(true)]
         public bool IsStream { get; set; } = true;
-        
+
         [Description("思考处理")]
         [DefaultValue(false)]
         public bool ThinkHandle { get; set; } = false;
+
+        [Description("兼容旧版API")]
+        [DefaultValue(false)]
+        public bool CompatibleOldAPI { get; set; } = false;
     }
 
     public class BlazorHttpClientTransport : HttpClientPipelineTransport
@@ -150,7 +154,7 @@ Current date: {DateTime.Now.ToString("yyyy-MM-dd")}", ChatMessageContentType.Tex
             {
                 ToolChoice = (requestSettings?.FunctionManager == null || requestSettings.FunctionManager.FunctionInfos.Count <= 0) ? null : ChatToolChoice.CreateAutoChoice(),
                 FrequencyPenalty = (float?)requestSettings?.FrequencyPenalty ?? _config.FrequencyPenalty,
-                MaxOutputTokenCount = requestSettings?.MaxTokens ?? _config.MaxTokens,
+                MaxOutputTokenCount = requestSettings?.MaxOutputTokens ?? _config.MaxOutputTokens,
                 PresencePenalty = (float?)requestSettings?.PresencePenalty ?? _config.PresencePenalty,
                 Temperature = (float?)requestSettings?.Temperature ?? _config.Temperature,
                 TopP = (float?)requestSettings?.TopP ?? _config.TopP,
@@ -170,7 +174,8 @@ Current date: {DateTime.Now.ToString("yyyy-MM-dd")}", ChatMessageContentType.Tex
             }
 
             var chatMessages = chat.Select(x => CreateOpenAIChatMessage(x.Role, x.Contents)).ToList();
-            SetMaxTokens(options, requestSettings?.MaxTokens ?? _config.MaxTokens);
+            if (_config.CompatibleOldAPI)
+                SetMaxTokens(options, requestSettings?.MaxOutputTokens ?? _config.MaxOutputTokens);
 
             if (_config.IsStream)
             {

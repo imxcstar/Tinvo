@@ -95,7 +95,7 @@ namespace Tinvo.Provider.XunFei.AIScheduler
                 imageChatMessage.Insert(0, lastImage);
                 var imageRet = _imageApi.SendImageChat(new XFSparkDeskImageAPIRequest()
                 {
-                    MaxTokens = requestSettings?.MaxTokens ?? 1024,
+                    MaxTokens = requestSettings?.MaxOutputTokens ?? 1024,
                     Messages = imageChatMessage
                 }, cancellationToken);
                 await foreach (var item in imageRet)
@@ -134,7 +134,7 @@ namespace Tinvo.Provider.XunFei.AIScheduler
                 FunctionManager = fm,
                 Temperature = 0.5,
                 TopP = 4,
-                MaxTokens = 1024
+                MaxOutputTokens = 1024
             }, cancellationToken);
             await foreach (var intention in intentionRet)
             {

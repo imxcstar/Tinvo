@@ -38,7 +38,7 @@ namespace Tinvo.Abstractions.AIScheduler
 
         public int ResultsPerPrompt { get; set; } = 1;
 
-        public int? MaxTokens { get; set; }
+        public int? MaxOutputTokens { get; set; }
 
         public IFunctionManager? FunctionManager { get; set; }
     }
