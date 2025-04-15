@@ -8,7 +8,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="9.0.0" />
+		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="9.0.4" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -25,8 +25,8 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<LlamaSharpBackendCpu Include="$(NuGetPackageRoot)\llamasharp.backend.cpu\0.19.0\runtimes\**\*.*" />
-		<LlamaSharpBackendVulkan Include="$(NuGetPackageRoot)\llamasharp.backend.vulkan\0.19.0\runtimes\**\*.*" />
+		<LlamaSharpBackendCpu Include="$(NuGetPackageRoot)\llamasharp.backend.cpu\0.23.0\runtimes\**\*.*" />
+		<LlamaSharpBackendVulkan Include="$(NuGetPackageRoot)\llamasharp.backend.vulkan\0.23.0\runtimes\**\*.*" />
 	</ItemGroup>
 
 	<Target Name="CopyRuntimesFolderOnPublish" AfterTargets="Publish">
