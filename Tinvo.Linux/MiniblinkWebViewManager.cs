@@ -46,10 +46,24 @@ namespace Tinvo
                 if (string.IsNullOrWhiteSpace(message))
                     return;
 
-                var messageJSStringLiteral = HttpUtility.JavaScriptStringEncode(message);
-                var script = $"window.__dispatchMessageCallback((\"{messageJSStringLiteral}\"))";
-
-                MessageQueue.Enqueue(script);
+                var messageJSStringLiteral = message;
+                const int chunkSize = 1024; // 可根据实际情况调整每段的长度
+                int totalChunks = (messageJSStringLiteral.Length + chunkSize - 1) / chunkSize;
+                // 先初始化缓存区
+                MessageQueue.Enqueue("window.__msg_chunks = [];");
+                for (int i = 0; i < totalChunks; i++)
+                {
+                    int startIndex = i * chunkSize;
+                    int length = Math.Min(chunkSize, messageJSStringLiteral.Length - startIndex);
+                    string chunk = HttpUtility.JavaScriptStringEncode(messageJSStringLiteral.Substring(startIndex, length));
+                    // 把每个chunk写入数组
+                    var script = $"window.__msg_chunks.push(\"{chunk}\");";
+                    MessageQueue.Enqueue(script);
+                }
+                // 拼接并调用回调
+                string finalScript = "window.__dispatchMessageCallback(window.__msg_chunks.join(''));" +
+                                     "delete window.__msg_chunks;";
+                MessageQueue.Enqueue(finalScript);
             }
             catch (Exception ex)
             {

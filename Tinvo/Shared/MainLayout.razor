@@ -8,17 +8,9 @@
 <MudSnackbarProvider />
 
 <style>
-    .con-width {
-        width: calc(100% - 48px);
-    }
-
     @@media only screen and (max-width: 599px) {
         .xsh {
             padding-top: 0px;
-        }
-
-        .con-width {
-            width: 100%;
         }
     }
 
@@ -37,29 +29,25 @@
         padding-left: 8px;
         border-radius: 4px;
     }
-
-    .menu-button {
-        margin-top: 5px;
-    }
 </style>
 
 
-<MudStack Spacing="0" Row="true" Style="width: 100%;height: 100vh;background-color: transparent;">
+<MudStack Spacing="0" Row="true" Justify="Justify.FlexStart" AlignItems="AlignItems.Start" StretchItems="StretchItems.End" Style="height: 100vh;background-color: transparent;">
     <MudHidden Breakpoint="Breakpoint.Xs" Invert="false">
-        <MudDrawer Elevation="1" Variant="@DrawerVariant.Mini" Class="pb-3 pt-3" Style="background-color: transparent;">
-            <MudDrawerHeader Style="padding: 8px 8px 0px 8px;">
+        <MudStack AlignItems="AlignItems.Center" Class="pb-3 pt-3" Style="background-color: transparent;width: 60px;height: 100%">
+            <div>
                 <MudImage Src="_content/Tinvo/icon-128.png" Width="40" Height="40" Class="rounded-circle" />
-            </MudDrawerHeader>
-            <MudPaper Elevation="0" Style="padding-left: 8px">
+            </div>
+            <MudPaper Elevation="0" Style="padding-left: 10px">
                 <NavMenu />
             </MudPaper>
             <MudSpacer />
-            <MudPaper Elevation="0" Style="padding-left: 8px">
+            <MudPaper Elevation="0" Style="padding-left: 10px">
                 <BNavMenu />
             </MudPaper>
-        </MudDrawer>
+        </MudStack>
     </MudHidden>
-    <MudPaper Class="con-width" Height="100vh" Elevation="0" Style="background-color: transparent;">
+    <MudPaper Class="con-width" Height="100%" Elevation="0" Style="background-color: transparent;flex-basis: 0" MinWidth="0">
         @Body
     </MudPaper>
 </MudStack>

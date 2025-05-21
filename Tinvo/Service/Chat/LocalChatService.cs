@@ -95,7 +95,7 @@ namespace Tinvo.Service.Chat
             await OnStateHasChange.InvokeAsync();
         }
 
-        private async Task SendAnyMsgAsync(string msg, AiAppInfo? aiApp, ChatContentType chatContentType, IBrowserFile? file = null, ChatMsgGroupItemInfo? msgGroup = null, List<string>? domainId = null, bool? kbsExactMode = null, CancellationToken cancellationToken = default)
+        private async Task SendAnyMsgAsync(string msg, AiAppInfo? aiApp, List<IBrowserFile>? files = null, ChatMsgGroupItemInfo? msgGroup = null, List<string>? domainId = null, bool? kbsExactMode = null, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -111,21 +111,38 @@ namespace Tinvo.Service.Chat
                 }
                 aiApp ??= AiAppList.First();
                 var msgCache = _msgCaches.FirstOrDefault(x => x.MsgGroup.Id == tmsgGroup.Id);
-                if (file != null)
+                var fileMsgs = new List<ChatMsgItemInfo>();
+                if (files != null && files.Count > 0)
                 {
-                    switch (chatContentType)
+                    foreach (var file in files)
                     {
-                        case ChatContentType.Image:
+                        var ext = Path.GetExtension(file.Name.ToLower()).Trim('.');
+                        var fileType = ext switch
+                        {
+                            string image when "jpg/jpeg/png/bmp/gif".Contains(image) => ChatContentType.Image,
+                            //string audio when "pcm/wav/amr/m4a/aac".Contains(audio) => ChatContentType.Audio,
+                            //string doc when "doc/docx/pdf/txt".Contains(doc) => ChatContentType.File,
+                            _ => throw new Exception($"不支持的文件类型({ext})")
+                        };
+                        switch (fileType)
+                        {
+                            case ChatContentType.Image:
                             {
                                 using var imageStream = new MemoryStream();
                                 using var fileStream = file.OpenReadStream(30 * 1024 * 1024);
                                 await fileStream.CopyToAsync(imageStream);
-                                msg = Convert.ToBase64String(imageStream.ToArray());
+                                fileMsgs.Add(new  ChatMsgItemInfo()
+                                {
+                                    Id = Guid.NewGuid().ToString(),
+                                    AiApp = aiApp,
+                                    Content = Convert.ToBase64String(imageStream.ToArray()),
+                                    ContentType = ChatContentType.Image,
+                                    UserType = ChatUserType.Sender,
+                                    CreateTime = DateTime.Now
+                                });
+                                break;
                             }
-                            break;
-                        default:
-                            msg = file.Name;
-                            break;
+                        }
                     }
                 }
                 var newMsg = new ChatMsgItemInfo()
@@ -133,7 +150,7 @@ namespace Tinvo.Service.Chat
                     Id = Guid.NewGuid().ToString(),
                     AiApp = aiApp,
                     Content = msg,
-                    ContentType = chatContentType,
+                    ContentType = ChatContentType.Text,
                     UserType = ChatUserType.Sender,
                     CreateTime = DateTime.Now
                 };
@@ -146,7 +163,7 @@ namespace Tinvo.Service.Chat
                     UserType = ChatUserType.Receiver,
                     CreateTime = DateTime.Now
                 };
-                List<ChatMsgItemInfo> nMsgs = [newMsg, newRetMsg];
+                List<ChatMsgItemInfo> nMsgs = [..fileMsgs, newMsg, newRetMsg];
                 if (msgCache == null)
                 {
                     msgCache = new MsgCacheInfo()
@@ -185,14 +202,7 @@ namespace Tinvo.Service.Chat
                     switch (item.UserType)
                     {
                         case ChatUserType.Sender:
-                            if (item.ContentType == ChatContentType.Image)
-                            {
-                                msgChat.AddMessage(AuthorRole.User, [new(Guid.NewGuid().ToString(), "我向你发送了一张图片，解释下这图片内容", ChatMessageContentType.Text), new(item.Id, item.Content, contentType)]);
-                            }
-                            else
-                            {
-                                msgChat.AddMessage(AuthorRole.User, [new(item.Id, item.Content, contentType)]);
-                            }
+                            msgChat.AddMessage(AuthorRole.User, [new(item.Id, item.Content, contentType)]);
                             break;
                         case ChatUserType.Receiver:
                             msgChat.AddMessage(AuthorRole.Assistant, [new(item.Id, item.Content, contentType)]);
@@ -337,24 +347,11 @@ namespace Tinvo.Service.Chat
             await _dataStorageService.SetItemAsync("msgCache", _msgCaches);
         }
 
-        public async Task SendMsgAsync(string msg, AiAppInfo? aiApp = null, ChatMsgGroupItemInfo? msgGroup = null, List<string>? domainId = null, bool? kbsExactMode = null, CancellationToken cancellationToken = default)
+        public async Task SendMsgAsync(string msg, List<IBrowserFile>? files = null, AiAppInfo? aiApp = null, ChatMsgGroupItemInfo? msgGroup = null, List<string>? domainId = null, bool? kbsExactMode = null, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(msg))
                 throw new Exception("请输入内容");
-            await SendAnyMsgAsync(msg, aiApp, ChatContentType.Text, null, msgGroup, domainId, kbsExactMode, cancellationToken);
-        }
-
-        public async Task SendMsgAsync(IBrowserFile file, AiAppInfo? aiApp = null, ChatMsgGroupItemInfo? msgGroup = null, List<string>? domainId = null, bool? kbsExactMode = null, CancellationToken cancellationToken = default)
-        {
-            var ext = Path.GetExtension(file.Name.ToLower()).Trim('.');
-            var fileType = ext switch
-            {
-                string image when "jpg/jpeg/png/bmp/gif".Contains(image) => ChatContentType.Image,
-                //string audio when "pcm/wav/amr/m4a/aac".Contains(audio) => ChatContentType.Audio,
-                //string doc when "doc/docx/pdf/txt".Contains(doc) => ChatContentType.File,
-                _ => throw new Exception($"不支持的文件类型({ext})")
-            };
-            await SendAnyMsgAsync("", aiApp, fileType, file, msgGroup, domainId, kbsExactMode, cancellationToken);
+            await SendAnyMsgAsync(msg, aiApp, files, msgGroup, domainId, kbsExactMode, cancellationToken);
         }
 
         public Task<bool> UpdateMsgGroup(ChatMsgGroupItemInfo msgGroup)

@@ -19,17 +19,13 @@
 <PageTitle>TinvoAI-聊天</PageTitle>
 
 <style>
-    .chat-width {
-        width: calc(100% - 300px - 12px);
-    }
-
     .send-msg-button {
         width: 180px;
     }
 
-        .send-msg-button span::before {
-            content: "发送(Enter)";
-        }
+    .send-msg-button span::before {
+        content: "发送(Enter)";
+    }
 
     .kbs-setting-view {
         width: 75vw !important;
@@ -44,23 +40,7 @@
         display: none;
     }
 
-
-    @@media only screen and (min-width: 599px) and (max-width: 959px) {
-        .chat-history-view {
-            width: 350px !important;
-        }
-    }
-
     @@media only screen and (max-width: 599px) {
-        .kbs-setting-view {
-            width: 100vw !important;
-            z-index: calc(var(--mud-zindex-appbar) + 3) !important;
-        }
-
-        .kbs-view {
-            width: 100vw !important;
-        }
-
         .chat-title {
             max-width: 50px;
             overflow: hidden;
@@ -71,33 +51,16 @@
         .chat-history-show {
             display: block;
         }
-
-        .chat-history-view {
-            width: 100vw !important;
-        }
     }
 
     @@media only screen and (max-width: 959px) {
-        .kbs-setting-view {
-            width: 100vw !important;
-            z-index: calc(var(--mud-zindex-appbar) + 3) !important;
-        }
-
-        .kbs-view {
-            width: 100vw !important;
-        }
-
-        .chat-width {
-            width: 100%;
-        }
-
         .send-msg-button {
             width: 80px;
         }
 
-            .send-msg-button span::before {
-                content: "发送";
-            }
+        .send-msg-button span::before {
+            content: "发送";
+        }
 
         .chat-history-show {
             display: block;
@@ -109,18 +72,19 @@
     }
 </style>
 
-<MudStack Row="true" Style="width: 100%;height: 100%;" Class="pa-5" Justify="Justify.Center" Spacing="0">
-    <MudStack AlignItems="AlignItems.Start" Class="@(_isShowChatHistory ? "ml-2" : "")">
-        <MudPaper Class="@(_isShowChatHistory ? "" : "d-none")" Width="350px" Style="background-color: transparent;">
-            <MudStack Row="true" Class="pl-2">
-                <MudIconButton Size="Size.Medium" Class="chat-history-show" Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="ShowChatHistory" />
-                <MudIconButton Size="Size.Medium" Icon="@Icons.Material.Filled.Assistant" Color="Color.Inherit" Edge="Edge.Start" OnClick="ShowAssistantManage" />
-                <MudIconButton Size="Size.Medium" Icon="@Icons.Material.Filled.Settings" Color="Color.Inherit" Edge="Edge.Start" OnClick="ShowSettings" />
-            </MudStack>
-        </MudPaper>
-        <MudPaper Class="@(_isShowChatHistory ? "" : "d-none " + "d-md-flex d-lg-flex d-xl-flex d-xxl-flex pr-1")" Height="100%" MaxWidth="350px" Width="350px" Style="overflow: hidden;background-color: transparent;">
-            <MudStack Spacing="0" Style=" height: 100%;width: 100%" Class="pb-3">
-                <MudStack AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="pl-3 pt-3" Spacing="1" Row="true">
+<MudStack Row="true" Style="height: 100%;" Class="pt-5 pr-2 pb-5" Justify="Justify.FlexStart" AlignItems="AlignItems.Start" StretchItems="StretchItems.End" Spacing="0">
+    <MudPaper Class="@(_isShowChatHistory ? "" : "d-none")" Width="350px" Style="background-color: transparent;">
+        <MudStack Row="true" Class="pl-2">
+            <MudIconButton Size="Size.Medium" Class="chat-history-show" Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="ShowChatHistory" />
+            <MudIconButton Size="Size.Medium" Icon="@Icons.Material.Filled.Assistant" Color="Color.Inherit" Edge="Edge.Start" OnClick="ShowAssistantManage" />
+            <MudIconButton Size="Size.Medium" Icon="@Icons.Material.Filled.Settings" Color="Color.Inherit" Edge="Edge.Start" OnClick="ShowSettings" />
+        </MudStack>
+    </MudPaper>
+    <MudPaper Class="@(_isShowChatHistory ? "" : "d-none " + "d-md-flex d-lg-flex d-xl-flex d-xxl-flex pr-1")" Height="100%" MaxWidth="350px" Width="350px" Style="overflow: hidden;background-color: transparent;">
+        <MudStack Style="width: 100%" Row="true" StretchItems="StretchItems.All" Justify="Justify.FlexStart" AlignItems="AlignItems.Start">
+            <MudStack Spacing="0" Style=" height: 100%;" Class="pb-3">
+                <MudStack AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="pl-3 pt-3" Spacing="1"
+                          Row="true">
                     <MudText>会话记录</MudText>
                     <MudTooltip Text="新建聊天">
                         <MudIconButton Icon="@Icons.Material.Filled.AddCircle" OnClick="NewMsgGroup"
@@ -129,9 +93,12 @@
                 </MudStack>
                 <MudStack Class="pl-3 pt-1 pr-3 pb-2">
                     <MudTextField @bind-Value="@searchChatMsgGroupName" AdornmentIcon="@Icons.Material.Filled.Search"
-                                  Adornment="Adornment.End" Immediate="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+                                  Adornment="Adornment.End" Immediate="true" Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"/>
                 </MudStack>
-                <MudPaper Elevation="0" Style="flex: 1;overflow-y:scroll;overflow-x:hidden;background-color: transparent;" Class="sbc pl-2 pr-1 msg-history-group">
+                <MudPaper Elevation="0"
+                          Style="flex: 1;overflow-y:scroll;overflow-x:hidden;background-color: transparent;"
+                          Class="sbc pl-2 pr-1 msg-history-group">
                     @if (isLoadingMsgGroupList)
                     {
                         @for (int i = 0; i < 30; i++)
@@ -156,7 +123,8 @@
                                 <div style="height: 50px"
                                      class="@($"chatHistoryGradual {(((selectMsgGroup != null && chatHistory.Id == selectMsgGroup.Id) || (selectMsgGroup == null && string.IsNullOrWhiteSpace(chatHistory.Id))) ? "chatHistoryGradual-select" : "")}")"
                                      @onclick="@(async () => { await GetMsgList(chatHistory); })">
-                                    <MudStack Row="true" Style="height: 100%" AlignItems="AlignItems.Center" Class="pl-6 pr-6">
+                                    <MudStack Row="true" Style="height: 100%" AlignItems="AlignItems.Center"
+                                              Class="pl-6 pr-6">
                                         <MudText>@chatHistory.Title</MudText>
                                         <MudSpacer/>
                                     </MudStack>
@@ -173,33 +141,40 @@
                     </MudStack>
                 }
             </MudStack>
-        </MudPaper>
-    </MudStack>
+        </MudStack>
+    </MudPaper>
+    
     <div style="width: 12px" class="d-none d-md-flex d-lg-flex d-xl-flex d-xxl-flex"></div>
-    <MudPaper Height="100%" Width="100%" Class="@(_isShowChatHistory ? "d-none" : "chat-width")" Style="background-color: transparent;">
-        <MudPaper Elevation="0" Class="rounded-0" Style="max-width:100%;height: 48px;background-color: transparent;">
-            <MudToolBar Dense="true" Style="width:100%">
-                <MudIconButton Class="chat-history-show" Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="ShowChatHistory" />
+    <MudPaper Height="100%" Class="@(_isShowChatHistory ? "d-none" : "chat-width")"
+              MinWidth="0"
+              Style="background-color: transparent;flex-basis: 0">
+        <MudPaper Elevation="0" Class="rounded-0" Style="height: 48px;background-color: transparent;">
+            <MudToolBar Dense="true">
+                <MudIconButton Class="chat-history-show" Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit"
+                               Edge="Edge.Start" OnClick="ShowChatHistory"/>
                 <MudText Class="chat-title">@(selectMsgGroup == null ? "新的聊天" : selectMsgGroup.Title)</MudText>
                 <MudText Class="pl-1 pr-1">-</MudText>
                 <MudText>@(selectAiApp?.Name ?? "")</MudText>
-                <MudIconButton Icon="@Icons.Material.Filled.Mode" Color="Color.Inherit" OnClick="ChatSetting" />
-                <MudSpacer />
+                <MudIconButton Icon="@Icons.Material.Filled.Mode" Color="Color.Inherit" OnClick="ChatSetting"/>
+                <MudSpacer/>
             </MudToolBar>
         </MudPaper>
-        <MudDivider />
+        <MudDivider/>
         <MudStack Spacing="1" Style="height: calc(100% - 48px)">
             <ChatMsgList Class="pt-1 mt-1" Items="@_chatService.MsgList" EnableLoadingState="@isLoadingMsgList"
-                         Style="width:100%;max-width:100%;height: 100%">
+                         Style="height: 100%">
             </ChatMsgList>
             @if (isChatMsgGenerating)
             {
-                <MudStack Justify="Justify.Center" Row="true" Style="height: 36.5px;margin-top: -45px;margin-bottom: 3px;">
-                    <MudButton StartIcon="@Icons.Material.Filled.Stop" IconColor="Color.Warning" Variant="Variant.Filled"
-                               Style="width: 130px;background-color: #ffffff" OnClick="StopChatMsgGenerate">停止生成</MudButton>
+                <MudStack Justify="Justify.Center" Row="true"
+                          Style="height: 36.5px;margin-top: -45px;margin-bottom: 3px;">
+                    <MudButton StartIcon="@Icons.Material.Filled.Stop" IconColor="Color.Warning"
+                               Variant="Variant.Filled"
+                               Style="width: 130px;background-color: #ffffff" OnClick="StopChatMsgGenerate">停止生成
+                    </MudButton>
                 </MudStack>
             }
-            <MudDivider />
+            <MudDivider/>
             <MudPaper Elevation="0" Style="min-height: 200px;background-color: transparent;">
                 <MudStack Style="height: 100%;">
                     <MudStack Spacing="1" Row="true" Style="height: 25px" Class="pt-1 pl-3 pr-3">
@@ -208,19 +183,20 @@
                                            Accept=".jpg,.jpeg,.png,.bmp,.gif,.doc,.docx,.pdf,.txt">
                                 <ActivatorContent>
                                     <MudIconButton Icon="@Icons.Material.Filled.AttachFile" Color="Color.Inherit"
-                                                   Size="Size.Small" />
+                                                   Size="Size.Small"/>
                                 </ActivatorContent>
                             </MudFileUpload>
                         </MudTooltip>
                         <MudTooltip Text="语音聊天">
                             <MudIconButton Icon="@Icons.Material.Filled.KeyboardVoice" Color="Color.Inherit"
-                                           Size="Size.Small" />
+                                           Size="Size.Small"/>
                         </MudTooltip>
-                        <MudSpacer />
+                        <MudSpacer/>
                     </MudStack>
-                    <div class="pl-3 pr-1 pb-1" style="height: 100%;width: 100%;">
-                        <MudStack Style="height: 100%;width: 100%;">
-                            <textarea id="input-msg" class="sbc input-msg" style="height: 100%;width: 100%;border: none;resize: none;outline: none;overflow-y:scroll;font-size: initial;"></textarea>
+                    <div class="pl-3 pr-1 pb-1" style="height: 100%;">
+                        <MudStack Style="height: 100%;">
+                            <textarea id="input-msg" class="sbc input-msg"
+                                      style="height: 100%;border: none;resize: none;outline: none;overflow-y:scroll;font-size: initial;"></textarea>
                             <MudStack Row="true" Justify="Justify.FlexEnd" Class="pr-2 pb-1">
                                 <MudButton Variant="Variant.Filled" Class="send-msg-button" OnClick="SendMsg"
                                            Disabled="!enableSend"></MudButton>
@@ -248,7 +224,7 @@
                        Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
                 @foreach (var aiApp in _chatService.AiAppList)
                 {
-                    <MudSelectItem Value="@aiApp" />
+                    <MudSelectItem Value="@aiApp"/>
                 }
             </MudSelect>
         </MudStack>
@@ -290,12 +266,12 @@
     {
         _navigationManager.NavigateTo("/settings");
     }
-    
+
     private void ShowAssistantManage()
     {
         _navigationManager.NavigateTo("/assistantManage");
     }
-    
+
     private void ShowChatHistory()
     {
         _isShowChatHistory = !_isShowChatHistory;
@@ -323,7 +299,7 @@
     {
         _snackbar.Add(value, Severity.Success);
     }
-    
+
     [JSInvokable]
     public void SendErrorMessage(string value)
     {
@@ -335,7 +311,7 @@
     {
         _snackbar.Add(value, Severity.Warning);
     }
-    
+
     [JSInvokable]
     public bool OnMsgInputKeyDownBefore(string value)
     {
@@ -371,10 +347,12 @@
                         _snackbar.Add("标题不能为空", Severity.Warning);
                         return;
                     }
+
                     if (selectMsgGroup.Title != oldName)
                         if (!await _chatService.UpdateMsgGroup(selectMsgGroup))
                             selectMsgGroup.Title = oldName;
                 }
+
                 selectAiApp = chatSetSelectAiApp;
             }
         }
@@ -382,6 +360,7 @@
         {
             _snackbar.Add(ex.Message, Severity.Error, config => { config.RequireInteraction = true; });
         }
+
         StateHasChanged();
     }
 
@@ -407,12 +386,12 @@
                     await NewMsgGroup();
                 await _js.InvokeVoidAsync("blazorHelper.InitScrollEndListener", "msg-history-group", DotNetObjectReference.Create(this), nameof(OnMsgGroupScrollToEnd));
                 await _js.InvokeVoidAsync("blazorHelper.OnKeyDownListen", "input-msg", "!shift + !ctrl + Enter", DotNetObjectReference.Create(this), nameof(OnMsgInputKeyDownBefore), nameof(OnMsgInputKeyDownAfter));
-                
+
                 await _js.InvokeVoidAsync("blazorHelper.RegisterInfoMessageFun", DotNetObjectReference.Create(this), nameof(SendInfoMessage));
                 await _js.InvokeVoidAsync("blazorHelper.RegisterSuccessMessageFun", DotNetObjectReference.Create(this), nameof(SendSuccessMessage));
                 await _js.InvokeVoidAsync("blazorHelper.RegisterErrorMessageFun", DotNetObjectReference.Create(this), nameof(SendErrorMessage));
                 await _js.InvokeVoidAsync("blazorHelper.RegisterWarnMessageFun", DotNetObjectReference.Create(this), nameof(SendWarnMessage));
-                
+
                 isLoadingMsgList = false;
             }
             catch (Exception ex)
@@ -420,6 +399,7 @@
                 _snackbar.Add(ex.Message, Severity.Error);
             }
         }
+
         await base.OnAfterRenderAsync(firstRender);
     }
 
@@ -464,6 +444,7 @@
             {
                 selectAiApp = _chatService.AiAppList.FirstOrDefault(x => x.Id == uAiapp.Id);
             }
+
             isLoadingMsgList = false;
             if (_isShowChatHistory)
                 _isShowChatHistory = false;
@@ -489,12 +470,13 @@
         if (fMsgGroup == null || !string.IsNullOrWhiteSpace(fMsgGroup.Id))
         {
             fMsgGroup = new ChatMsgGroupItemInfo()
-                {
-                    CreateTime = DateTime.Now,
-                    Title = "新的聊天",
-                };
+            {
+                CreateTime = DateTime.Now,
+                Title = "新的聊天",
+            };
             _chatService.MsgGroupList.Insert(0, fMsgGroup);
         }
+
         await GetMsgList(fMsgGroup);
     }
 
@@ -507,7 +489,7 @@
 
     private async Task SendFile(IBrowserFile? file)
     {
-        await Send(null, file);
+        await Send(await GetInputMsgValue(), file);
     }
 
     private async Task Send(string? sendMsgContent, IBrowserFile? file)
@@ -528,12 +510,14 @@
                         break;
                     }
                 }
+
                 if (isReturn)
                 {
                     _snackbar.Add("搜索中只能使用搜索的聊天组", Severity.Warning);
                     return;
                 }
             }
+
             if (chatMsgGenerateCancellationTokenSource != null)
                 await chatMsgGenerateCancellationTokenSource.CancelAsync();
             chatMsgGenerateCancellationTokenSource = new CancellationTokenSource();
@@ -543,16 +527,17 @@
             await _js.InvokeVoidAsyncIgnoreErrors("ChatContainerToBottom");
             await _js.InvokeVoidAsyncIgnoreErrors("StartChatContainerCheck");
             if (file == null)
-                await _chatService.SendMsgAsync(sendMsgContent, selectAiApp, msgGroup, null, null,
-                chatMsgGenerateCancellationTokenSource.Token);
+                await _chatService.SendMsgAsync(sendMsgContent, [], selectAiApp, msgGroup, null, null,
+                    chatMsgGenerateCancellationTokenSource.Token);
             else
-                await _chatService.SendMsgAsync(file, selectAiApp, msgGroup, null, null,
-                chatMsgGenerateCancellationTokenSource.Token);
+                await _chatService.SendMsgAsync(sendMsgContent, [file], selectAiApp, msgGroup, null, null,
+                    chatMsgGenerateCancellationTokenSource.Token);
         }
         catch (Exception ex)
         {
             _snackbar.Add(ex.Message, Severity.Error, config => { config.RequireInteraction = true; });
         }
+
         await _js.InvokeVoidAsyncIgnoreErrors("StopChatContainerCheck");
         await _js.InvokeVoidAsyncIgnoreErrors("ChatContainerToBottom", false);
         isChatMsgGenerating = false;
