@@ -46,7 +46,7 @@ function renderCode(md, origRule, options) {
             </div>`;
         return `
             <div class="code-container">
-                <div style="display: flex;flex-direction: column;max-width: 100%;">
+                <div style="display: flex;flex-direction: column;max-width: 100%">
                     <div class="code-container-toolbar">
                         <p>${langName}</p>
                         <button class="markdown-it-code-copy" data-clipboard-text="${content}" onclick="copyCode()" title="复制">

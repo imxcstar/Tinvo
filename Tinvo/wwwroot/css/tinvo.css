@@ -154,17 +154,17 @@ html, body * {
     flex-direction: row;
 }
 
-@media only screen and (max-width: 959px) {
+/*@media only screen and (max-width: 959px) {
     .code-container {
         max-width: calc(100vw - 150px);
     }
-}
+}*/
 
 .code-container-toolbar {
     display: flex;
     flex-direction: row;
     justify-content: space-between;
-    max-width: 100%;
+    /*max-width: 100%;*/
     background-color: #c1c1c1;
     border-radius: 4px 4px 0px 0px;
     padding-left: 5px;
@@ -180,7 +180,7 @@ html, body * {
 }
 
 .code-container pre {
-    max-width: 100%;
+    /*max-width: 100%;*/
     position: relative;
 }
 
@@ -195,7 +195,7 @@ code {
 .source-code {
     display: flex;
     flex-direction: row;
-    max-width: 100vh;
+    /*max-width: 100vh;*/
     padding: 2px 4px;
     background-color: #d1d1d1;
     font-size: 100%;
