@@ -5,6 +5,7 @@
     flex-direction: column;
     width: 100%;
     height: 100vh;
+    height: 100dvh;
     overflow: hidden;
     box-sizing: border-box;
 }
@@ -108,9 +109,6 @@
 
 
 /* mobile */
-:root {
-    --app-height: 100%;
-}
 
 html,
 body {
@@ -119,6 +117,7 @@ body {
     overflow: hidden;
     width: 100vw;
     height: 100vh;
+    height: 100dvh;
     /* mobile viewport bug fix */
     min-height: -webkit-fill-available;
     background: radial-gradient(circle at top left, rgba(255, 253, 245, 0.8), transparent 50%), radial-gradient(circle at bottom right, rgba(231, 240, 253, 0.8), transparent 50%), radial-gradient(circle at center, rgba(255, 247, 227, 0.8), transparent 50%);
@@ -153,12 +152,6 @@ html, body * {
     display: flex;
     flex-direction: row;
 }
-
-/*@media only screen and (max-width: 959px) {
-    .code-container {
-        max-width: calc(100vw - 150px);
-    }
-}*/
 
 .code-container-toolbar {
     display: flex;
@@ -195,7 +188,6 @@ code {
 .source-code {
     display: flex;
     flex-direction: row;
-    /*max-width: 100vh;*/
     padding: 2px 4px;
     background-color: #d1d1d1;
     font-size: 100%;

@@ -10,82 +10,78 @@
 @inject ProviderService _providerService;
 @inject NavigationManager _navigationManager
 
-<MudStack Row="@_isHideAssistantSettings" Style="height: 100%;" Class="pa-5" Justify="@(_isHideAssistantSettings ? Justify.Center : Justify.FlexStart)">
-    <MudStack AlignItems="AlignItems.Start" Class="ml-2">
-        <MudHidden Breakpoint="Breakpoint.MdAndDown" Invert="true">
-            <MudPaper Width="350px" Style="background-color: transparent;">
-                <MudStack Row="true" Class="pl-2">
-                    @if (!_isHideAssistantSettings)
-                    {
-                        <MudIconButton Size="Size.Medium" Icon="@Icons.Material.Filled.Backspace" Color="Color.Inherit" Edge="Edge.Start" OnClick="GoBack"/>
-                    }
-                    else
-                    {
-                        <MudIconButton Size="Size.Medium" Icon="@Icons.Material.Filled.Home" Color="Color.Inherit" Edge="Edge.Start" OnClick="GoHome"/>
-                    }
+<MudStack Row="@_isHideAssistantSettings" Style="height: 100%;" Class="pa-5"
+          Justify="@(_isHideAssistantSettings ? Justify.Center : Justify.FlexStart)">
+    @if (_isHideAssistantSettings)
+    {
+        <MudPaper Width="350px" Style="background-color: transparent;height: 100%">
+            <MudStack Style="height: 100%" Class="pl-2 pt-3 pr-1 pb-3">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                    <MudText>助手管理</MudText>
+                    <MudMenu Icon="@Icons.Material.Filled.Settings"
+                             Color="Color.Primary"
+                             AnchorOrigin="Origin.BottomCenter"
+                             TransformOrigin="Origin.TopCenter"
+                             Dense="true">
+                        <MudMenuItem OnClick="AddAsync">添加</MudMenuItem>
+                        <MudDivider/>
+                        <MudMenuItem OnClick="CopyAsnyc" Disabled="@(_selectEntity == null)">复制</MudMenuItem>
+                        <MudDivider/>
+                        <MudMenuItem OnClick="DelAsnyc" Disabled="@(_selectEntity == null)">删除</MudMenuItem>
+                        <MudDivider/>
+                        <MudMenuItem OnClick="UpMoveAsnyc" Disabled="@(_selectEntity == null)">上移</MudMenuItem>
+                        <MudMenuItem OnClick="DownMoveAsnyc" Disabled="@(_selectEntity == null)">下移</MudMenuItem>
+                    </MudMenu>
                 </MudStack>
-            </MudPaper>
-        </MudHidden>
-        @if (_isHideAssistantSettings)
-        {
-            <MudPaper Width="350px" Style="background-color: transparent;height: 100%">
-                <MudStack Style="height: 100%" Class="pl-2 pt-3 pr-1 pb-3">
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                        <MudText>助手管理</MudText>
-                        <MudMenu Icon="@Icons.Material.Filled.Settings"
-                        Color="Color.Primary"
-                        AnchorOrigin="Origin.BottomCenter"
-                        TransformOrigin="Origin.TopCenter"
-                        Dense="true">
-                            <MudMenuItem OnClick="AddAsync">添加</MudMenuItem>
-                            <MudDivider/>
-                            <MudMenuItem OnClick="CopyAsnyc" Disabled="@(_selectEntity == null)">复制</MudMenuItem>
-                            <MudDivider/>
-                            <MudMenuItem OnClick="DelAsnyc" Disabled="@(_selectEntity == null)">删除</MudMenuItem>
-                            <MudDivider/>
-                            <MudMenuItem OnClick="UpMoveAsnyc" Disabled="@(_selectEntity == null)">上移</MudMenuItem>
-                            <MudMenuItem OnClick="DownMoveAsnyc" Disabled="@(_selectEntity == null)">下移</MudMenuItem>
-                        </MudMenu>
-                    </MudStack>
-                    <MudStack Style="flex: 1;overflow-y:scroll;overflow-x:hidden;" Class="sbc">
-                        <MudList T="AssistantEntity" @bind-SelectedValue="_selectEntity" SelectionMode="SelectionMode.SingleSelection" Class="pr-1">
-                            @for (int i = 0; i < _allEntity.Count; i++)
-                            {
-                                <MudListItem OnClick="OnSelect" Style="border-radius: 5px;" Text="@(_allEntity[i].Name)" Icon="@Icons.Material.Filled.Inbox" Value="_allEntity[i]"/>
-                                <MudDivider Class="mt-1 mb-1"/>
-                            }
-                        </MudList>
-                    </MudStack>
+                <MudStack Style="flex: 1;overflow-y:scroll;overflow-x:hidden;" Class="sbc">
+                    <MudList T="AssistantEntity" @bind-SelectedValue="_selectEntity"
+                             SelectionMode="SelectionMode.SingleSelection" Class="pr-1">
+                        @for (int i = 0; i < _allEntity.Count; i++)
+                        {
+                            <MudListItem OnClick="OnSelect" Style="border-radius: 5px;" Text="@(_allEntity[i].Name)"
+                                         Icon="@Icons.Material.Filled.Inbox" Value="_allEntity[i]"/>
+                            <MudDivider Class="mt-1 mb-1"/>
+                        }
+                    </MudList>
                 </MudStack>
-            </MudPaper>
-        }
-    </MudStack>
-    <MudHidden HiddenChanged="OnHiddenChanged" Breakpoint="Breakpoint.MdAndUp" Invert="@_isHideAssistantSettings" Hidden="@_assistantSettingsHideState">
+            </MudStack>
+        </MudPaper>
+    }
+    <MudHidden HiddenChanged="OnHiddenChanged" Breakpoint="Breakpoint.MdAndUp" Invert="@_isHideAssistantSettings"
+               Hidden="@_assistantSettingsHideState">
         <MudPaper Width="100%" Style="background-color: transparent;overflow-y:scroll;overflow-x:hidden;" Class="sbc">
             <MudStack Class="pa-5">
                 @if (_selectEntity != null)
                 {
-                    <MudTextField ShrinkLabel @bind-Value="_selectEntity.Name" OnBlur="SelectChangedAsync" Label="名字" Variant="Variant.Outlined"></MudTextField>
-                    <MudTextField ShrinkLabel @bind-Value="_selectEntity.Prompt" OnBlur="SelectChangedAsync" Label="设定" Variant="Variant.Outlined" Lines="6"></MudTextField>
-                    <MudDivider />
+                    <MudTextField ShrinkLabel @bind-Value="_selectEntity.Name" OnBlur="SelectChangedAsync" Label="名字"
+                                  Variant="Variant.Outlined"></MudTextField>
+                    <MudTextField ShrinkLabel @bind-Value="_selectEntity.Prompt" OnBlur="SelectChangedAsync"
+                                  Label="设定" Variant="Variant.Outlined" Lines="6"></MudTextField>
+                    <MudDivider/>
                     <MudStack AlignItems="AlignItems.Start">
                         <MudStack Row="true" AlignItems="AlignItems.Center">
                             <MudText>消息历史</MudText>
-                            <MudIconButton Icon="@Icons.Material.Filled.AddCircleOutline" Color="Color.Primary" OnClick="AddHistoryMsg"></MudIconButton>
+                            <MudIconButton Icon="@Icons.Material.Filled.AddCircleOutline" Color="Color.Primary"
+                                           OnClick="AddHistoryMsg"></MudIconButton>
                         </MudStack>
                         @foreach (var item in _selectEntity.HistoryMsg)
                         {
                             <MudStack Row="true" AlignItems="AlignItems.Center">
-                                <MudTextField ShrinkLabel @bind-Value="item.Name" OnBlur="SelectChangedAsync" Label="角色" Variant="Variant.Outlined"></MudTextField>
-                                <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline" Color="Color.Primary" OnClick="(async ()=> await DeleteHistoryMsg(item))"></MudIconButton>
+                                <MudTextField ShrinkLabel @bind-Value="item.Name" OnBlur="SelectChangedAsync"
+                                              Label="角色" Variant="Variant.Outlined"></MudTextField>
+                                <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline" Color="Color.Primary"
+                                               OnClick="(async ()=> await DeleteHistoryMsg(item))"></MudIconButton>
                             </MudStack>
-                            <MudTextField ShrinkLabel @bind-Value="item.Content" FullWidth="true" OnBlur="SelectChangedAsync" Label="内容" Variant="Variant.Outlined" Lines="6"></MudTextField>
+                            <MudTextField ShrinkLabel @bind-Value="item.Content" FullWidth="true"
+                                          OnBlur="SelectChangedAsync" Label="内容" Variant="Variant.Outlined"
+                                          Lines="6"></MudTextField>
                         }
                     </MudStack>
                     <MudDivider/>
                     <MudStack Row="true" AlignItems="AlignItems.Center">
                         <MudText>技能</MudText>
-                        <MudIconButton Icon="@Icons.Material.Filled.AddCircleOutline" Color="Color.Primary" OnClick="SelectSkill"></MudIconButton>
+                        <MudIconButton Icon="@Icons.Material.Filled.AddCircleOutline" Color="Color.Primary"
+                                       OnClick="SelectSkill"></MudIconButton>
                     </MudStack>
                     @foreach (var skillInfo in _selectEntity.Skills.Select(x => (Info: x, Metadata: _providerService.GetProviderTaskParameterMetadataById(x.Id))))
                     {
@@ -95,11 +91,15 @@
                             <TitleContent>
                                 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
                                     <MudText>@skillInfo.Metadata.ProviderTask.Name</MudText>
-                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" OnClick="(async () => await DeleteSkillMetadata(skillInfo.Metadata.ProviderTask.ID))"></MudIconButton>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                   OnClick="(async () => await DeleteSkillMetadata(skillInfo.Metadata.ProviderTask.ID))"></MudIconButton>
                                 </MudStack>
                             </TitleContent>
                             <ChildContent>
-                                <ProviderSetting Metadata="@skillInfo.Metadata" @bind-MetadataConfig="@skillInfo.Info.Content" OnBlur="SelectChangedAsync" Style="background-color: transparent;"></ProviderSetting>
+                                <ProviderSetting Metadata="@skillInfo.Metadata"
+                                                 @bind-MetadataConfig="@skillInfo.Info.Content"
+                                                 OnBlur="SelectChangedAsync"
+                                                 Style="background-color: transparent;"></ProviderSetting>
                             </ChildContent>
                         </MudExpansionPanel>
                     }
@@ -129,7 +129,7 @@
 
     private void OnSelect()
     {
-        if(!_assistantSettingsHideState)
+        if (!_assistantSettingsHideState)
             return;
         _isHideAssistantSettings = false;
         StateHasChanged();

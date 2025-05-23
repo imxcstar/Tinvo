@@ -347,7 +347,7 @@ namespace Tinvo.Service.Chat
             await _dataStorageService.SetItemAsync("msgCache", _msgCaches);
         }
 
-        public async Task SendMsgAsync(string msg, List<IBrowserFile>? files = null, AiAppInfo? aiApp = null, ChatMsgGroupItemInfo? msgGroup = null, List<string>? domainId = null, bool? kbsExactMode = null, CancellationToken cancellationToken = default)
+        public async Task SendMsgAsync(string? msg, List<IBrowserFile>? files = null, AiAppInfo? aiApp = null, ChatMsgGroupItemInfo? msgGroup = null, List<string>? domainId = null, bool? kbsExactMode = null, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(msg))
                 throw new Exception("请输入内容");

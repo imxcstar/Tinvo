@@ -1,19 +1,12 @@
 ﻿@page "/"
 @implements IDisposable
-@layout ChatBar
+@layout MainLayout
 
-@using System.Dynamic;
-@using System.Text.Json.Nodes;
 @using Tinvo.Pages.Chat.Component.ChatMsgList
-@using Tinvo.Pages.Chat.Model
-@using Tinvo.Service.Chat;
-@using Tinvo.Service.KBS
 
 @inject ISnackbar _snackbar
 @inject IChatService _chatService
-@inject IKBSService _kbsService
 @inject IJSRuntime _js
-@inject IDialogService _dialogService
 @inject NavigationManager _navigationManager
 
 <PageTitle>TinvoAI-聊天</PageTitle>
@@ -70,18 +63,51 @@
     .kbs-setting-add-file .mud-input-control-input-container {
         height: 100%;
     }
+
+    /* Style for the selected files container */
+    .selected-files-container {
+        overflow-x: auto; /* Horizontal scroll */
+        white-space: nowrap; /* Keep chips in one line */
+        background-color: transparent;
+        flex-shrink: 0; /* Prevent container from shrinking in flex layout */
+    }
+
+    /* Style for the text area container to take remaining space */
+    .input-area-container {
+        flex-grow: 1; /* Take available vertical space */
+        display: flex;
+        flex-direction: column;
+        min-height: 0; /* Important for flex children in some browsers like Firefox */
+    }
+
+    .input-msg-textarea-container {
+        height: 100%; /* Fill parent (input-area-container's MudStack) */
+        display: flex;
+        flex-direction: column;
+    }
+
+    .input-msg-textarea {
+        flex-grow: 1; /* Textarea takes available space */
+        width: 100%;
+        border: none;
+        resize: none;
+        outline: none;
+        overflow-y: scroll;
+        font-size: initial;
+    }
+
+    .send-button-container {
+        flex-shrink: 0; /* Prevent button container from shrinking */
+    }
+
 </style>
 
-<MudStack Row="true" Style="height: 100%;" Class="pt-5 pr-2 pb-5" Justify="Justify.FlexStart" AlignItems="AlignItems.Start" StretchItems="StretchItems.End" Spacing="0">
-    <MudPaper Class="@(_isShowChatHistory ? "" : "d-none")" Width="350px" Style="background-color: transparent;">
-        <MudStack Row="true" Class="pl-2">
-            <MudIconButton Size="Size.Medium" Class="chat-history-show" Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="ShowChatHistory" />
-            <MudIconButton Size="Size.Medium" Icon="@Icons.Material.Filled.Assistant" Color="Color.Inherit" Edge="Edge.Start" OnClick="ShowAssistantManage" />
-            <MudIconButton Size="Size.Medium" Icon="@Icons.Material.Filled.Settings" Color="Color.Inherit" Edge="Edge.Start" OnClick="ShowSettings" />
-        </MudStack>
-    </MudPaper>
-    <MudPaper Class="@(_isShowChatHistory ? "" : "d-none " + "d-md-flex d-lg-flex d-xl-flex d-xxl-flex pr-1")" Height="100%" MaxWidth="350px" Width="350px" Style="overflow: hidden;background-color: transparent;">
-        <MudStack Style="width: 100%" Row="true" StretchItems="StretchItems.All" Justify="Justify.FlexStart" AlignItems="AlignItems.Start">
+<MudStack Row="true" Style="height: 100%;" Justify="Justify.FlexStart"
+          AlignItems="AlignItems.Stretch" StretchItems="StretchItems.End" Spacing="0">
+    <MudPaper Class="@(_isShowChatHistory ? "" : "d-none " + "d-md-flex d-lg-flex d-xl-flex d-xxl-flex pr-1")"
+              Height="100%" MaxWidth="350px" Width="350px" Style="overflow: hidden;background-color: transparent;">
+        <MudStack Style="width: 100%" Row="true" StretchItems="StretchItems.All" Justify="Justify.FlexStart"
+                  AlignItems="AlignItems.Start">
             <MudStack Spacing="0" Style=" height: 100%;" Class="pb-3">
                 <MudStack AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="pl-3 pt-3" Spacing="1"
                           Row="true">
@@ -143,7 +169,6 @@
             </MudStack>
         </MudStack>
     </MudPaper>
-    
     <div style="width: 12px" class="d-none d-md-flex d-lg-flex d-xl-flex d-xxl-flex"></div>
     <MudPaper Height="100%" Class="@(_isShowChatHistory ? "d-none" : "chat-width")"
               MinWidth="0"
@@ -175,11 +200,12 @@
                 </MudStack>
             }
             <MudDivider/>
-            <MudPaper Elevation="0" Style="min-height: 200px;background-color: transparent;">
+            <MudPaper Elevation="0" Style="min-height: 200px; background-color: transparent;">
                 <MudStack Style="height: 100%;">
-                    <MudStack Spacing="1" Row="true" Style="height: 25px" Class="pt-1 pl-3 pr-3">
+                    <MudStack Spacing="1" Row="true" Style="height: 25px; flex-shrink:0;" Class="pt-1 pl-3 pr-3">
                         <MudTooltip Text="文件">
-                            <MudFileUpload T="IBrowserFile" FilesChanged="SendFile" Style="margin-top: 0px;"
+                            <MudFileUpload T="IReadOnlyList<IBrowserFile>" Multiple="true"
+                                           FilesChanged="HandleFileSelection" Style="margin-top: 0px;"
                                            Accept=".jpg,.jpeg,.png,.bmp,.gif,.doc,.docx,.pdf,.txt">
                                 <ActivatorContent>
                                     <MudIconButton Icon="@Icons.Material.Filled.AttachFile" Color="Color.Inherit"
@@ -193,13 +219,27 @@
                         </MudTooltip>
                         <MudSpacer/>
                     </MudStack>
-                    <div class="pl-3 pr-1 pb-1" style="height: 100%;">
-                        <MudStack Style="height: 100%;">
-                            <textarea id="input-msg" class="sbc input-msg"
-                                      style="height: 100%;border: none;resize: none;outline: none;overflow-y:scroll;font-size: initial;"></textarea>
-                            <MudStack Row="true" Justify="Justify.FlexEnd" Class="pr-2 pb-1">
-                                <MudButton Variant="Variant.Filled" Class="send-msg-button" OnClick="SendMsg"
-                                           Disabled="!enableSend"></MudButton>
+
+                    @if (selectedFiles.Any())
+                    {
+                        <MudPaper Elevation="0" Class="pl-3 pr-3 pt-1 pb-1 selected-files-container">
+                            <MudStack Row="true" Spacing="1">
+                                @foreach (var file in selectedFiles)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Text="@file.Name"
+                                             OnClose="@(() => RemoveSelectedFile(file))"/>
+                                }
+                            </MudStack>
+                        </MudPaper>
+                    }
+
+                    <div class="pl-3 pr-1 pb-1 input-area-container">
+                        <MudStack Class="input-msg-textarea-container">
+                            <textarea id="input-msg" class="sbc input-msg input-msg-textarea"></textarea>
+                            <MudStack Row="true" Justify="Justify.FlexEnd" Class="pr-2 pb-1 send-button-container">
+                                <MudButton Variant="Variant.Filled" Class="send-msg-button"
+                                           OnClick="SendMsgFromButtonClick"
+                                           Disabled="@(!enableSend)"></MudButton>
                             </MudStack>
                         </MudStack>
                     </div>
@@ -236,325 +276,3 @@
         <MudButton Variant="Variant.Filled">确定</MudButton>
     </YesButton>
 </MudMessageBox>
-
-@code
-{
-    private MudMessageBox setTitleBox { get; set; }
-
-    private string searchChatMsgGroupName = "";
-
-    private bool isKBSWait = false;
-
-    private bool isLoadingMsgGroupList = true;
-    private bool isLoadingMsgList = true;
-    private bool isChatMsgGenerating = false;
-    private bool enableSend = true;
-    private bool isShowLoadGroupLoading = false;
-    private bool shouldPreventDefault = false;
-
-    private string _mr = "";
-    private bool _isShowChatHistory = false;
-
-    private ChatMsgGroupItemInfo? selectMsgGroup;
-    private AiAppInfo? selectAiApp;
-
-    private AiAppInfo? chatSetSelectAiApp;
-
-    private CancellationTokenSource? chatMsgGenerateCancellationTokenSource;
-
-    private void ShowSettings()
-    {
-        _navigationManager.NavigateTo("/settings");
-    }
-
-    private void ShowAssistantManage()
-    {
-        _navigationManager.NavigateTo("/assistantManage");
-    }
-
-    private void ShowChatHistory()
-    {
-        _isShowChatHistory = !_isShowChatHistory;
-        StateHasChanged();
-    }
-
-    private async Task<string> GetInputMsgValue()
-    {
-        return await _js.InvokeAsync<string>("blazorHelper.GetElementValueById", "input-msg");
-    }
-
-    private async Task SetInputMsgValue(string value)
-    {
-        await _js.InvokeVoidAsync("blazorHelper.SetElementValueById", "input-msg", value);
-    }
-
-    [JSInvokable]
-    public void SendInfoMessage(string value)
-    {
-        _snackbar.Add(value, Severity.Info);
-    }
-
-    [JSInvokable]
-    public void SendSuccessMessage(string value)
-    {
-        _snackbar.Add(value, Severity.Success);
-    }
-
-    [JSInvokable]
-    public void SendErrorMessage(string value)
-    {
-        _snackbar.Add(value, Severity.Error);
-    }
-
-    [JSInvokable]
-    public void SendWarnMessage(string value)
-    {
-        _snackbar.Add(value, Severity.Warning);
-    }
-
-    [JSInvokable]
-    public bool OnMsgInputKeyDownBefore(string value)
-    {
-        return enableSend;
-    }
-
-    [JSInvokable]
-    public async Task OnMsgInputKeyDownAfter(string value)
-    {
-        if (enableSend)
-            await Send(value, null);
-    }
-
-    private async Task ChatSetting()
-    {
-        try
-        {
-            var oldName = selectMsgGroup?.Title;
-            chatSetSelectAiApp = selectAiApp;
-            bool? result = await setTitleBox.ShowAsync();
-            if (result == null || !result.Value)
-            {
-                if (selectMsgGroup != null && oldName != null)
-                    selectMsgGroup.Title = oldName;
-            }
-            else
-            {
-                if (selectMsgGroup != null && oldName != null)
-                {
-                    if (string.IsNullOrWhiteSpace(selectMsgGroup.Title))
-                    {
-                        selectMsgGroup.Title = oldName;
-                        _snackbar.Add("标题不能为空", Severity.Warning);
-                        return;
-                    }
-
-                    if (selectMsgGroup.Title != oldName)
-                        if (!await _chatService.UpdateMsgGroup(selectMsgGroup))
-                            selectMsgGroup.Title = oldName;
-                }
-
-                selectAiApp = chatSetSelectAiApp;
-            }
-        }
-        catch (Exception ex)
-        {
-            _snackbar.Add(ex.Message, Severity.Error, config => { config.RequireInteraction = true; });
-        }
-
-        StateHasChanged();
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            if (OperatingSystem.IsMacCatalyst())
-                _mr = "margin-right: 8px;";
-            try
-            {
-                await Task.Delay(500);
-                _chatService.OnStateHasChange = EventCallback.Factory.Create(this, StateHasChanged);
-                await _chatService.LoadAiAppListAsync();
-                selectAiApp = _chatService.AiAppList.FirstOrDefault();
-                isLoadingMsgGroupList = true;
-                await _chatService.LoadMsgGroupListAsync();
-                isLoadingMsgGroupList = false;
-                var fMsgGroup = _chatService.MsgGroupList.FirstOrDefault();
-                if (fMsgGroup != null)
-                    await GetMsgList(fMsgGroup);
-                else
-                    await NewMsgGroup();
-                await _js.InvokeVoidAsync("blazorHelper.InitScrollEndListener", "msg-history-group", DotNetObjectReference.Create(this), nameof(OnMsgGroupScrollToEnd));
-                await _js.InvokeVoidAsync("blazorHelper.OnKeyDownListen", "input-msg", "!shift + !ctrl + Enter", DotNetObjectReference.Create(this), nameof(OnMsgInputKeyDownBefore), nameof(OnMsgInputKeyDownAfter));
-
-                await _js.InvokeVoidAsync("blazorHelper.RegisterInfoMessageFun", DotNetObjectReference.Create(this), nameof(SendInfoMessage));
-                await _js.InvokeVoidAsync("blazorHelper.RegisterSuccessMessageFun", DotNetObjectReference.Create(this), nameof(SendSuccessMessage));
-                await _js.InvokeVoidAsync("blazorHelper.RegisterErrorMessageFun", DotNetObjectReference.Create(this), nameof(SendErrorMessage));
-                await _js.InvokeVoidAsync("blazorHelper.RegisterWarnMessageFun", DotNetObjectReference.Create(this), nameof(SendWarnMessage));
-
-                isLoadingMsgList = false;
-            }
-            catch (Exception ex)
-            {
-                _snackbar.Add(ex.Message, Severity.Error);
-            }
-        }
-
-        await base.OnAfterRenderAsync(firstRender);
-    }
-
-    [JSInvokable]
-    public async Task OnMsgGroupScrollToEnd()
-    {
-        if (isShowLoadGroupLoading)
-            return;
-
-        isShowLoadGroupLoading = true;
-        StateHasChanged();
-        await Task.Delay(300);
-
-        try
-        {
-            await _chatService.LoadMoreMsgGroupListAsync();
-        }
-        catch (Exception ex)
-        {
-            _snackbar.Add(ex.Message, Severity.Error);
-        }
-
-        isShowLoadGroupLoading = false;
-        StateHasChanged();
-    }
-
-    private async Task GetMsgList(ChatMsgGroupItemInfo? msgGroup)
-    {
-        try
-        {
-            if (selectMsgGroup == msgGroup)
-                return;
-            if (chatMsgGenerateCancellationTokenSource != null)
-                await chatMsgGenerateCancellationTokenSource.CancelAsync();
-            selectMsgGroup = msgGroup;
-            isLoadingMsgList = true;
-            StateHasChanged();
-            await Task.Delay(100);
-            await _chatService.LoadMsgListAsync(selectMsgGroup);
-            var uAiapp = _chatService.MsgList.LastOrDefault()?.AiApp;
-            if (uAiapp != null && chatSetSelectAiApp == null)
-            {
-                selectAiApp = _chatService.AiAppList.FirstOrDefault(x => x.Id == uAiapp.Id);
-            }
-
-            isLoadingMsgList = false;
-            if (_isShowChatHistory)
-                _isShowChatHistory = false;
-            StateHasChanged();
-            await Task.Delay(100);
-            await _js.InvokeVoidAsyncIgnoreErrors("ChatContainerToBottom", true, false);
-        }
-        catch (Exception ex)
-        {
-            _snackbar.Add(ex.Message, Severity.Error);
-        }
-    }
-
-    private async Task OnSettingNewMsgGroup()
-    {
-        setTitleBox.Close();
-        await NewMsgGroup();
-    }
-
-    private async Task NewMsgGroup()
-    {
-        var fMsgGroup = _chatService.MsgGroupList.FirstOrDefault();
-        if (fMsgGroup == null || !string.IsNullOrWhiteSpace(fMsgGroup.Id))
-        {
-            fMsgGroup = new ChatMsgGroupItemInfo()
-            {
-                CreateTime = DateTime.Now,
-                Title = "新的聊天",
-            };
-            _chatService.MsgGroupList.Insert(0, fMsgGroup);
-        }
-
-        await GetMsgList(fMsgGroup);
-    }
-
-
-    private async Task SendMsg()
-    {
-        await Send(await GetInputMsgValue(), null);
-    }
-
-
-    private async Task SendFile(IBrowserFile? file)
-    {
-        await Send(await GetInputMsgValue(), file);
-    }
-
-    private async Task Send(string? sendMsgContent, IBrowserFile? file)
-    {
-        try
-        {
-            if (selectAiApp == null || !_chatService.AiAppList.Any(x => x.Id == selectAiApp.Id))
-                selectAiApp = _chatService.AiAppList.FirstOrDefault();
-            var msgGroup = selectMsgGroup;
-            if (!string.IsNullOrWhiteSpace(searchChatMsgGroupName))
-            {
-                var isReturn = true;
-                foreach (var chatHistory in _chatService.MsgGroupList)
-                {
-                    if (chatHistory.Title.Contains(searchChatMsgGroupName) && chatHistory.Id == msgGroup?.Id)
-                    {
-                        isReturn = false;
-                        break;
-                    }
-                }
-
-                if (isReturn)
-                {
-                    _snackbar.Add("搜索中只能使用搜索的聊天组", Severity.Warning);
-                    return;
-                }
-            }
-
-            if (chatMsgGenerateCancellationTokenSource != null)
-                await chatMsgGenerateCancellationTokenSource.CancelAsync();
-            chatMsgGenerateCancellationTokenSource = new CancellationTokenSource();
-            isChatMsgGenerating = true;
-            enableSend = false;
-            await SetInputMsgValue("");
-            await _js.InvokeVoidAsyncIgnoreErrors("ChatContainerToBottom");
-            await _js.InvokeVoidAsyncIgnoreErrors("StartChatContainerCheck");
-            if (file == null)
-                await _chatService.SendMsgAsync(sendMsgContent, [], selectAiApp, msgGroup, null, null,
-                    chatMsgGenerateCancellationTokenSource.Token);
-            else
-                await _chatService.SendMsgAsync(sendMsgContent, [file], selectAiApp, msgGroup, null, null,
-                    chatMsgGenerateCancellationTokenSource.Token);
-        }
-        catch (Exception ex)
-        {
-            _snackbar.Add(ex.Message, Severity.Error, config => { config.RequireInteraction = true; });
-        }
-
-        await _js.InvokeVoidAsyncIgnoreErrors("StopChatContainerCheck");
-        await _js.InvokeVoidAsyncIgnoreErrors("ChatContainerToBottom", false);
-        isChatMsgGenerating = false;
-        enableSend = true;
-        StateHasChanged();
-    }
-
-    private async Task StopChatMsgGenerate()
-    {
-        if (chatMsgGenerateCancellationTokenSource != null)
-            await chatMsgGenerateCancellationTokenSource.CancelAsync();
-    }
-
-    public void Dispose()
-    {
-        _js.InvokeVoidAsyncIgnoreErrors("StopChatContainerCheck");
-        if (chatMsgGenerateCancellationTokenSource != null)
-            chatMsgGenerateCancellationTokenSource.Cancel();
-    }
-}

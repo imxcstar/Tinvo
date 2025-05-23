@@ -2,10 +2,10 @@
 @inject NavigationManager navigationManager
 @inject ISnackbar _snackbar
 
-<MudThemeProvider />
-<MudPopoverProvider />
-<MudDialogProvider />
-<MudSnackbarProvider />
+<MudThemeProvider/>
+<MudPopoverProvider/>
+<MudDialogProvider/>
+<MudSnackbarProvider/>
 
 <style>
     @@media only screen and (max-width: 599px) {
@@ -29,25 +29,62 @@
         padding-left: 8px;
         border-radius: 4px;
     }
+
+    .bmenu-button a {
+        padding: 0px;
+        padding-top: 5px;
+        width: 40px;
+        height: 40px;
+        padding-left: 8px;
+        border-radius: 4px;
+    }
+
+    .bmenu-button div {
+        padding: 0px;
+        padding-top: 5px;
+        width: 40px;
+        height: 40px;
+        padding-left: 8px;
+        border-radius: 4px;
+    }
+
+    .bmenu-button {
+        width: auto;
+    }
 </style>
 
-
-<MudStack Spacing="0" Row="true" Justify="Justify.FlexStart" AlignItems="AlignItems.Start" StretchItems="StretchItems.End" Style="height: 100vh;background-color: transparent;">
-    <MudHidden Breakpoint="Breakpoint.Xs" Invert="false">
-        <MudStack AlignItems="AlignItems.Center" Class="pb-3 pt-3" Style="background-color: transparent;width: 60px;height: 100%">
-            <div>
-                <MudImage Src="_content/Tinvo/icon-128.png" Width="40" Height="40" Class="rounded-circle" />
-            </div>
-            <MudPaper Elevation="0" Style="padding-left: 10px">
-                <NavMenu />
-            </MudPaper>
-            <MudSpacer />
-            <MudPaper Elevation="0" Style="padding-left: 10px">
-                <BNavMenu />
-            </MudPaper>
-        </MudStack>
+<MudStack Spacing="0" Justify="Justify.FlexStart" AlignItems="AlignItems.Stretch" StretchItems="StretchItems.Start"
+          Style="height: 100%;background-color: transparent;">
+    <MudStack Spacing="0" Row="true" Justify="Justify.FlexStart" AlignItems="AlignItems.Stretch"
+              StretchItems="StretchItems.End" Style="background-color: transparent;min-height: 0">
+        <MudHidden Breakpoint="Breakpoint.Xs" Invert="false">
+            <MudStack AlignItems="AlignItems.Center" Class="pb-3 pt-3"
+                      Style="background-color: transparent;width: 60px;height: 100%">
+                <div>
+                    <MudImage Src="_content/Tinvo/icon-128.png" Width="40" Height="40" Class="rounded-circle"/>
+                </div>
+                <MudPaper Elevation="0" Style="padding-left: 10px">
+                    <NavMenu/>
+                </MudPaper>
+                <MudSpacer/>
+                <MudPaper Elevation="0" Style="padding-left: 10px">
+                    <BNavMenu/>
+                </MudPaper>
+            </MudStack>
+        </MudHidden>
+        <MudPaper Class="con-width" Elevation="0" Style="background-color: transparent;flex-basis: 0" MinWidth="0">
+            @Body
+        </MudPaper>
+    </MudStack>
+    <MudHidden Breakpoint="Breakpoint.Xs" Invert="true">
+        <MudPaper Height="50px" Style="background-color: transparent;padding-bottom: 10px;padding-top: 15px">
+            <MudStack Row="true" Justify="Justify.SpaceAround" AlignItems="AlignItems.Center" Style="height: 100%">
+                <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Chat" Class="bmenu-button"/>
+                <MudNavLink Href="assistantManage" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Assistant"
+                            Class="bmenu-button"/>
+                <MudNavLink Href="settings" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Settings"
+                            Class="bmenu-button"/>
+            </MudStack>
+        </MudPaper>
     </MudHidden>
-    <MudPaper Class="con-width" Height="100%" Elevation="0" Style="background-color: transparent;flex-basis: 0" MinWidth="0">
-        @Body
-    </MudPaper>
 </MudStack>
