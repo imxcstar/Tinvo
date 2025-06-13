@@ -4,6 +4,7 @@ using System.Text.Json;
 using Tinvo.Abstractions;
 using Tinvo.Abstractions.AIScheduler;
 using Tinvo.Abstractions.ImageAnalysis;
+using Tinvo.Abstractions.MCP;
 using Tinvo.Application.AIAssistant.Entities;
 using Tinvo.Application.Provider;
 
@@ -51,7 +52,8 @@ namespace Tinvo.Pages.Chat.Component.ChatMsgList
 
         public IImageAnalysisTask? GetImageAnalysis(ProviderService providerService)
         {
-            var imageAnalysisSkill = Assistant.Skills.FirstOrDefault(x => x.SupportType == AssistantSupportSkillType.ImageAnalysis);
+            var imageAnalysisSkill =
+                Assistant.Skills.FirstOrDefault(x => x.SupportType == AssistantSupportSkillType.ImageAnalysis);
             if (imageAnalysisSkill == null)
                 return null;
             if (string.IsNullOrWhiteSpace(imageAnalysisSkill.Content))
@@ -66,6 +68,31 @@ namespace Tinvo.Pages.Chat.Component.ChatMsgList
             if (task == null)
                 throw new NotSupportedException("此助手的图片识别实例化错误");
             return task;
+        }
+
+        public List<IMCPService> GetMCPServices(ProviderService providerService)
+        {
+            return
+                Assistant.Skills
+                .Where(x =>
+                    x.SupportType == AssistantSupportSkillType.MCP &&
+                    !string.IsNullOrWhiteSpace(x.Content)
+                )
+                .Select(x =>
+                {
+                    var config = JsonSerializer.Deserialize<List<Dictionary<string, JsonElement?>>>(x.Content!);
+                    if (config == null)
+                        return null;
+                    var metadata = providerService.GetProviderTaskParameterMetadataById(x.Id);
+                    if (metadata == null)
+                        return null;
+                    var task = metadata.Instance(config) as IMCPService;
+                    if (task == null)
+                        return null;
+                    return task;
+                })
+                .Where(x => x != null)
+                .ToList()!;
         }
     }
 
@@ -82,13 +109,20 @@ namespace Tinvo.Pages.Chat.Component.ChatMsgList
     {
         public string Id { get; set; }
         public string Name { get; set; }
-        public string Content { get; set; }
-        public string ReasoningContent { get; set; } = "";
         public string HeadIconURL { get; set; }
+        public List<ChatMsgItemContentInfo> Contents { get; set; } = new List<ChatMsgItemContentInfo>();
         public ChatUserType UserType { get; set; }
-        public ChatContentType ContentType { get; set; }
         public AiAppInfo? AiApp { get; set; }
         public DateTime CreateTime { get; set; }
+    }
+
+    public class ChatMsgItemContentInfo
+    {
+        public string? Title { get; set; }
+
+        public string Content { get; set; } = "";
+
+        public ChatContentType ContentType { get; set; } = ChatContentType.Default;
     }
 
     public enum ChatUserType
@@ -103,6 +137,10 @@ namespace Tinvo.Pages.Chat.Component.ChatMsgList
         Video,
         Audio,
         Image,
-        File
+        File,
+        Default = 99,
+        ErrorInfo = 100,
+        BrowserURL = 101,
+        BrowserHTML = 102,
     }
 }

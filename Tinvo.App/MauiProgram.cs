@@ -12,6 +12,8 @@ using Tinvo.Application.AIAssistant.Entities;
 using Tinvo.Application.AIAssistant;
 using Tinvo.Application.DB;
 using Tinvo.Application.Provider;
+using Tinvo.Application;
+using Tinvo.Provider.MCP;
 
 namespace Tinvo
 {
@@ -35,6 +37,15 @@ namespace Tinvo
 
             services.AddLogging(loggingBuilder => loggingBuilder.AddSerilog(dispose: true));
 
+
+            services.AddSingleton<Tinvo.Application.IPlatform>(s =>
+            {
+                return new Tinvo.Application.Platform()
+                {
+                    Type = PlatformType.Maui
+                };
+            });
+
             services.AddSingleton<IDataStorageService>(s =>
             {
                 return new FileStorageService(Path.Combine(
@@ -48,7 +59,8 @@ namespace Tinvo
             services.AddScoped<IKBSService, LocalKBSService>();
 
             services.AddProviderRegisterer()
-                .RegistererOpenAIProvider();
+                .RegistererOpenAIProvider()
+                .RegistererMCPProvider();
 
             services.AddSingleton<ProviderService>();
 

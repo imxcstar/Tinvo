@@ -1,25 +1,27 @@
-using Tinvo;
-using Tinvo.Pages.Chat;
-using Tinvo.Service.Chat;
-using Tinvo.Service;
 using MudBlazor.Services;
-using System.Diagnostics.Metrics;
-using Tinvo.Shared;
-using Tinvo.Service.KBS;
 using Serilog;
 using Serilog.Events;
-using Tinvo.Services;
-using Tinvo.Application.DataStorage;
+using System.Diagnostics.Metrics;
+using Tinvo;
 using Tinvo.Abstractions;
-using Tinvo.Provider.Baidu;
-using Tinvo.Provider.OpenAI;
-using Tinvo.Provider.XunFei;
-using Tinvo.Application.AIAssistant.Entities;
+using Tinvo.Application;
 using Tinvo.Application.AIAssistant;
+using Tinvo.Application.AIAssistant.Entities;
+using Tinvo.Application.DataStorage;
 using Tinvo.Application.DB;
 using Tinvo.Application.Provider;
-using Tinvo.Provider.Ollama;
+using Tinvo.Pages.Chat;
+using Tinvo.Provider.Baidu;
 using Tinvo.Provider.LLama;
+using Tinvo.Provider.Ollama;
+using Tinvo.Provider.OpenAI;
+using Tinvo.Provider.XunFei;
+using Tinvo.Service;
+using Tinvo.Service.Chat;
+using Tinvo.Service.KBS;
+using Tinvo.Services;
+using Tinvo.Shared;
+using Tinvo.Provider.MCP;
 
 var renderMode = args.ElementAtOrDefault(0) ?? "Server";
 
@@ -44,6 +46,15 @@ builder.Host.UseSerilog((context, services, configuration) => configuration
 
 var services = builder.Services;
 
+
+services.AddSingleton<IPlatform>(s =>
+{
+    return new Platform()
+    {
+        Type = PlatformType.WebServer
+    };
+});
+
 services.AddScoped<IDataStorageService, LocalForageService>();
 
 services.AddScoped<DBData<AssistantEntity>>();
@@ -57,7 +68,8 @@ services.AddProviderRegisterer()
         .RegistererOpenAIProvider()
         .RegistererXunFeiProvider()
         .RegistererOllamaProvider()
-        .RegistererLLamaProvider();
+        .RegistererLLamaProvider()
+        .RegistererMCPProvider();
 
 services.AddSingleton<ProviderService>();
 

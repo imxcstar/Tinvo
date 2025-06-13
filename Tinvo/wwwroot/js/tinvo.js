@@ -37,6 +37,10 @@ function renderCode(md, origRule, options) {
                 lineValues.push(`<div class="source-code-line source-code-line-value">${line}</div>`);
             }
         });
+
+        // 用唯一id区分每个代码块
+        const codeBlockId = `code-block-${Math.random().toString(36).substr(2, 9)}`;
+
         const lines = `
             <div class="source-code-line-numbers">
                 ${lineNumbers.join('\n')}
@@ -45,18 +49,39 @@ function renderCode(md, origRule, options) {
                 ${lineValues.join('\n')}
             </div>`;
         return `
-            <div class="code-container">
-                <div style="display: flex;flex-direction: column;max-width: 100%;">
+            <div class="code-container" id="${codeBlockId}">
+                <div style="display: flex;flex-direction: column;max-width: 100%">
                     <div class="code-container-toolbar">
-                        <p>${langName}</p>
-                        <button class="markdown-it-code-copy" data-clipboard-text="${content}" onclick="copyCode()" title="复制">
-                            <span style="${options.iconStyle}" class="${options.iconClass}"></span>
-                        </button>
+                        <div class="code-toolbar-lang">${langName}</div>
+                        <div class="code-toolbar-buttons">
+                            <button class="markdown-it-code-copy" data-clipboard-text="${content}" onclick="copyCode()" title="复制">
+                                <span style="${options.iconStyle}" class="${options.iconClass}"></span>
+                            </button>
+                            <button class="markdown-it-code-toggle" onclick="toggleCodeVisibility('${codeBlockId}')" title="收起/展开">
+                                <span class="toggle-icon">▼</span>
+                            </button>
+                        </div>
                     </div>
-                    <pre class="language-${langName}"><div class="source-code">${lines}</div></pre>
+                    <pre class="language-${langName} code-content"><div class="source-code">${lines}</div></pre>
                 </div>
             </div>`;
     };
+}
+
+function toggleCodeVisibility(codeBlockId) {
+    const container = document.getElementById(codeBlockId);
+    if (!container) return;
+    const codeContent = container.querySelector('.code-content');
+    const toggleIcon = container.querySelector('.toggle-icon');
+    if (!codeContent || !toggleIcon) return;
+
+    if (codeContent.classList.contains('collapsed')) {
+        codeContent.classList.remove('collapsed');
+        toggleIcon.textContent = '▼';
+    } else {
+        codeContent.classList.add('collapsed');
+        toggleIcon.textContent = '▲';
+    }
 }
 
 function getCodeContent(origRendered) {

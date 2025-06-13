@@ -4,6 +4,8 @@ using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Reflection;
+using System.Text.Json.Serialization;
+using Tinvo.Abstractions.AIScheduler;
 
 namespace Tinvo.Abstractions
 {
@@ -47,31 +49,48 @@ namespace Tinvo.Abstractions
 
     public class FunctionInfo
     {
+        [JsonPropertyName("name")]
         public string Name { get; set; } = null!;
 
+        [JsonPropertyName("description")]
         public string? Description { get; set; }
 
+        [JsonPropertyName("type")]
+        public string Type { get; set; } = null!;
+
+        [JsonPropertyName("parameters")]
         public FunctionParametersInfo Parameters { get; set; } = null!;
     }
 
     public class FunctionParametersInfo
     {
-        public string Type { get; set; } = null!;
+        [JsonPropertyName("type")]
+        public string? Type { get; set; }
 
-        public Dictionary<string, FunctionParametersProperties> Properties { get; set; } = new Dictionary<string, FunctionParametersProperties>();
+        [JsonPropertyName("properties")]
+        public Dictionary<string, FunctionParametersProperties> Properties { get; set; } =
+            new Dictionary<string, FunctionParametersProperties>();
 
+        [JsonPropertyName("required")]
         public List<string> Required { get; set; } = new List<string>();
     }
 
     public class FunctionParametersProperties
     {
+        [JsonPropertyName("type")]
         public string Type { get; set; } = "string";
 
+        [JsonIgnore]
         public Type? RawType { get; set; }
 
-        public string Description { get; set; } = null!;
+        [JsonPropertyName("description")]
+        public string? Description { get; set; }
 
-        public List<string> Enum { get; set; } = null!;
+        [JsonPropertyName("enum")]
+        public List<string>? Enum { get; set; }
+
+        [JsonPropertyName("default")]
+        public object? Default { get; set; }
     }
 
     public class FunctionMetaInfo
@@ -99,8 +118,6 @@ namespace Tinvo.Abstractions
 
         public Dictionary<string, FunctionMetaInfo> Functions => _functions;
 
-        public List<FunctionInfo> FunctionInfos => _functions.Values.Select(x => x.FunctionInfo).ToList();
-
         private object? _options;
         public object? Options => _options;
 
@@ -113,7 +130,9 @@ namespace Tinvo.Abstractions
         public void AddFunction(Type cls, string name, string? customName = null, object?[]? clsArgs = null)
         {
             var function = cls.GetMethod(name) ?? throw new Exception($"function \"{name}\" not found");
-            var desc = (function.GetCustomAttributes(typeof(DescriptionAttribute), false)?.FirstOrDefault() as DescriptionAttribute)?.Description ?? "";
+            var desc =
+                (function.GetCustomAttributes(typeof(DescriptionAttribute), false)?.FirstOrDefault() as
+                    DescriptionAttribute)?.Description ?? "";
             var properties = function.GetParameters().Where(x => !string.IsNullOrWhiteSpace(x.Name));
             var info = new FunctionMetaInfo()
             {
@@ -126,24 +145,31 @@ namespace Tinvo.Abstractions
                 {
                     Name = customName ?? name,
                     Description = desc,
+                    Type = function.ReturnType.ToJsonTypeString(),
                     Parameters = new FunctionParametersInfo()
                     {
+                        Type = function.ReturnType.ToJsonTypeString(),
                         Properties = properties.ToDictionary(x => x.Name!, x => new FunctionParametersProperties()
                         {
-                            Description = (x.GetCustomAttributes(typeof(DescriptionAttribute), false)?.FirstOrDefault() as DescriptionAttribute)?.Description ?? "",
+                            Description =
+                                (x.GetCustomAttributes(typeof(DescriptionAttribute), false)?.FirstOrDefault() as
+                                    DescriptionAttribute)?.Description ?? "",
                             Type = x.ParameterType.ToJsonTypeString(),
                             RawType = x.ParameterType,
-                            Enum = x.ParameterType.IsEnum ? x.ParameterType.GetEnumValues().OfType<string>().ToList() : new List<string>()
+                            Enum = x.ParameterType.IsEnum
+                                ? x.ParameterType.GetEnumValues().OfType<string>().ToList()
+                                : new List<string>()
                         }),
-                        Type = function.ReturnType.ToJsonTypeString(),
-                        Required = properties.Where(x => x.GetCustomAttribute(typeof(RequiredAttribute)) != null).Select(x => x.Name!).ToList()
+                        Required = properties.Where(x => x.GetCustomAttribute(typeof(RequiredAttribute)) != null)
+                            .Select(x => x.Name!).ToList()
                     }
                 }
             };
             _functions.Add(customName ?? name, info);
         }
 
-        public void AddCustomFunction(string name, string desc, FunctionParametersInfo parameters, object?[]? clsArgs = null)
+        public void AddCustomFunction(string name, string desc, string type, FunctionParametersInfo parameters,
+            object?[]? clsArgs = null)
         {
             var info = new FunctionMetaInfo()
             {
@@ -154,6 +180,7 @@ namespace Tinvo.Abstractions
                 {
                     Name = name,
                     Description = desc,
+                    Type = type,
                     Parameters = parameters
                 }
             };
@@ -165,6 +192,52 @@ namespace Tinvo.Abstractions
             if (!_functions.TryGetValue(name, out var func))
                 throw new InvalidOperationException();
             return func;
+        }
+
+        public List<FunctionInfo> GetFunctionInfos()
+        {
+            return _functions.Values.Select(x => x.FunctionInfo).ToList();
+        }
+
+        public async IAsyncEnumerable<IAIChatHandleResponse> CallFunctionAsync(string name,
+            Dictionary<string, object?>? parameters, CancellationToken cancellationToken = default)
+        {
+            var function = GetFnctionMetaInfo(name);
+            var ret = function.Call(parameters?.Values.ToArray());
+            yield return new AIProviderHandleTextMessageResponse()
+            {
+                Message = ret?.ToString() ?? "调用成功"
+            };
+        }
+    }
+
+    public class MultiFunctionManager : IFunctionManager
+    {
+        private List<IFunctionManager> _functionManagers;
+        private Dictionary<IFunctionManager, List<FunctionInfo>> _functionManagerInfos;
+
+        public MultiFunctionManager(List<IFunctionManager> functionManagers)
+        {
+            _functionManagers = functionManagers;
+            _functionManagerInfos = _functionManagers.Distinct().ToDictionary(x => x, x => x.GetFunctionInfos());
+        }
+
+        public IAsyncEnumerable<IAIChatHandleResponse> CallFunctionAsync(string name, Dictionary<string, object?>? parameters, CancellationToken cancellationToken = default)
+        {
+
+            foreach (var functionManagerInfo in _functionManagerInfos)
+            {
+                if (functionManagerInfo.Value.Any(x => x.Name == name))
+                {
+                    return functionManagerInfo.Key.CallFunctionAsync(name, parameters);
+                }
+            }
+            throw new InvalidOperationException();
+        }
+
+        public List<FunctionInfo> GetFunctionInfos()
+        {
+            return _functionManagerInfos.Values.SelectMany(x => x).ToList();
         }
     }
 }

@@ -1,29 +1,31 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Runtime.InteropServices;
+﻿using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
-using System.Reflection;
-using Microsoft.AspNetCore.Components;
-using System.Diagnostics;
-using System.Text;
+using MudBlazor.Services;
 using Serilog;
 using Serilog.Events;
-using static Tinvo.MiniblinkNative;
+using System;
+using System.Diagnostics;
+using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Text;
 using Tinvo;
-using MudBlazor.Services;
-using Tinvo.Service.Chat;
-using Tinvo.Service.KBS;
-using Tinvo.Service;
-using Tinvo.Application.DataStorage;
 using Tinvo.Abstractions;
-using Tinvo.Provider.Baidu;
-using Tinvo.Provider.OpenAI;
-using Tinvo.Provider.XunFei;
-using Tinvo.Application.AIAssistant.Entities;
+using Tinvo.Application;
 using Tinvo.Application.AIAssistant;
+using Tinvo.Application.AIAssistant.Entities;
+using Tinvo.Application.DataStorage;
 using Tinvo.Application.DB;
 using Tinvo.Application.Provider;
+using Tinvo.Provider.Baidu;
+using Tinvo.Provider.MCP;
+using Tinvo.Provider.OpenAI;
+using Tinvo.Provider.XunFei;
+using Tinvo.Service;
+using Tinvo.Service.Chat;
+using Tinvo.Service.KBS;
+using static Tinvo.MiniblinkNative;
 
 namespace Tinvo;
 
@@ -142,6 +144,14 @@ class Program
         var services = new ServiceCollection();
         services.AddLogging(loggingBuilder => loggingBuilder.AddSerilog(dispose: true));
 
+        services.AddSingleton<IPlatform>(s =>
+        {
+            return new Platform()
+            {
+                Type = PlatformType.Linux
+            };
+        });
+
         services.AddSingleton<IDataStorageService>(s =>
         {
             return new FileStorageService(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Tinvo"));
@@ -156,7 +166,8 @@ class Program
         services.AddProviderRegisterer()
                 .RegistererBaiduProvider()
                 .RegistererOpenAIProvider()
-                .RegistererXunFeiProvider();
+                .RegistererXunFeiProvider()
+                .RegistererMCPProvider();
 
         services.AddSingleton<ProviderService>();
 

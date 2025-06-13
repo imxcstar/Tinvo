@@ -22,9 +22,7 @@ namespace Tinvo.Service.Chat
 
         public Task LoadMsgListAsync(ChatMsgGroupItemInfo? msgGroup);
 
-        public Task SendMsgAsync(string msg, AiAppInfo? aiApp = null, ChatMsgGroupItemInfo? msgGroup = null, List<string>? domainId = null, bool? kbsExactMode = null, CancellationToken cancellationToken = default);
-
-        public Task SendMsgAsync(IBrowserFile file, AiAppInfo? aiApp = null, ChatMsgGroupItemInfo? msgGroup = null, List<string>? domainId = null, bool? kbsExactMode = null, CancellationToken cancellationToken = default);
+        public Task SendMsgAsync(string? msg, List<IBrowserFile>? files = null, AiAppInfo? aiApp = null, ChatMsgGroupItemInfo? msgGroup = null, List<string>? domainId = null, bool? kbsExactMode = null, CancellationToken cancellationToken = default);
 
         public Task<bool> UpdateMsgGroup(ChatMsgGroupItemInfo msgGroup);
     }

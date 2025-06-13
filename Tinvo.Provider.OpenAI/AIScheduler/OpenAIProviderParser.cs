@@ -176,8 +176,9 @@ namespace Tinvo.Provider.OpenAI.AIScheduler
                     switch (item.Kind)
                     {
                         case ChatToolCallKind.Function:
-                            var functionText = item.FunctionArgumentsUpdate.ToString();
-                            _handleFunctionName = item.FunctionName;
+                            var functionText = Encoding.UTF8.GetString(item.FunctionArgumentsUpdate.ToArray());
+                            if (!string.IsNullOrWhiteSpace(item.FunctionName))
+                                _handleFunctionName = item.FunctionName;
                             _logger.Debug("AddHandleMsg函数信息：{name}, {value}", _handleFunctionName, functionText);
                             _functionContentBuilder.Append(functionText);
                             break;

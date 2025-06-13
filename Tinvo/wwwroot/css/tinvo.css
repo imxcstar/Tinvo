@@ -1,7 +1,114 @@
-/* mobile */
-:root {
-    --app-height: 100%;
+/* 布局核心 CSS */
+.lay {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    box-sizing: border-box;
 }
+
+.lay>* {
+    box-sizing: border-box;
+    max-width: 100%;
+    max-height: 100%;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.lay>.row.col {
+    flex: 1 1 auto;
+    width: 100%;
+    height: 100%;
+}
+
+.lay>.row:not(.col) {
+    flex: 1 1 auto;
+    width: 100%;
+    height: auto;
+}
+
+.lay>.col:not(.row) {
+    flex: 1 1 auto;
+    height: 100%;
+    width: auto;
+}
+
+.lay * {
+    box-sizing: border-box;
+    max-width: 100%;
+    max-height: 100%;
+    overflow: hidden;
+}
+
+/* rcen：父元素下子元素水平居中 */
+.rcen {
+    display: flex !important;
+    justify-content: center !important;
+}
+
+.rcen>* {
+    /* 不修改 align-items，保持默认垂直对齐 */
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+/* ccen：父元素下子元素垂直居中 */
+.ccen {
+    display: flex !important;
+    align-items: center !important;
+}
+
+.ccen>* {
+    /* 不修改 justify-content，保持默认水平对齐 */
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+/* rcen + ccen：父元素下子元素水平垂直居中 */
+.rcen.ccen,
+.ccen.rcen {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+}
+
+/* left：父元素下子元素靠左 */
+.left {
+    display: flex !important;
+    justify-content: flex-start !important;
+}
+
+.left>* {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+/* right：父元素下子元素靠右 */
+.right {
+    display: flex !important;
+    justify-content: flex-end !important;
+}
+
+.right>* {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+/* 防止副作用：覆盖可能影响布局的属性 */
+.rcen>*,
+.ccen>*,
+.left>*,
+.right>* {
+    flex-shrink: 0 !important;
+    flex-grow: 0 !important;
+    /* 不主动修改宽高，交由 .lay 控制 */
+}
+
+
+/* mobile */
 
 html,
 body {
@@ -10,6 +117,7 @@ body {
     overflow: hidden;
     width: 100vw;
     height: 100vh;
+    height: 100dvh;
     /* mobile viewport bug fix */
     min-height: -webkit-fill-available;
     background: radial-gradient(circle at top left, rgba(255, 253, 245, 0.8), transparent 50%), radial-gradient(circle at bottom right, rgba(231, 240, 253, 0.8), transparent 50%), radial-gradient(circle at center, rgba(255, 247, 227, 0.8), transparent 50%);
@@ -45,17 +153,10 @@ html, body * {
     flex-direction: row;
 }
 
-@media only screen and (max-width: 959px) {
-    .code-container {
-        max-width: calc(100vw - 150px);
-    }
-}
-
 .code-container-toolbar {
     display: flex;
     flex-direction: row;
-    justify-content: space-between;
-    max-width: 100%;
+    align-items: center;
     background-color: #c1c1c1;
     border-radius: 4px 4px 0px 0px;
     padding-left: 5px;
@@ -71,7 +172,7 @@ html, body * {
 }
 
 .code-container pre {
-    max-width: 100%;
+    /*max-width: 100%;*/
     position: relative;
 }
 
@@ -86,7 +187,6 @@ code {
 .source-code {
     display: flex;
     flex-direction: row;
-    max-width: 100vh;
     padding: 2px 4px;
     background-color: #d1d1d1;
     font-size: 100%;
@@ -111,4 +211,46 @@ code {
     display: flex;
     flex-direction: column;
     overflow-x: scroll;
+}
+
+.code-toolbar-lang {
+    padding-top: 2px;
+    font-size: 14px;
+}
+.code-toolbar-buttons {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+.markdown-it-code-copy,
+.markdown-it-code-toggle {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 2px 6px;
+    color: #333;
+    transition: color 0.2s;
+}
+.markdown-it-code-copy:hover,
+.markdown-it-code-toggle:hover {
+    color: #007bff;
+}
+.toggle-icon {
+    font-size: 18px;
+    vertical-align: middle;
+}
+
+.code-content {
+    transform: scaleY(1);
+    transform-origin: top;
+    opacity: 1;
+    transition: transform 0.3s cubic-bezier(.4,0,.2,1), opacity 0.3s;
+}
+
+.code-content.collapsed {
+    height: 0;
+    transform: scaleY(0);
+    opacity: 0;
 }

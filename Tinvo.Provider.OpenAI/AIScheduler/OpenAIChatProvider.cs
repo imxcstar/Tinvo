@@ -16,6 +16,7 @@ using OpenAIChatMessage = OpenAI.Chat.ChatMessage;
 using OpenAIChatMessageContent = OpenAI.Chat.ChatMessageContent;
 using Microsoft.AspNetCore.Components.WebAssembly.Http;
 using System.ClientModel.Primitives;
+using System.Text.Json;
 
 namespace Tinvo.Provider.OpenAI.AIScheduler
 {
@@ -77,6 +78,11 @@ namespace Tinvo.Provider.OpenAI.AIScheduler
     [ProviderTask("OpenAIChat", "OpenAI")]
     public class OpenAIChatProvider : IAIChatTask
     {
+        private static JsonSerializerOptions serializerOptions = new JsonSerializerOptions()
+        {
+            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
+        };
+
         private readonly ChatClient _chatClient;
         private readonly OpenAIChatConfig _config;
         private readonly IAIChatParser _parser;
@@ -152,7 +158,7 @@ Current date: {DateTime.Now.ToString("yyyy-MM-dd")}", ChatMessageContentType.Tex
         {
             var options = new ChatCompletionOptions()
             {
-                ToolChoice = (requestSettings?.FunctionManager == null || requestSettings.FunctionManager.FunctionInfos.Count <= 0) ? null : ChatToolChoice.CreateAutoChoice(),
+                ToolChoice = (requestSettings?.FunctionManager == null || requestSettings.FunctionManager.GetFunctionInfos().Count <= 0) ? null : ChatToolChoice.CreateAutoChoice(),
                 FrequencyPenalty = (float?)requestSettings?.FrequencyPenalty ?? _config.FrequencyPenalty,
                 MaxOutputTokenCount = requestSettings?.MaxOutputTokens ?? _config.MaxOutputTokens,
                 PresencePenalty = (float?)requestSettings?.PresencePenalty ?? _config.PresencePenalty,
@@ -167,9 +173,9 @@ Current date: {DateTime.Now.ToString("yyyy-MM-dd")}", ChatMessageContentType.Tex
                         options.StopSequences.Add(item);
                     }
                 if (requestSettings.FunctionManager != null && options.Tools != null)
-                    foreach (var item in requestSettings.FunctionManager.FunctionInfos)
+                    foreach (var item in requestSettings.FunctionManager.GetFunctionInfos())
                     {
-                        options.Tools.Add(ChatTool.CreateFunctionTool(item.Name, item.Description, BinaryData.FromObjectAsJson(item.Parameters), true));
+                        options.Tools.Add(ChatTool.CreateFunctionTool(item.Name, item.Description, BinaryData.FromObjectAsJson(item.Parameters, serializerOptions), true));
                     }
             }
 

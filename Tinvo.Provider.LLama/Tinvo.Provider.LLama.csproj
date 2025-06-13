@@ -7,10 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="LLamaSharp" Version="0.19.0" />
-    <PackageReference Include="LLamaSharp.Backend.Cpu" Version="0.19.0" />
-	<PackageReference Include="LLamaSharp.Backend.Vulkan" Version="0.19.0" />
-	<PackageReference Include="Scriban" Version="5.11.0" />
+    <PackageReference Include="LLamaSharp" Version="0.23.0" />
+    <PackageReference Include="LLamaSharp.Backend.Cpu" Version="0.23.0" />
+	<PackageReference Include="LLamaSharp.Backend.Vulkan" Version="0.23.0" />
+	<PackageReference Include="Scriban" Version="6.2.0" />
   </ItemGroup>
 
   <ItemGroup>

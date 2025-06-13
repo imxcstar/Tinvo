@@ -27,6 +27,7 @@ namespace Tinvo.Shared.SkillProviderSelect
         TTS,
         KBS,
         ImageAnalysis,
-        ImageGeneration
+        ImageGeneration,
+        MCP
     }
 }

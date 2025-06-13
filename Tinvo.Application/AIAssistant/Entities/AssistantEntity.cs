@@ -58,7 +58,8 @@ namespace Tinvo.Application.AIAssistant.Entities
         TTS,
         KBS,
         ImageAnalysis,
-        ImageGeneration
+        ImageGeneration,
+        MCP
     }
 
     public enum AssistantSkillType

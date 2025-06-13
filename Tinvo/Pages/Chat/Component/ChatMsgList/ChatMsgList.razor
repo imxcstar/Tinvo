@@ -9,9 +9,9 @@
             if (i % 2 == 0)
             {
                 <MudStack Justify="Justify.FlexEnd" Spacing="1" Row="true" Class="pb-3">
-                    <MudStack Justify="Justify.FlexEnd" AlignItems="AlignItems.Center" Style="max-width: 80%">
+                    <div style="max-width: 80%">
                         <MudSkeleton SkeletonType="SkeletonType.Rectangle" Class="pa-3 mt-1 mr-1" Width="400px" Height="80px" />
-                    </MudStack>
+                    </div>
                     <div>
                         <MudSkeleton SkeletonType="SkeletonType.Circle" Width="48px" Height="48px" />
                     </div>
@@ -23,9 +23,9 @@
                     <div>
                         <MudSkeleton SkeletonType="SkeletonType.Circle" Width="48px" Height="48px" />
                     </div>
-                    <MudStack Justify="Justify.FlexEnd" AlignItems="AlignItems.Center" Style="max-width: 80%">
+                    <div style="max-width: 80%">
                         <MudSkeleton SkeletonType="SkeletonType.Rectangle" Class="pa-3 mt-1 ml-1" Width="400px" Height="80px" />
-                    </MudStack>
+                    </div>
                 </MudStack>
             }
         }
@@ -38,9 +38,9 @@
             {
                 case ChatUserType.Sender:
                     <MudStack Justify="Justify.FlexEnd" Spacing="1" Row="true" Class="pb-3">
-                        <MudStack Justify="Justify.FlexEnd" AlignItems="AlignItems.Center" Style="max-width: 80%">
-                            <ChatMsgContent IfTextUseRawText="true" Content="@item.Content" ReasoningContent="@item.ReasoningContent" ContentType="@item.ContentType" TextStyle="background: rgb(149,236,105)"></ChatMsgContent>
-                        </MudStack>
+                        <div style="max-width: 80%">
+                            <ChatMsgContent IfTextUseRawText="true" Contents="@item.Contents" TextStyle="background: rgb(149,236,105);max-width:100%;"></ChatMsgContent>
+                        </div>
                         <div>
                             @if (string.IsNullOrWhiteSpace(item.HeadIconURL))
                             {
@@ -65,8 +65,8 @@
                                 <MudImage Src="@item.HeadIconURL" Width="48" Height="48" Elevation="25" Class="rounded-circle" />
                             }
                         </div>
-                        <MudStack Justify="Justify.FlexEnd" AlignItems="AlignItems.Start" Spacing="0" Style="max-width: 80%">
-                            <MudStack Row="true" Justify="Justify.Center" AlignItems="AlignItems.Center" Spacing="0">
+                        <div style="max-width: 80%">
+                            <MudStack Row="true" Justify="Justify.FlexStart" AlignItems="AlignItems.Center" Spacing="0">
                                 <MudText Typo="Typo.caption">@(item.AiApp?.Name ?? "")</MudText>
 @*                                 <MudMenu Icon="@Icons.Material.Filled.MoreHoriz" Size="Size.Small" Color="Color.Default" AnchorOrigin="Origin.BottomCenter" TransformOrigin="Origin.TopCenter">
                                     <MudMenuItem>复制</MudMenuItem>
@@ -75,10 +75,10 @@
                                     <MudMenuItem>删除</MudMenuItem>
                                 </MudMenu> *@
                             </MudStack>
-                            <MudStack Justify="Justify.FlexEnd" AlignItems="AlignItems.Center">
-                                <ChatMsgContent Content="@item.Content" ReasoningContent="@item.ReasoningContent" ContentType="@item.ContentType" TextStyle="background: #F8F8FF"></ChatMsgContent>
+                            <MudStack Justify="Justify.FlexEnd" AlignItems="AlignItems.Start">
+                                <ChatMsgContent Contents="@item.Contents" TextStyle="background: #F8F8FF;max-width:100%;"></ChatMsgContent>
                             </MudStack>
-                        </MudStack>
+                        </div>
                     </MudStack>
                     break;
                 default:
