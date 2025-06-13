@@ -70,6 +70,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\Tinvo.Provider.MCP\Tinvo.Provider.MCP.csproj" />
         <ProjectReference Include="..\Tinvo\Tinvo.csproj" />
         <ProjectReference Include="..\Tinvo.Provider.OpenAI\Tinvo.Provider.OpenAI.csproj" />
     </ItemGroup>

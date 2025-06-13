@@ -27,6 +27,9 @@
                 <MudTabPanel Text="系统">
                     <SkillProviderSelect Items="@_systemItems" @bind-SelectItem="@_selectItem"></SkillProviderSelect>
                 </MudTabPanel>
+                <MudTabPanel Text="MCP服务">
+                    <SkillProviderSelect Items="@_mcpItems" @bind-SelectItem="@_selectItem"></SkillProviderSelect>
+                </MudTabPanel>
                 <MudTabPanel Text="其它">
                     <SkillProviderSelect Items="@_otherItems" @bind-SelectItem="@_selectItem"></SkillProviderSelect>
                 </MudTabPanel>
@@ -55,6 +58,7 @@
     private List<SkillProviderSelectModel> _videoItems = [];
     private List<SkillProviderSelectModel> _kbsItems = [];
     private List<SkillProviderSelectModel> _systemItems = [];
+    private List<SkillProviderSelectModel> _mcpItems = [];
     private List<SkillProviderSelectModel> _otherItems = [];
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -133,6 +137,17 @@
                     }).ToList()
                 },
             ]);
+            _mcpItems.Add(new SkillProviderSelectModel()
+            {
+                Icon = Icons.Material.Filled.Api,
+                Name = "MCP服务",
+                Items = _providerService.GetMCPList().Select(x => new SkillProviderSelectItemModel()
+                {
+                    Id = x.ID,
+                    Name = x.Name,
+                    Type = SkillProviderSelectItemType.MCP
+                }).ToList()
+            });
             StateHasChanged();
         }
         await base.OnAfterRenderAsync(firstRender);

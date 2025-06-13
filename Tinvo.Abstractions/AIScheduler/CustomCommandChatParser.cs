@@ -59,7 +59,7 @@ namespace Tinvo.Abstractions.AIScheduler
             if (msg is not string smsg)
                 yield break;
 
-            aiCommands = functionManager == null ? [] : functionManager.FunctionInfos.Select(x => x.Name).OrderByDescending(x => x.Length).ToList();
+            aiCommands = functionManager == null ? [] : functionManager.GetFunctionInfos().Select(x => x.Name).OrderByDescending(x => x.Length).ToList();
             aiCommandsLowerMap = functionManager == null ? [] : aiCommands.ToDictionary(x => x.ToLower(), x => x);
 
             retDataBuilder.Append(smsg);

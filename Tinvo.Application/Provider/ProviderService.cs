@@ -16,6 +16,7 @@ using Tinvo.Abstractions.ASR;
 using Tinvo.Abstractions.ImageAnalysis;
 using Tinvo.Abstractions.ImageGeneration;
 using Tinvo.Abstractions.KBS;
+using Tinvo.Abstractions.MCP;
 using Tinvo.Abstractions.TTS;
 using Tinvo.Application.Utils;
 
@@ -172,6 +173,11 @@ namespace Tinvo.Application.Provider
         public List<ProviderTaskInfo> GetKBSList()
         {
             return GetProviderTasks<IKBSTask>();
+        }
+
+        public List<ProviderTaskInfo> GetMCPList()
+        {
+            return GetProviderTasks<IMCPService>();
         }
 
         public List<ProviderTaskInfo> GetTokenCalcList()

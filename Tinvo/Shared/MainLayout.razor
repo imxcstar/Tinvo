@@ -1,11 +1,14 @@
-﻿@inherits LayoutComponentBase
+﻿@using System.Runtime.InteropServices
+@using Tinvo.Application
+@inherits LayoutComponentBase
 @inject NavigationManager navigationManager
 @inject ISnackbar _snackbar
+@inject IPlatform _platform
 
-<MudThemeProvider/>
-<MudPopoverProvider/>
-<MudDialogProvider/>
-<MudSnackbarProvider/>
+<MudThemeProvider />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
 
 <style>
     @@media only screen and (max-width: 599px) {
@@ -61,29 +64,45 @@
             <MudStack AlignItems="AlignItems.Center" Class="pb-3 pt-3"
                       Style="background-color: transparent;width: 60px;height: 100%">
                 <div>
-                    <MudImage Src="_content/Tinvo/icon-128.png" Width="40" Height="40" Class="rounded-circle"/>
+                    <MudImage Src="_content/Tinvo/icon-128.png" Width="40" Height="40" Class="rounded-circle" />
                 </div>
                 <MudPaper Elevation="0" Style="padding-left: 10px">
-                    <NavMenu/>
+                    <NavMenu />
                 </MudPaper>
-                <MudSpacer/>
+                <MudSpacer />
                 <MudPaper Elevation="0" Style="padding-left: 10px">
-                    <BNavMenu/>
+                    <BNavMenu />
                 </MudPaper>
             </MudStack>
         </MudHidden>
-        <MudPaper Class="con-width" Elevation="0" Style="background-color: transparent;flex-basis: 0" MinWidth="0">
-            @Body
-        </MudPaper>
+        @if (_platform.Type == PlatformType.Winformedge)
+        {
+            <MudStack AlignItems="AlignItems.Stretch" StretchItems="StretchItems.End" Style="flex-basis: 0;min-height: 0;min-width:0">
+                <MudStack Row="true" Justify="Justify.FlexEnd" Style="app-region: drag;min-height: 50px;height: 50px;">
+                    <MudIconButton app-command="minimize" Icon="@Icons.Material.Filled.Minimize" />
+                    <MudIconButton app-command="maximize" Icon="@Icons.Material.Filled.ZoomOutMap" />
+                    <MudIconButton app-command="close" Icon="@Icons.Material.Filled.Close" />
+                </MudStack>
+                <MudPaper Class="con-width" Elevation="0" Style="background-color: transparent;min-height: 0;">
+                    @Body
+                </MudPaper>
+            </MudStack>
+        }
+        else
+        {
+            <MudPaper Class="con-width" Elevation="0" Style="background-color: transparent;flex-basis: 0" MinWidth="0">
+                @Body
+            </MudPaper>
+        }
     </MudStack>
     <MudHidden Breakpoint="Breakpoint.Xs" Invert="true">
         <MudPaper Height="50px" Style="background-color: transparent;padding-bottom: 10px;padding-top: 15px">
             <MudStack Row="true" Justify="Justify.SpaceAround" AlignItems="AlignItems.Center" Style="height: 100%">
-                <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Chat" Class="bmenu-button"/>
+                <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Chat" Class="bmenu-button" />
                 <MudNavLink Href="assistantManage" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Assistant"
-                            Class="bmenu-button"/>
+                            Class="bmenu-button" />
                 <MudNavLink Href="settings" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Settings"
-                            Class="bmenu-button"/>
+                            Class="bmenu-button" />
             </MudStack>
         </MudPaper>
     </MudHidden>

@@ -7,19 +7,21 @@ using Serilog.Events;
 using System;
 using Tinvo;
 using Tinvo.Abstractions;
-using Tinvo.Application.AIAssistant.Entities;
+using Tinvo.Application;
 using Tinvo.Application.AIAssistant;
+using Tinvo.Application.AIAssistant.Entities;
 using Tinvo.Application.DataStorage;
 using Tinvo.Application.DB;
+using Tinvo.Application.Provider;
 using Tinvo.Provider.Baidu;
+using Tinvo.Provider.Ollama;
 using Tinvo.Provider.OpenAI;
 using Tinvo.Provider.XunFei;
 using Tinvo.Service;
 using Tinvo.Service.Chat;
 using Tinvo.Service.KBS;
 using Tinvo.Services;
-using Tinvo.Application.Provider;
-using Tinvo.Provider.Ollama;
+using Tinvo.Provider.MCP;
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
@@ -33,6 +35,14 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 var services = builder.Services;
 services.AddLogging(loggingBuilder => loggingBuilder.AddSerilog(dispose: true));
 
+services.AddSingleton<IPlatform>(s =>
+{
+    return new Platform()
+    {
+        Type = PlatformType.WebAssembly
+    };
+});
+
 services.AddSingleton<IDataStorageService, LocalForageService>();
 
 services.AddSingleton<DBData<AssistantEntity>>();
@@ -42,7 +52,8 @@ services.AddProviderRegisterer()
         .RegistererBaiduProvider()
         .RegistererOpenAIProvider()
         .RegistererXunFeiProvider()
-        .RegistererOllamaProvider();
+        .RegistererOllamaProvider()
+        .RegistererMCPProvider();
 
 services.AddSingleton<ProviderService>();
 

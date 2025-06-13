@@ -41,6 +41,17 @@ namespace Tinvo.Abstractions.AIScheduler
         public int? MaxOutputTokens { get; set; }
 
         public IFunctionManager? FunctionManager { get; set; }
+
+        private List<IFunctionManager> _functionManagers = [];
+        public List<IFunctionManager> FunctionManagers
+        {
+            get => _functionManagers;
+            set
+            {
+                _functionManagers = value;
+                FunctionManager = new MultiFunctionManager(_functionManagers.ToList());
+            }
+        }
     }
 
     public static class ChatHistoryExtend

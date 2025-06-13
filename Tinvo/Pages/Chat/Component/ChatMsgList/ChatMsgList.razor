@@ -39,7 +39,7 @@
                 case ChatUserType.Sender:
                     <MudStack Justify="Justify.FlexEnd" Spacing="1" Row="true" Class="pb-3">
                         <div style="max-width: 80%">
-                            <ChatMsgContent IfTextUseRawText="true" Content="@item.Content" ReasoningContent="@item.ReasoningContent" ContentType="@item.ContentType" TextStyle="background: rgb(149,236,105);max-width:100%;"></ChatMsgContent>
+                            <ChatMsgContent IfTextUseRawText="true" Contents="@item.Contents" TextStyle="background: rgb(149,236,105);max-width:100%;"></ChatMsgContent>
                         </div>
                         <div>
                             @if (string.IsNullOrWhiteSpace(item.HeadIconURL))
@@ -75,8 +75,8 @@
                                     <MudMenuItem>删除</MudMenuItem>
                                 </MudMenu> *@
                             </MudStack>
-                            <MudStack Justify="Justify.FlexEnd" AlignItems="AlignItems.Center">
-                                <ChatMsgContent Content="@item.Content" ReasoningContent="@item.ReasoningContent" ContentType="@item.ContentType" TextStyle="background: #F8F8FF;max-width:100%;"></ChatMsgContent>
+                            <MudStack Justify="Justify.FlexEnd" AlignItems="AlignItems.Start">
+                                <ChatMsgContent Contents="@item.Contents" TextStyle="background: #F8F8FF;max-width:100%;"></ChatMsgContent>
                             </MudStack>
                         </div>
                     </MudStack>

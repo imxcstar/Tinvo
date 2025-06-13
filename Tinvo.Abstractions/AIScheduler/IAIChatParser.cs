@@ -21,6 +21,8 @@ namespace Tinvo.Abstractions.AIScheduler
         Refusal,
         ReasoningStart,
         ReasoningEnd,
+        AudioMessage,
+        FileMessage
     }
 
     public class AIProviderHandleRefusalMessageResponse : IAIChatHandleResponse
@@ -50,6 +52,20 @@ namespace Tinvo.Abstractions.AIScheduler
         public AIChatHandleResponseType Type => AIChatHandleResponseType.ImageMessage;
 
         public Stream Image { get; set; }
+    }
+
+    public class AIProviderHandleAudioMessageResponse : IAIChatHandleResponse
+    {
+        public AIChatHandleResponseType Type => AIChatHandleResponseType.AudioMessage;
+
+        public Stream Audio { get; set; }
+    }
+
+    public class AIProviderHandleFileMessageResponse : IAIChatHandleResponse
+    {
+        public AIChatHandleResponseType Type => AIChatHandleResponseType.FileMessage;
+
+        public Stream File { get; set; }
     }
 
     public class AIProviderHandleFunctionStartResponse : IAIChatHandleResponse

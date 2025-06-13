@@ -1,0 +1,3 @@
+[submodule "Libs/WinFormedge"]
+	path = Libs/WinFormedge
+	url = https://github.com/imxcstar/WinFormedge.git

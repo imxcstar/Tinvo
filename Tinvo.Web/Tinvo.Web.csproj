@@ -12,6 +12,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\Tinvo.Provider.MCP\Tinvo.Provider.MCP.csproj" />
 		<ProjectReference Include="..\Tinvo.WebAssembly\Tinvo.WebAssembly.csproj" />
 		<ProjectReference Include="..\Tinvo.Provider.Baidu\Tinvo.Provider.Baidu.csproj" />
 		<ProjectReference Include="..\Tinvo.Provider.LLama\Tinvo.Provider.LLama.csproj" />

@@ -76,13 +76,13 @@ namespace Tinvo.Provider.XunFei.AIScheduler
                         }
                     }
                 }).Where(x => x != null).ToList()!,
-                Functions = (requestSettings?.FunctionManager == null || requestSettings.FunctionManager.FunctionInfos.Count <= 0) ? null : requestSettings?.FunctionManager.FunctionInfos.Select(x => new XFSparkDeskChatAPIFunctionRequest()
+                Functions = (requestSettings?.FunctionManager == null || requestSettings.FunctionManager.GetFunctionInfos().Count <= 0) ? null : requestSettings?.FunctionManager.GetFunctionInfos().Select(x => new XFSparkDeskChatAPIFunctionRequest()
                 {
                     Name = x.Name,
                     Description = x.Description ?? "",
                     Parameters = new XFSparkDeskChatAPIFunctionParametersRequest()
                     {
-                        Type = x.Parameters.Type,
+                        Type = x.Type,
                         Properties = x.Parameters.Properties.ToDictionary(x2 => x2.Key, x2 => new XFSparkDeskChatAPIFunctionParametersPropertieRequest()
                         {
                             Type = x2.Value.Type,

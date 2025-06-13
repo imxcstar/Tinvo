@@ -20,7 +20,8 @@ namespace Tinvo.Provider.XunFei.AIScheduler
         private readonly IAIChatParser _parser;
         private readonly ILogger _logger;
 
-        public XFSparkDeskAIHybridProvider(XFSparkDeskChatAPIConfig chat_config, XFSparkDeskImageAnalysisAPIConfig image_config)
+        public XFSparkDeskAIHybridProvider(XFSparkDeskChatAPIConfig chat_config,
+            XFSparkDeskImageAnalysisAPIConfig image_config)
         {
             _chatProvider = new XFSparkDeskAIChatProvider(chat_config);
             _imageApi = new XFSparkDeskImageAnalysisAPI(image_config);
@@ -32,15 +33,24 @@ namespace Tinvo.Provider.XunFei.AIScheduler
         {
             var ret = new ChatHistory();
             if (instructions == null)
-                ret.AddMessage(AuthorRole.System, [new(Guid.NewGuid().ToString(), $@"现在的时间为：{DateTime.Now.ToString("yyyy-MM-dd")}", ChatMessageContentType.Text)]);
+                ret.AddMessage(AuthorRole.System,
+                [
+                    new(Guid.NewGuid().ToString(), $@"现在的时间为：{DateTime.Now.ToString("yyyy-MM-dd")}",
+                        ChatMessageContentType.Text)
+                ]);
             else if (!string.IsNullOrWhiteSpace(instructions))
-                ret.AddMessage(AuthorRole.System, [new(Guid.NewGuid().ToString(), instructions, ChatMessageContentType.Text)]);
+                ret.AddMessage(AuthorRole.System,
+                    [new(Guid.NewGuid().ToString(), instructions, ChatMessageContentType.Text)]);
             return ret;
         }
 
-        public async IAsyncEnumerable<IAIChatHandleResponse> ChatAsync(ChatHistory chat, ChatSettings? requestSettings = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        public async IAsyncEnumerable<IAIChatHandleResponse> ChatAsync(ChatHistory chat,
+            ChatSettings? requestSettings = null,
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            if (chat.Any(x => x.Role == AuthorRole.User && x.Contents.Any(x2 => x2.ContentType == ChatMessageContentType.ImageBase64)) && _imageApi != null)
+            if (chat.Any(x =>
+                    x.Role == AuthorRole.User &&
+                    x.Contents.Any(x2 => x2.ContentType == ChatMessageContentType.ImageBase64)) && _imageApi != null)
             {
                 XFSparkDeskImageAPIMessageRequest lastImage = default!;
                 var imageChatMessage = chat.SelectMany(x =>
@@ -90,6 +100,7 @@ namespace Tinvo.Provider.XunFei.AIScheduler
                             }
                         }
                     }
+
                     return ret;
                 }).ToList();
                 imageChatMessage.Insert(0, lastImage);
@@ -106,11 +117,12 @@ namespace Tinvo.Provider.XunFei.AIScheduler
                         yield return item2;
                     }
                 }
+
                 yield break;
             }
 
             var fm = new FunctionManager();
-            fm.AddCustomFunction("Answer", "回答用户问题", new FunctionParametersInfo()
+            fm.AddCustomFunction("Answer", "回答用户问题", "object", new FunctionParametersInfo()
             {
                 Type = "object",
                 Properties = new Dictionary<string, FunctionParametersProperties>()
@@ -119,8 +131,8 @@ namespace Tinvo.Provider.XunFei.AIScheduler
                         "type",
                         new FunctionParametersProperties()
                         {
-                            Description="类型分别为：画图、闲聊、图片识别、未知",
-                            Type="string"
+                            Description = "类型分别为：画图、闲聊、图片识别、未知",
+                            Type = "string"
                         }
                     }
                 },
@@ -128,7 +140,11 @@ namespace Tinvo.Provider.XunFei.AIScheduler
             });
 
             var lchat = chat.Last();
-            var nm = new ChatMessage(AuthorRole.User, [new ChatMessageContent(Guid.NewGuid().ToString(), $"题目：小明说到“{(string)lchat.Contents.First().Content}”\r\n问：请回答小明想要做什么？", ChatMessageContentType.Text)]);
+            var nm = new ChatMessage(AuthorRole.User,
+            [
+                new ChatMessageContent(Guid.NewGuid().ToString(),
+                    $"题目：小明说到“{(string)lchat.Contents.First().Content}”\r\n问：请回答小明想要做什么？", ChatMessageContentType.Text)
+            ]);
             var intentionRet = _chatProvider.ChatAsync([nm], new ChatSettings()
             {
                 FunctionManager = fm,
@@ -147,6 +163,7 @@ namespace Tinvo.Provider.XunFei.AIScheduler
                             _logger.Debug("Intention Select(FunctionCall): AI执行返回解释错误：{ret}", intention);
                             break;
                         }
+
                         _logger.Debug("Intention Select(FunctionCall): AI开始执行：{name}", funHandleResponse.FunctionName);
                         _logger.Debug("Intention Select(FunctionCall): AI开始执行参数：{args}", funHandleResponse.Arguments);
                         break;

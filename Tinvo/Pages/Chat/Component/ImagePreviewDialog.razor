@@ -1,0 +1,15 @@
+﻿@using MudBlazor
+
+<MudDialog>
+    <DialogContent>
+        <MudImage Src="@ImageSrc" Fluid="true" Style="max-height: 85vh;" />
+    </DialogContent>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; }
+
+    [Parameter]
+    public string ImageSrc { get; set; }
+}
