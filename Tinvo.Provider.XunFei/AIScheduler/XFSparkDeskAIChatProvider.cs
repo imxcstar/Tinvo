@@ -30,13 +30,13 @@ namespace Tinvo.Provider.XunFei.AIScheduler
         {
             var ret = new ChatHistory();
             if (instructions == null)
-                ret.AddMessage(AuthorRole.System, [new(Guid.NewGuid().ToString(), $@"现在的时间为：{DateTime.Now.ToString("yyyy-MM-dd")}", ChatMessageContentType.Text)]);
+                ret.AddMessage(AuthorRole.System, [new AIProviderHandleTextMessageResponse() { Message = $@"现在的时间为：{DateTime.Now.ToString("yyyy-MM-dd")}" }]);
             else if (!string.IsNullOrWhiteSpace(instructions))
-                ret.AddMessage(AuthorRole.System, [new(Guid.NewGuid().ToString(), instructions, ChatMessageContentType.Text)]);
+                ret.AddMessage(AuthorRole.System, [new AIProviderHandleTextMessageResponse() { Message = instructions }]);
             return ret;
         }
 
-        public async IAsyncEnumerable<IAIChatHandleResponse> ChatAsync(ChatHistory chat, ChatSettings? requestSettings = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        public async IAsyncEnumerable<IAIChatHandleMessage> ChatAsync(ChatHistory chat, ChatSettings? requestSettings = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             var chatRet = _chatApi.SendChat(new XFSparkDeskChatAPIRequest()
             {
@@ -49,31 +49,25 @@ namespace Tinvo.Provider.XunFei.AIScheduler
 
                     if (x.Role == AuthorRole.Assistant)
                     {
-                        if (fContnet.ContentType != ChatMessageContentType.Text)
+                        if (fContnet is AIProviderHandleTextMessageResponse textMessage)
+                            return new XFSparkDeskChatAPIMessageRequest()
+                            {
+                                Role = "assistant",
+                                Content = textMessage.Message
+                            };
+                        else
                             throw new NotSupportedException("XFSpark其它角色发送不支持的内容类型");
-                        return new XFSparkDeskChatAPIMessageRequest()
-                        {
-                            Role = "assistant",
-                            Content = (string)fContnet.Content
-                        };
                     }
                     else
                     {
-                        switch (fContnet.ContentType)
-                        {
-                            case ChatMessageContentType.Text:
-                                return new XFSparkDeskChatAPIMessageRequest()
-                                {
-                                    Role = "user",
-                                    Content = (string)fContnet.Content
-                                };
-                            case ChatMessageContentType.ImageBase64:
-                            case ChatMessageContentType.ImageURL:
-                            case ChatMessageContentType.DocStream:
-                            case ChatMessageContentType.DocURL:
-                            default:
-                                throw new NotSupportedException("XFSpark发送不支持的内容类型");
-                        }
+                        if (fContnet is AIProviderHandleTextMessageResponse textMessage)
+                            return new XFSparkDeskChatAPIMessageRequest()
+                            {
+                                Role = "user",
+                                Content = textMessage.Message
+                            };
+                        else
+                            throw new NotSupportedException("XFSpark发送不支持的内容类型");
                     }
                 }).Where(x => x != null).ToList()!,
                 Functions = (requestSettings?.FunctionManager == null || requestSettings.FunctionManager.GetFunctionInfos().Count <= 0) ? null : requestSettings?.FunctionManager.GetFunctionInfos().Select(x => new XFSparkDeskChatAPIFunctionRequest()

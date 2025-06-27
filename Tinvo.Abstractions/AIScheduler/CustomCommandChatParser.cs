@@ -29,6 +29,7 @@ namespace Tinvo.Abstractions.AIScheduler
         private string contentCommandValue = "";
         private string defaultMsg = "";
         private bool isBrowser = false;
+        private string callId = "";
 
         private bool TryGetLowerCommand(string name, out string value)
         {
@@ -54,7 +55,7 @@ namespace Tinvo.Abstractions.AIScheduler
             handleState = HandleRetMsgState.Mark;
         }
 
-        public async IAsyncEnumerable<IAIChatHandleResponse> Handle(object msg, IFunctionManager? functionManager)
+        public async IAsyncEnumerable<IAIChatHandleMessage> Handle(object msg, IFunctionManager? functionManager)
         {
             if (msg is not string smsg)
                 yield break;
@@ -86,10 +87,13 @@ namespace Tinvo.Abstractions.AIScheduler
                             case "#end":
                                 if (TryGetLowerCommand(contentCommand, out var ocommand))
                                 {
+                                    if (string.IsNullOrWhiteSpace(callId))
+                                        callId = Guid.NewGuid().ToString();
                                     yield return new AIProviderHandleFunctionCallResponse()
                                     {
                                         FunctionManager = functionManager!,
                                         FunctionName = ocommand,
+                                        CallID = callId,
                                         Arguments = null
                                     };
                                 }
@@ -134,11 +138,7 @@ namespace Tinvo.Abstractions.AIScheduler
                             commandBuilder.Clear();
                             contentCommandValue = "";
                             handleState = HandleRetMsgState.CommandContent;
-                            yield return new AIProviderHandleFunctionStartResponse()
-                            {
-                                FunctionManager = functionManager!,
-                                FunctionName = ocommand
-                            };
+                            callId = Guid.NewGuid().ToString();
                         }
                         else
                         {

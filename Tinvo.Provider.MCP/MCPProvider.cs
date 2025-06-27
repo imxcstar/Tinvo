@@ -10,6 +10,7 @@ using ModelContextProtocol;
 using ModelContextProtocol.Client;
 using Tinvo.Abstractions.AIScheduler;
 using System.Text.Json;
+using Tinvo.Application.DataStorage;
 
 namespace Tinvo.Provider.MCP
 {
@@ -62,9 +63,11 @@ namespace Tinvo.Provider.MCP
     public class MCPProvider : MCPStreamService
     {
         private readonly MCPConfig _config;
+        private readonly IDataStorageService _storageService;
 
-        public MCPProvider(MCPConfig config)
+        public MCPProvider(IDataStorageService storageService, MCPConfig config)
         {
+            _storageService = storageService;
             _config = config;
         }
 
@@ -105,26 +108,29 @@ namespace Tinvo.Provider.MCP
             var mcpClient = await McpClientFactory.CreateAsync(transport, cancellationToken: cancellationToken);
             var tools = await mcpClient.ListToolsAsync(cancellationToken: cancellationToken);
 
-            return new MCPFunctionManager(mcpClient, tools.Select(ConvertToMCPTool).ToList());
+            return new MCPFunctionManager(_storageService, mcpClient, tools.Select(ConvertToMCPTool).ToList());
         }
     }
 
     public class MCPFunctionManager : IFunctionManager
     {
+        private readonly IDataStorageService _storageService;
         private IMcpClient _mcpClient;
         private List<FunctionInfo> _functionInfos;
 
-        public MCPFunctionManager(IMcpClient mcpClient, List<FunctionInfo> functionInfos)
+        public MCPFunctionManager(IDataStorageService storageService, IMcpClient mcpClient, List<FunctionInfo> functionInfos)
         {
+            _storageService = storageService;
             _mcpClient = mcpClient;
             _functionInfos = functionInfos;
         }
 
-        public async IAsyncEnumerable<IAIChatHandleResponse> CallFunctionAsync(string name, Dictionary<string, object?>? parameters, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        public async IAsyncEnumerable<IAIChatHandleMessage> CallFunctionAsync(string name, Dictionary<string, object?>? parameters, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             var ret = await _mcpClient.CallToolAsync(name, parameters ?? new Dictionary<string, object?>(), cancellationToken: cancellationToken);
             foreach (var content in ret.Content)
             {
+                var customFileID = Guid.NewGuid().ToString();
                 switch (content.Type)
                 {
                     case "text":
@@ -134,15 +140,19 @@ namespace Tinvo.Provider.MCP
                         };
                         break;
                     case "image":
-                        yield return new AIProviderHandleImageMessageResponse()
+                        await _storageService.SetItemAsBinaryAsync(customFileID, Convert.FromBase64String(content.Data!), cancellationToken);
+                        yield return new AIProviderHandleCustomFileMessageResponse()
                         {
-                            Image = new MemoryStream(Convert.FromBase64String(content.Data!))
+                            Type = AIChatHandleMessageType.ImageMessage,
+                            FileCustomID = customFileID,
                         };
                         break;
                     case "audio":
-                        yield return new AIProviderHandleAudioMessageResponse()
+                        await _storageService.SetItemAsBinaryAsync(customFileID, Convert.FromBase64String(content.Data!), cancellationToken);
+                        yield return new AIProviderHandleCustomFileMessageResponse()
                         {
-                            Audio = new MemoryStream(Convert.FromBase64String(content.Data!))
+                            Type = AIChatHandleMessageType.AudioMessage,
+                            FileCustomID = customFileID,
                         };
                         break;
                     case "resource":

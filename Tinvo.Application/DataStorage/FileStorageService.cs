@@ -4,12 +4,14 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Tinvo.Abstractions.AIScheduler;
 
 namespace Tinvo.Application.DataStorage
 {
     public class FileStorageService : IDataStorageService
     {
         private readonly string _storageDirectory;
+        private readonly JsonSerializerOptions _serializerOptions;
 
         public FileStorageService(string storageDirectory)
         {
@@ -18,6 +20,8 @@ namespace Tinvo.Application.DataStorage
             {
                 Directory.CreateDirectory(_storageDirectory);
             }
+            _serializerOptions = new JsonSerializerOptions();
+            _serializerOptions.Converters.Add(new IAIChatHandleMessageConverter());
         }
 
         public async ValueTask ClearAsync(CancellationToken cancellationToken = default)
@@ -35,7 +39,7 @@ namespace Tinvo.Application.DataStorage
             if (File.Exists(filePath))
             {
                 string jsonData = await File.ReadAllTextAsync(filePath, cancellationToken);
-                return JsonSerializer.Deserialize<T>(jsonData);
+                return JsonSerializer.Deserialize<T>(jsonData, _serializerOptions);
             }
             return default;
         }
@@ -91,7 +95,7 @@ namespace Tinvo.Application.DataStorage
 
         public async ValueTask SetItemAsync<T>(string key, T data, CancellationToken cancellationToken = default)
         {
-            string jsonData = JsonSerializer.Serialize(data);
+            string jsonData = JsonSerializer.Serialize(data, _serializerOptions);
             string filePath = GetFilePath(key);
             await File.WriteAllTextAsync(filePath, jsonData, cancellationToken);
         }
@@ -105,6 +109,41 @@ namespace Tinvo.Application.DataStorage
         private string GetFilePath(string key)
         {
             return Path.Combine(_storageDirectory, key);
+        }
+
+        public async ValueTask SetItemAsStreamAsync(string key, Stream data, bool leaveOpen = false, CancellationToken cancellationToken = default)
+        {
+            string filePath = GetFilePath(key);
+            using var file = new FileStream(filePath, FileMode.OpenOrCreate, FileAccess.ReadWrite);
+            await data.CopyToAsync(file);
+            file.Close();
+            if (!leaveOpen)
+                data.Close();
+        }
+
+        public async ValueTask SetItemAsBinaryAsync(string key, byte[] data, CancellationToken cancellationToken = default)
+        {
+            string filePath = GetFilePath(key);
+            using var file = new FileStream(filePath, FileMode.OpenOrCreate, FileAccess.ReadWrite);
+            var memoryStream = new MemoryStream(data);
+            await memoryStream.CopyToAsync(file);
+            file.Close();
+        }
+
+        public ValueTask<Stream?> GetItemAsStreamAsync(string key, CancellationToken cancellationToken = default)
+        {
+            string filePath = GetFilePath(key);
+            if (!File.Exists(filePath))
+                return ValueTask.FromResult<Stream?>(null);
+            return ValueTask.FromResult<Stream?>(new FileStream(filePath, FileMode.OpenOrCreate, FileAccess.ReadWrite));
+        }
+
+        public ValueTask<byte[]?> GetItemAsBinaryAsync(string key, CancellationToken cancellationToken = default)
+        {
+            string filePath = GetFilePath(key);
+            if (!File.Exists(filePath))
+                return ValueTask.FromResult<byte[]?>(null);
+            return ValueTask.FromResult<byte[]?>(File.ReadAllBytes(filePath));
         }
     }
 }

@@ -1,21 +1,27 @@
-﻿using Microsoft.AspNetCore.Components;
+﻿using DeepCloner.Core;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
+using Microsoft.Extensions.DependencyInjection;
+using MudBlazor;
 using Serilog;
+using System.IO;
+using System.Net;
+using System.Net.Mime;
+using System.Runtime.InteropServices;
+using System.Text;
 using System.Text.Json;
+using System.Threading;
+using Tinvo.Abstractions;
+using Tinvo.Abstractions.AIScheduler;
+using Tinvo.Abstractions.MCP;
+using Tinvo.Application.AIAssistant;
+using Tinvo.Application.AIAssistant.Entities;
+using Tinvo.Application.DataStorage;
+using Tinvo.Application.Provider;
 using Tinvo.Pages.Chat;
 using Tinvo.Pages.Chat.Component.ChatMsgList;
-using Microsoft.Extensions.DependencyInjection;
-using System.Net;
-using Tinvo.Application.DataStorage;
-using Tinvo.Abstractions.AIScheduler;
-using Tinvo.Abstractions;
-using Tinvo.Application.Provider;
-using Tinvo.Application.AIAssistant;
-using System.Text;
 using static MudBlazor.CategoryTypes;
-using System.Net.Mime;
-using Tinvo.Abstractions.MCP;
-using Tinvo.Application.AIAssistant.Entities;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace Tinvo.Service.Chat
 {
@@ -134,36 +140,40 @@ namespace Tinvo.Service.Chat
                     foreach (var file in files)
                     {
                         var ext = Path.GetExtension(file.Name.ToLower()).Trim('.');
-                        var fileType = ext switch
+                        if ("jpg/jpeg/png/bmp/gif".Contains(ext))
                         {
-                            string image when "jpg/jpeg/png/bmp/gif".Contains(image) => ChatContentType.Image,
-                            //string audio when "pcm/wav/amr/m4a/aac".Contains(audio) => ChatContentType.Audio,
-                            //string doc when "doc/docx/pdf/txt".Contains(doc) => ChatContentType.File,
-                            _ => throw new Exception($"不支持的文件类型({ext})")
-                        };
-                        switch (fileType)
+                            using var fileStream = file.OpenReadStream(30 * 1024 * 1024);
+                            var fileCustomID = Guid.NewGuid().ToString();
+                            await _dataStorageService.SetItemAsStreamAsync(fileCustomID, fileStream, false, cancellationToken);
+                            newMsg.Contents.Add(new AIProviderHandleCustomFileMessageResponse()
+                            {
+                                Type = AIChatHandleMessageType.ImageMessage,
+                                FileCustomID = fileCustomID,
+                            });
+                        }
+                        else if ("pdf".Contains(ext))
                         {
-                            case ChatContentType.Image:
-                                {
-                                    using var imageStream = new MemoryStream();
-                                    using var fileStream = file.OpenReadStream(30 * 1024 * 1024);
-                                    await fileStream.CopyToAsync(imageStream);
-
-                                    newMsg.Contents.Add(new ChatMsgItemContentInfo()
-                                    {
-                                        ContentType = ChatContentType.Image,
-                                        Content = Convert.ToBase64String(imageStream.ToArray())
-                                    });
-                                    break;
-                                }
+                            using var fileStream = file.OpenReadStream(30 * 1024 * 1024);
+                            var fileCustomID = Guid.NewGuid().ToString();
+                            await _dataStorageService.SetItemAsStreamAsync(fileCustomID, fileStream, false, cancellationToken);
+                            newMsg.Contents.Add(new AIProviderHandleCustomFileMessageResponse()
+                            {
+                                Type = AIChatHandleMessageType.FileMessage,
+                                FileCustomID = fileCustomID,
+                                FileOriginalName = file.Name,
+                                FileOriginalMediaType = "application/pdf"
+                            });
+                        }
+                        else
+                        {
+                            throw new Exception($"不支持的文件类型({ext})");
                         }
                     }
                 }
 
-                newMsg.Contents.Add(new ChatMsgItemContentInfo()
+                newMsg.Contents.Add(new AIProviderHandleTextMessageResponse()
                 {
-                    ContentType = ChatContentType.Text,
-                    Content = msg
+                    Message = msg
                 });
 
                 var newRetMsg = new ChatMsgItemInfo()
@@ -173,8 +183,6 @@ namespace Tinvo.Service.Chat
                     UserType = ChatUserType.Receiver,
                     CreateTime = DateTime.Now
                 };
-                var defaultRetContent = new ChatMsgItemContentInfo();
-                newRetMsg.Contents.Add(defaultRetContent);
 
                 List<ChatMsgItemInfo> nMsgs = [newMsg, newRetMsg];
                 if (msgCache == null)
@@ -203,33 +211,16 @@ namespace Tinvo.Service.Chat
                         "system" => AuthorRole.System,
                         "assistant" => AuthorRole.Assistant,
                         _ => AuthorRole.User
-                    }, [new(Guid.NewGuid().ToString(), tmsg.Content, ChatMessageContentType.Text)]);
+                    }, [
+                        new AIProviderHandleTextMessageResponse()
+                        {
+                            Message = tmsg.Content
+                        }
+                    ]);
                 }
 
                 var msgHistory = msgCache.MsgList[..^1];
-                foreach (var item in msgHistory)
-                {
-                    foreach (var content in item.Contents)
-                    {
-                        var contentType = content.ContentType switch
-                        {
-                            ChatContentType.Text => ChatMessageContentType.Text,
-                            ChatContentType.Image => ChatMessageContentType.ImageBase64,
-                            _ => throw new NotSupportedException("不支持的内容类型")
-                        };
-                        switch (item.UserType)
-                        {
-                            case ChatUserType.Sender:
-                                msgChat.AddMessage(AuthorRole.User, [new(item.Id, content.Content, contentType)]);
-                                break;
-                            case ChatUserType.Receiver:
-                                msgChat.AddMessage(AuthorRole.Assistant, [new(item.Id, content.Content, contentType)]);
-                                break;
-                            default:
-                                break;
-                        }
-                    }
-                }
+                AddChatHistory(msgHistory, msgChat);
 
                 var functionManagers = new List<IFunctionManager>();
                 foreach (var mcpService in mcpServices)
@@ -238,13 +229,15 @@ namespace Tinvo.Service.Chat
                     functionManagers.Add(functionManager);
                 }
 
-                var chatRet = ai.ChatAsync(msgChat, new ChatSettings()
+                var chatSettings = new ChatSettings()
                 {
                     FunctionManagers = functionManagers ?? [],
                     SessionId = tmsgGroup.Id
-                }, cancellationToken);
+                };
 
-                await HandleOutMessage(ai, msgChat, chatRet, newRetMsg.Contents, defaultRetContent, cancellationToken);
+                var chatRet = ai.ChatAsync(msgChat, chatSettings, cancellationToken);
+
+                await HandleMessage(ai, chatSettings, chatRet, msgHistory, newRetMsg.Contents, null, cancellationToken);
             }
             catch (TaskCanceledException)
             {
@@ -261,207 +254,123 @@ namespace Tinvo.Service.Chat
             await _dataStorageService.SetItemAsync("msgCache", _msgCaches);
         }
 
-        private ChatMsgItemContentInfo GetOrNewContent(ChatMsgItemContentInfo? currentContent,
-            ChatContentType newContentType,
-            List<ChatMsgItemContentInfo> outContents,
-            string? newTitle = null)
+        private void AddChatHistory(List<ChatMsgItemInfo> historyMessages, ChatHistory chatHistory)
         {
-            var ret = currentContent;
-            if (ret != null && (ret.ContentType == ChatContentType.Default ||
-                                ret.ContentType == newContentType ||
-                                (!string.IsNullOrWhiteSpace(newTitle) && ret.Title == newTitle)))
-                return ret;
-            ret = new ChatMsgItemContentInfo();
-            outContents.Add(ret);
-            return ret;
+            foreach (var item in historyMessages)
+            {
+                foreach (var content in item.Contents)
+                {
+                    switch (item.UserType)
+                    {
+                        case ChatUserType.Sender:
+                            chatHistory.AddMessage(AuthorRole.User, [content]);
+                            break;
+                        case ChatUserType.Receiver:
+                            chatHistory.AddMessage(AuthorRole.Assistant, [content]);
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            }
         }
 
-        private async Task HandleOutMessage(
-            IAIChatTask aiChatTask,
-            ChatHistory chatMessages,
-            IAsyncEnumerable<IAIChatHandleResponse?> responses,
-            List<ChatMsgItemContentInfo> OutContents,
-            ChatMsgItemContentInfo? defaultContent,
-            CancellationToken cancellationToken)
+        private async Task<List<IAIChatHandleMessage>> HandleMessage(IAIChatTask ai, ChatSettings chatSettings,
+            IAsyncEnumerable<IAIChatHandleMessage> receiveMessages, List<ChatMsgItemInfo> historyMessages,
+            List<IAIChatHandleMessage> newResultMessages, Action<string>? orReturnTextCallback = null, CancellationToken cancellationToken = default)
         {
-            ChatMsgItemContentInfo? content = defaultContent;
-            ChatMsgItemContentInfo? reasoningcontent = null;
-            var isReasoning = false;
-            await foreach (var response in responses.WithCancellation(cancellationToken))
+            var ret = new List<IAIChatHandleMessage>();
+            IAIChatHandleMessage? oldResponse = null;
+            await foreach (var response in receiveMessages.WithCancellation(cancellationToken))
             {
                 if (cancellationToken != CancellationToken.None && cancellationToken.IsCancellationRequested)
                     throw new TaskCanceledException();
                 if (response == null)
                     continue;
-                switch (response.Type)
+                if (response is AIProviderHandleTextMessageResponse textMessageResponse && oldResponse != null && oldResponse is AIProviderHandleTextMessageResponse oldTextMessageResponse)
                 {
-                    case AIChatHandleResponseType.TextMessage:
-                        content = GetOrNewContent(content, ChatContentType.Text, OutContents);
-                        var messageResponse = response as AIProviderHandleTextMessageResponse;
-                        if (messageResponse == null)
-                        {
-                            content.ContentType = ChatContentType.ErrorInfo;
-                            content.Title = "错误";
-                            content.Content = $"AI执行返回解释错误：{response}";
-                            await OnStateHasChange.InvokeAsync();
-                            break;
-                        }
+                    oldTextMessageResponse.Message += textMessageResponse.Message;
+                    orReturnTextCallback?.Invoke(textMessageResponse.Message);
+                }
+                else if (response is AIProviderHandleReasoningMessageResponse reasoningMessageResponse && oldResponse != null && oldResponse is AIProviderHandleReasoningMessageResponse oldReasoningMessageResponse)
+                {
+                    oldReasoningMessageResponse.Message += reasoningMessageResponse.Message;
+                }
+                else if (response is AIProviderHandleFunctionCallResponse functionCallMessageResponse && oldResponse != null && oldResponse is AIProviderHandleFunctionCallResponse oldFunctionCallMessageResponse)
+                {
+                    oldFunctionCallMessageResponse.Result += functionCallMessageResponse.Result;
+                }
+                else if (response is AIProviderHandleAudioStreamMessageResponse audioStreamMessageResponse && oldResponse != null && oldResponse is AIProviderHandleAudioStreamMessageResponse oldAudioStreamMessageResponse)
+                {
+                    using var reader = new BinaryReader(audioStreamMessageResponse.Stream);
+                    using var writer = new BinaryWriter(oldAudioStreamMessageResponse.Stream);
+                    var buffer = new byte[4096];
+                    int bytesRead;
 
-                        if (isReasoning && reasoningcontent != null)
-                        {
-                            reasoningcontent.Content += messageResponse.Message;
-                        }
-                        else
-                        {
-                            if (content == reasoningcontent)
-                                content = GetOrNewContent(null, ChatContentType.Text, OutContents);
-                            content.ContentType = ChatContentType.Text;
-                            content.Content += messageResponse.Message;
-                        }
-
+                    while ((bytesRead = reader.BaseStream.Read(buffer, 0, buffer.Length)) > 0)
+                    {
+                        writer.Write(buffer, 0, bytesRead);
+                        writer.Flush();
                         await OnStateHasChange.InvokeAsync();
-                        break;
-                    case AIChatHandleResponseType.ReasoningStart:
-                        if (reasoningcontent == null)
-                            reasoningcontent = GetOrNewContent(content, ChatContentType.Text, OutContents, "思考");
-                        else
-                            reasoningcontent = GetOrNewContent(reasoningcontent, ChatContentType.Text, OutContents, "思考");
-                        reasoningcontent.ContentType = ChatContentType.Text;
-                        reasoningcontent.Title = "思考";
-                        isReasoning = true;
-
-                        await OnStateHasChange.InvokeAsync();
-                        break;
-                    case AIChatHandleResponseType.ReasoningEnd:
-                        isReasoning = false;
-
-                        break;
-                    case AIChatHandleResponseType.ImageMessage:
-                        content = GetOrNewContent(content, ChatContentType.Image, OutContents);
-                        var imageMessageResponse = response as AIProviderHandleImageMessageResponse;
-                        if (imageMessageResponse == null)
-                        {
-                            content.ContentType = ChatContentType.ErrorInfo;
-                            content.Title = "错误";
-                            content.Content = $"AI执行返回解释错误：{response}";
-                            await OnStateHasChange.InvokeAsync();
-                            break;
-                        }
-
-                        content.ContentType = ChatContentType.Image;
-                        content.Content =
-                            Convert.ToBase64String((imageMessageResponse.Image as MemoryStream)!.ToArray());
-
-                        await OnStateHasChange.InvokeAsync();
-                        break;
-                    case AIChatHandleResponseType.AudioMessage:
-                        content = GetOrNewContent(content, ChatContentType.Image, OutContents);
-                        var audioMessageResponse = response as AIProviderHandleAudioMessageResponse;
-                        if (audioMessageResponse == null)
-                        {
-                            content.ContentType = ChatContentType.ErrorInfo;
-                            content.Title = "错误";
-                            content.Content = $"AI执行返回解释错误：{response}";
-                            await OnStateHasChange.InvokeAsync();
-                            break;
-                        }
-
-                        content.ContentType = ChatContentType.Audio;
-                        content.Content =
-                            Convert.ToBase64String((audioMessageResponse.Audio as MemoryStream)!.ToArray());
-
-                        await OnStateHasChange.InvokeAsync();
-                        break;
-                    case AIChatHandleResponseType.FileMessage:
-                        content = GetOrNewContent(content, ChatContentType.Image, OutContents);
-                        var fileMessageResponse = response as AIProviderHandleFileMessageResponse;
-                        if (fileMessageResponse == null)
-                        {
-                            content.ContentType = ChatContentType.ErrorInfo;
-                            content.Title = "错误";
-                            content.Content = $"AI执行返回解释错误：{response}";
-                            await OnStateHasChange.InvokeAsync();
-                            break;
-                        }
-
-                        content.ContentType = ChatContentType.File;
-                        content.Content =
-                            Convert.ToBase64String((fileMessageResponse.File as MemoryStream)!.ToArray());
-
-                        await OnStateHasChange.InvokeAsync();
-                        break;
-                    case AIChatHandleResponseType.FunctionStart:
-                        content = GetOrNewContent(content, ChatContentType.Default, OutContents);
-
-                        var funStartResponse = response as AIProviderHandleFunctionStartResponse;
-                        if (funStartResponse == null)
-                        {
-                            content.ContentType = ChatContentType.ErrorInfo;
-                            content.Title = "错误";
-                            content.Content = $"AI执行返回解释错误：{response}";
-                            await OnStateHasChange.InvokeAsync();
-                            break;
-                        }
-
-                        content.Title = $"工具调用({funStartResponse.FunctionName})";
-                        await OnStateHasChange.InvokeAsync();
-                        break;
-                    case AIChatHandleResponseType.FunctionCall:
-                        content = GetOrNewContent(content, ChatContentType.Default, OutContents);
-
-                        var funHandleResponse = response as AIProviderHandleFunctionCallResponse;
-                        if (funHandleResponse == null)
-                        {
-                            content.ContentType = ChatContentType.ErrorInfo;
-                            content.Title = "错误";
-                            content.Content = $"AI执行返回解释错误：{response}";
-                            await OnStateHasChange.InvokeAsync();
-                            break;
-                        }
-
-                        content.Title = $"工具调用({funHandleResponse.FunctionName})";
-                        content.ContentType = ChatContentType.Text;
-                        content.Content += $"{JsonSerializer.Serialize(funHandleResponse.Arguments)}";
-                        var oldContent = content;
-                        await OnStateHasChange.InvokeAsync();
-
-                        content = GetOrNewContent(null, ChatContentType.Default, OutContents);
-                        await OnStateHasChange.InvokeAsync();
-
-                        var funCallRet = funHandleResponse.FunctionManager.CallFunctionAsync(
-                            funHandleResponse.FunctionName,
-                            funHandleResponse.Arguments?.ToDictionary(x => x.Key, x => (object?)x.Value)
+                    }
+                }
+                else
+                {
+                    if (orReturnTextCallback != null && response is AIProviderHandleTextMessageResponse textMessage)
+                    {
+                        orReturnTextCallback.Invoke(textMessage.Message);
+                    }
+                    else
+                    {
+                        newResultMessages.Add(response);
+                    }
+                    ret.Add(response);
+                    oldResponse = response;
+                }
+                await OnStateHasChange.InvokeAsync();
+                if (response is AIProviderHandleFunctionCallResponse functionCallMessage)
+                {
+                    if (string.IsNullOrWhiteSpace(functionCallMessage.Result))
+                    {
+                        var funCallRet = functionCallMessage.FunctionManager?.CallFunctionAsync(
+                            functionCallMessage.FunctionName,
+                            functionCallMessage.Arguments?.ToDictionary(x => x.Key, x => (object?)x.Value)
                         );
-
-                        await foreach (var item in funCallRet)
+                        if (funCallRet != null)
                         {
-                            if (item is AIProviderHandleTextMessageResponse textMessageResponse)
+                            var cloneChatMessages = historyMessages.ToList();
+                            var newMessages = newResultMessages.ToList();
+                            newMessages.Remove(response);
+                            cloneChatMessages.Add(
+                                new ChatMsgItemInfo()
+                                {
+                                    Id = Guid.NewGuid().ToString(),
+                                    UserType = ChatUserType.Receiver,
+                                    Contents = newMessages
+                                }
+                            );
+                            var functionMsg = new ChatMsgItemInfo()
                             {
-                                oldContent.Content += $"\n\n{textMessageResponse.Message}";
-                                await OnStateHasChange.InvokeAsync();
-
-                                var cloneChatMessages = chatMessages.ShallowClone();
-                                cloneChatMessages.Add(
-                                    new ChatMessage(
-                                        AuthorRole.Assistant,
-                                        [
-                                            new(Guid.NewGuid().ToString(), textMessageResponse.Message, ChatMessageContentType.Text)
-                                        ]
-                                    )
-                                );
-                                content.ContentType = ChatContentType.Text;
-                                content.Content = await aiChatTask.ChatReturnTextAsync(cloneChatMessages, new ChatSettings(), cancellationToken);
-                                await OnStateHasChange.InvokeAsync();
+                                Id = Guid.NewGuid().ToString(),
+                                UserType = ChatUserType.Receiver,
+                            };
+                            cloneChatMessages.Add(functionMsg);
+                            functionMsg.Contents = await HandleMessage(ai, chatSettings, funCallRet, cloneChatMessages, newResultMessages, message =>
+                            {
+                                functionCallMessage.Result += message;
+                            }, cancellationToken);
+                            if (!string.IsNullOrWhiteSpace(functionCallMessage.Result))
+                            {
+                                var chatHistory = new ChatHistory();
+                                AddChatHistory(cloneChatMessages, chatHistory);
+                                var functionCallChatRet = ai.ChatAsync(chatHistory, chatSettings, cancellationToken);
+                                await HandleMessage(ai, chatSettings, functionCallChatRet, cloneChatMessages, newResultMessages, null, cancellationToken);
                             }
                         }
-
-                        break;
-                    default:
-                        break;
+                    }
                 }
-
-                await Task.Delay(1, cancellationToken);
             }
+            return ret;
         }
 
         public async Task SendMsgAsync(string? msg, List<IBrowserFile>? files = null, AiAppInfo? aiApp = null,

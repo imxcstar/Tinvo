@@ -1,22 +1,24 @@
 ﻿using Mapster;
+using Microsoft.AspNetCore.Components.WebAssembly.Http;
+using OpenAI;
+using OpenAI.Chat;
+using OpenAI.Responses;
 using System;
+using System.ClientModel;
+using System.ClientModel.Primitives;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Reflection.Metadata;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
-using Tinvo.Abstractions.AIScheduler;
 using Tinvo.Abstractions;
-using System.ComponentModel;
-using OpenAI.Chat;
-using System.ClientModel;
-using OpenAI;
+using Tinvo.Abstractions.AIScheduler;
+using Tinvo.Application.DataStorage;
 using OpenAIChatMessage = OpenAI.Chat.ChatMessage;
 using OpenAIChatMessageContent = OpenAI.Chat.ChatMessageContent;
-using Microsoft.AspNetCore.Components.WebAssembly.Http;
-using System.ClientModel.Primitives;
-using System.Text.Json;
 
 namespace Tinvo.Provider.OpenAI.AIScheduler
 {
@@ -65,6 +67,10 @@ namespace Tinvo.Provider.OpenAI.AIScheduler
         [Description("兼容旧版API")]
         [DefaultValue(false)]
         public bool CompatibleOldAPI { get; set; } = false;
+
+        [Description("响应模式")]
+        [DefaultValue(false)]
+        public bool IsResponseMode { get; set; } = false;
     }
 
     public class BlazorHttpClientTransport : HttpClientPipelineTransport
@@ -83,12 +89,18 @@ namespace Tinvo.Provider.OpenAI.AIScheduler
             DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
         };
 
-        private readonly ChatClient _chatClient;
+        private readonly IDataStorageService _storageService;
         private readonly OpenAIChatConfig _config;
+
+        private readonly ChatClient _chatClient;
         private readonly IAIChatParser _parser;
 
-        public OpenAIChatProvider(OpenAIChatConfig config)
+        private readonly OpenAIResponseClient? _chatResponsetClient;
+        private readonly IAIChatParser _responsetParser;
+
+        public OpenAIChatProvider(IDataStorageService storageService, OpenAIChatConfig config)
         {
+            _storageService = storageService;
             _config = config;
             _chatClient = new ChatClient(_config.Model, new ApiKeyCredential(_config.Token ?? ""), new OpenAIClientOptions()
             {
@@ -96,17 +108,27 @@ namespace Tinvo.Provider.OpenAI.AIScheduler
                 NetworkTimeout = TimeSpan.FromDays(10),
                 Transport = new BlazorHttpClientTransport()
             });
-            _parser = new OpenAIProviderParser(_config.ThinkHandle);
+            _parser = new OpenAIProviderParser(_storageService, _config.ThinkHandle);
+            if (_config.IsResponseMode)
+            {
+                _chatResponsetClient = new OpenAIResponseClient(_config.Model, new ApiKeyCredential(_config.Token ?? ""), new OpenAIClientOptions()
+                {
+                    Endpoint = new Uri(_config.BaseURL),
+                    NetworkTimeout = TimeSpan.FromDays(10),
+                    Transport = new BlazorHttpClientTransport()
+                });
+                _responsetParser = new OpenAIProviderResponsetParser(_storageService, _config.ThinkHandle);
+            }
         }
 
         public ChatHistory CreateNewChat(string? instructions = null)
         {
             var ret = new ChatHistory();
             if (instructions == null)
-                ret.AddMessage(AuthorRole.System, [new(Guid.NewGuid().ToString(), $@"You are ChatGPT, a large language model trained by OpenAI.
-Current date: {DateTime.Now.ToString("yyyy-MM-dd")}", ChatMessageContentType.Text)]);
+                ret.AddMessage(AuthorRole.System, [new AIProviderHandleTextMessageResponse() { Message = $@"You are ChatGPT, a large language model trained by OpenAI.
+Current date: {DateTime.Now.ToString("yyyy-MM-dd")}" }]);
             else if (!string.IsNullOrWhiteSpace(instructions))
-                ret.AddMessage(AuthorRole.System, [new(Guid.NewGuid().ToString(), instructions, ChatMessageContentType.Text)]);
+                ret.AddMessage(AuthorRole.System, [new AIProviderHandleTextMessageResponse() { Message = instructions }]);
             return ret;
         }
 
@@ -127,70 +149,171 @@ Current date: {DateTime.Now.ToString("yyyy-MM-dd")}", ChatMessageContentType.Tex
             rawData["max_tokens"] = BinaryData.FromObjectAsJson(value);
         }
 
-        private OpenAIChatMessage CreateOpenAIChatMessage(AuthorRole role, List<Abstractions.AIScheduler.ChatMessageContent> contents)
+        private async Task<OpenAIChatMessage> CreateOpenAIChatMessage(IDataStorageService dataStorageService, AuthorRole role, List<IAIChatHandleMessage> contents, CancellationToken cancellationToken = default)
         {
-            var msg = contents.Select(x =>
+            var msg = new List<ChatMessageContentPart>();
+            var toolCallId = "";
+            foreach (var content in contents)
             {
-                switch (x.ContentType)
+                ChatMessageContentPart? contentPart = null;
+                if (content is AIProviderHandleTextMessageResponse textMessage)
                 {
-                    case ChatMessageContentType.Text:
-                        return ChatMessageContentPart.CreateTextPart((string)x.Content);
-                    case ChatMessageContentType.ImageBase64:
-                        return ChatMessageContentPart.CreateImagePart(BinaryData.FromBytes(Convert.FromBase64String((string)x.Content)), "image/png");
-                    case ChatMessageContentType.ImageURL:
-                        return ChatMessageContentPart.CreateImagePart(new Uri((string)x.Content));
-                    default:
-                        throw new NotImplementedException();
+                    contentPart = ChatMessageContentPart.CreateTextPart(textMessage.Message);
                 }
-            });
+                else if (content is AIProviderHandleRefusalMessageResponse refusalMessage)
+                {
+                    contentPart = ChatMessageContentPart.CreateRefusalPart(refusalMessage.Refusal);
+                }
+                else if (content is AIProviderHandleFunctionCallResponse functionCallMessage)
+                {
+                    toolCallId = functionCallMessage.CallID;
+                }
+                else if (content is AIProviderHandleCustomFileMessageResponse fileMessage)
+                {
+                    switch (fileMessage.Type)
+                    {
+                        case AIChatHandleMessageType.ImageMessage:
+                            var imageData = await dataStorageService.GetItemAsBinaryAsync(fileMessage.FileCustomID, cancellationToken);
+                            if (imageData != null)
+                                contentPart = ChatMessageContentPart.CreateImagePart(BinaryData.FromBytes(imageData), "image/png");
+                            break;
+                        case AIChatHandleMessageType.AudioMessage:
+                            var audioData = await dataStorageService.GetItemAsBinaryAsync(fileMessage.FileCustomID, cancellationToken);
+                            if (audioData != null)
+                                contentPart = ChatMessageContentPart.CreateInputAudioPart(BinaryData.FromBytes(audioData), (fileMessage.FileOriginalMediaType ?? "").ToLower().Contains("mp3") ? ChatInputAudioFormat.Mp3 : ChatInputAudioFormat.Wav);
+                            break;
+                        case AIChatHandleMessageType.FileMessage:
+                            if (!string.IsNullOrWhiteSpace(fileMessage.FileOriginalID))
+                            {
+                                contentPart = ChatMessageContentPart.CreateFilePart(fileMessage.FileOriginalID);
+                            }
+                            else
+                            {
+                                var fileData = await dataStorageService.GetItemAsBinaryAsync(fileMessage.FileCustomID, cancellationToken);
+                                if (fileData != null)
+                                    contentPart = ChatMessageContentPart.CreateFilePart(BinaryData.FromBytes(fileData), fileMessage.FileOriginalMediaType, fileMessage.FileOriginalName);
+                            }
+                            break;
+                        default:
+                            break;
+                    }
+                }
+                if (contentPart != null)
+                    msg.Add(contentPart);
+            }
 
             return role switch
             {
                 AuthorRole.User => OpenAIChatMessage.CreateUserMessage(msg),
                 AuthorRole.System => OpenAIChatMessage.CreateSystemMessage(msg),
                 AuthorRole.Assistant => OpenAIChatMessage.CreateAssistantMessage(msg),
-                AuthorRole.Tool => OpenAIChatMessage.CreateToolMessage(string.Join('-', contents.Select(x => x.ContentId)), msg),
+                AuthorRole.Tool => OpenAIChatMessage.CreateToolMessage(string.IsNullOrWhiteSpace(toolCallId) ? Guid.NewGuid().ToString() : toolCallId, msg),
                 _ => throw new NotImplementedException(),
             };
         }
 
-        public async IAsyncEnumerable<IAIChatHandleResponse> ChatAsync(ChatHistory chat, ChatSettings? requestSettings = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        private async Task<List<ResponseItem>> CreateOpenAIResponseItem(IDataStorageService dataStorageService, AuthorRole role, List<IAIChatHandleMessage> contents, CancellationToken cancellationToken = default)
         {
-            var options = new ChatCompletionOptions()
+            var msg = new List<ResponseContentPart>();
+            var toolCallId = Guid.NewGuid().ToString();
+            var functionName = "";
+            var functionCallResult = "";
+            BinaryData? functionCallArgs = null;
+            foreach (var content in contents)
             {
-                ToolChoice = (requestSettings?.FunctionManager == null || requestSettings.FunctionManager.GetFunctionInfos().Count <= 0) ? null : ChatToolChoice.CreateAutoChoice(),
-                FrequencyPenalty = (float?)requestSettings?.FrequencyPenalty ?? _config.FrequencyPenalty,
-                MaxOutputTokenCount = requestSettings?.MaxOutputTokens ?? _config.MaxOutputTokens,
-                PresencePenalty = (float?)requestSettings?.PresencePenalty ?? _config.PresencePenalty,
-                Temperature = (float?)requestSettings?.Temperature ?? _config.Temperature,
-                TopP = (float?)requestSettings?.TopP ?? _config.TopP,
-            };
-            if (requestSettings != null)
-            {
-                if (options.StopSequences != null)
-                    foreach (var item in requestSettings.StopSequences)
+                ResponseContentPart? contentPart = null;
+                if (content is AIProviderHandleTextMessageResponse textMessage)
+                {
+                    contentPart = ResponseContentPart.CreateInputTextPart(textMessage.Message);
+                }
+                else if (content is AIProviderHandleRefusalMessageResponse refusalMessage)
+                {
+                    contentPart = ResponseContentPart.CreateRefusalPart(refusalMessage.Refusal);
+                }
+                else if (content is AIProviderHandleFunctionCallResponse functionCallMessage)
+                {
+                    toolCallId = functionCallMessage.CallID;
+                    functionName = functionCallMessage.FunctionName;
+                    functionCallArgs = BinaryData.FromObjectAsJson(functionCallMessage.Arguments);
+                    functionCallResult = functionCallMessage.Result;
+                }
+                else if (content is AIProviderHandleCustomFileMessageResponse fileMessage)
+                {
+                    switch (fileMessage.Type)
                     {
-                        options.StopSequences.Add(item);
+                        case AIChatHandleMessageType.ImageMessage:
+                            var imageData = await dataStorageService.GetItemAsBinaryAsync(fileMessage.FileCustomID, cancellationToken);
+                            if (imageData != null)
+                                contentPart = ResponseContentPart.CreateInputImagePart(BinaryData.FromBytes(imageData), "image/png");
+                            break;
+                        case AIChatHandleMessageType.AudioMessage:
+                        case AIChatHandleMessageType.FileMessage:
+                            var fileData = await dataStorageService.GetItemAsBinaryAsync(fileMessage.FileCustomID, cancellationToken);
+                            if (fileData != null)
+                                contentPart = ResponseContentPart.CreateInputFilePart(fileMessage.FileCustomID, fileMessage.FileOriginalMediaType, BinaryData.FromBytes(fileData));
+                            break;
+                        default:
+                            break;
                     }
-                if (requestSettings.FunctionManager != null && options.Tools != null)
-                    foreach (var item in requestSettings.FunctionManager.GetFunctionInfos())
-                    {
-                        options.Tools.Add(ChatTool.CreateFunctionTool(item.Name, item.Description, BinaryData.FromObjectAsJson(item.Parameters, serializerOptions), true));
-                    }
+                }
+                if (contentPart != null)
+                    msg.Add(contentPart);
             }
 
-            var chatMessages = chat.Select(x => CreateOpenAIChatMessage(x.Role, x.Contents)).ToList();
-            if (_config.CompatibleOldAPI)
-                SetMaxTokens(options, requestSettings?.MaxOutputTokens ?? _config.MaxOutputTokens);
-
-            if (_config.IsStream)
+            return role switch
             {
-                AsyncCollectionResult<StreamingChatCompletionUpdate> ret = _chatClient.CompleteChatStreamingAsync(
-                    chatMessages, options, cancellationToken
-                );
-                await foreach (var msg in ret)
+                AuthorRole.User => [ResponseItem.CreateUserMessageItem(msg)],
+                AuthorRole.System => [ResponseItem.CreateSystemMessageItem(msg)],
+                AuthorRole.Assistant => [ResponseItem.CreateAssistantMessageItem(msg)],
+                AuthorRole.Tool => [
+                    ResponseItem.CreateFunctionCallItem(toolCallId, functionName, functionCallArgs),
+                    ResponseItem.CreateFunctionCallOutputItem(toolCallId, functionCallResult),
+                ],
+                _ => throw new NotImplementedException(),
+            };
+        }
+
+        public async IAsyncEnumerable<IAIChatHandleMessage> ChatAsync(ChatHistory chat, ChatSettings? requestSettings = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            if (_config.IsResponseMode && _chatResponsetClient != null)
+            {
+                var options = new ResponseCreationOptions()
                 {
-                    var handleRet = _parser.Handle(msg, requestSettings?.FunctionManager);
+                    PreviousResponseId = requestSettings?.SessionId,
+                    MaxOutputTokenCount = requestSettings?.MaxOutputTokens ?? _config.MaxOutputTokens,
+                    Temperature = (float?)requestSettings?.Temperature ?? _config.Temperature,
+                    TopP = (float?)requestSettings?.TopP ?? _config.TopP,
+                };
+                if (requestSettings != null)
+                {
+                    if (requestSettings.FunctionManager != null && options.Tools != null)
+                        foreach (var item in requestSettings.FunctionManager.GetFunctionInfos())
+                        {
+                            options.Tools.Add(ResponseTool.CreateFunctionTool(item.Name, item.Description, BinaryData.FromObjectAsJson(item.Parameters, serializerOptions), true));
+                        }
+                }
+                var chatMessages = new List<ResponseItem>();
+                foreach (var chatPart in chat)
+                {
+                    chatMessages.AddRange(await CreateOpenAIResponseItem(_storageService, chatPart.Role, chatPart.Contents, cancellationToken));
+                }
+
+                if (_config.IsStream)
+                {
+                    AsyncCollectionResult<StreamingResponseUpdate> ret = _chatResponsetClient.CreateResponseStreamingAsync(chatMessages, options, cancellationToken);
+                    await foreach (var msg in ret)
+                    {
+                        var handleRet = _responsetParser.Handle(msg, requestSettings?.FunctionManager);
+                        await foreach (var item2 in handleRet)
+                        {
+                            yield return item2;
+                        }
+                    }
+                }
+                else
+                {
+                    ClientResult<OpenAIResponse> ret = await _chatResponsetClient.CreateResponseAsync(chatMessages, options, cancellationToken);
+                    var handleRet = _responsetParser.Handle(ret, requestSettings?.FunctionManager);
                     await foreach (var item2 in handleRet)
                     {
                         yield return item2;
@@ -199,13 +322,62 @@ Current date: {DateTime.Now.ToString("yyyy-MM-dd")}", ChatMessageContentType.Tex
             }
             else
             {
-                ChatCompletion ret = await _chatClient.CompleteChatAsync(
-                    chatMessages, options, cancellationToken
-                );
-                var handleRet = _parser.Handle(ret, requestSettings?.FunctionManager);
-                await foreach (var item2 in handleRet)
+                var options = new ChatCompletionOptions()
                 {
-                    yield return item2;
+                    ToolChoice = (requestSettings?.FunctionManager == null || requestSettings.FunctionManager.GetFunctionInfos().Count <= 0) ? null : ChatToolChoice.CreateAutoChoice(),
+                    FrequencyPenalty = (float?)requestSettings?.FrequencyPenalty ?? _config.FrequencyPenalty,
+                    MaxOutputTokenCount = requestSettings?.MaxOutputTokens ?? _config.MaxOutputTokens,
+                    PresencePenalty = (float?)requestSettings?.PresencePenalty ?? _config.PresencePenalty,
+                    Temperature = (float?)requestSettings?.Temperature ?? _config.Temperature,
+                    TopP = (float?)requestSettings?.TopP ?? _config.TopP,
+                };
+                if (requestSettings != null)
+                {
+                    if (options.StopSequences != null)
+                        foreach (var item in requestSettings.StopSequences)
+                        {
+                            options.StopSequences.Add(item);
+                        }
+                    if (requestSettings.FunctionManager != null && options.Tools != null)
+                        foreach (var item in requestSettings.FunctionManager.GetFunctionInfos())
+                        {
+                            options.Tools.Add(ChatTool.CreateFunctionTool(item.Name, item.Description, BinaryData.FromObjectAsJson(item.Parameters, serializerOptions), true));
+                        }
+                }
+
+                var chatMessages = new List<OpenAIChatMessage>();
+                foreach (var chatPart in chat)
+                {
+                    chatMessages.Add(await CreateOpenAIChatMessage(_storageService, chatPart.Role, chatPart.Contents, cancellationToken));
+                }
+
+                if (_config.CompatibleOldAPI)
+                    SetMaxTokens(options, requestSettings?.MaxOutputTokens ?? _config.MaxOutputTokens);
+
+                if (_config.IsStream)
+                {
+                    AsyncCollectionResult<StreamingChatCompletionUpdate> ret = _chatClient.CompleteChatStreamingAsync(
+                        chatMessages, options, cancellationToken
+                    );
+                    await foreach (var msg in ret)
+                    {
+                        var handleRet = _parser.Handle(msg, requestSettings?.FunctionManager);
+                        await foreach (var item2 in handleRet)
+                        {
+                            yield return item2;
+                        }
+                    }
+                }
+                else
+                {
+                    ChatCompletion ret = await _chatClient.CompleteChatAsync(
+                        chatMessages, options, cancellationToken
+                    );
+                    var handleRet = _parser.Handle(ret, requestSettings?.FunctionManager);
+                    await foreach (var item2 in handleRet)
+                    {
+                        yield return item2;
+                    }
                 }
             }
         }

@@ -1,6 +1,6 @@
 ﻿@using MudBlazor
 @using Masa.Blazor 
-@inject IDialogService DialogService
+@using Tinvo.Abstractions.AIScheduler
 
 <style>
     .markdown-parser__basic {
@@ -9,6 +9,10 @@
 
     .markdown-parser__basic p {
         margin-bottom: 5px;
+    }
+
+    .markdown-parser__basic img {
+        width: 100%;
     }
 
     .wordWrap {
@@ -21,127 +25,90 @@
     }
 </style>
 
-@foreach (var item in Contents)
+@if (Contents.Count == 0)
 {
-    if(item.ContentType == ChatContentType.Default)
+    <MudPaper Elevation="1" Class="pa-3 mt-1 mr-1" Style="@TextStyle">
+        AI思考中。。。
+    </MudPaper>
+}
+else
+{
+    @foreach (var item in Contents)
     {
-        <MudPaper Elevation="1" Class="pa-3 mt-1 mr-1" Style="@TextStyle">
-            AI思考中。。。
-        </MudPaper>
-        continue;
-    }
-
-    var imageUrl = GetImageUrl(item.Content);
-
-    @if (string.IsNullOrWhiteSpace(item.Title))
-    {
-        @switch (item.ContentType)
+        @if (item is AIProviderHandleTextMessageResponse textMessage)
         {
-            case ChatContentType.Image:
-                <MudImage ObjectFit="ObjectFit.ScaleDown" 
-                          Style="max-width: 250px; max-height:250px; cursor: pointer;"
-                          Src="@imageUrl"
-                          @onclick="() => OpenImagePreview(imageUrl)"
-                          Elevation="25" Class="rounded-lg"/>
-                break;
-
-            case ChatContentType.File:
-            case ChatContentType.Audio:
-            case ChatContentType.Video:
-                <FileContent Name="@item.Content"></FileContent>
-                break;
-
-            default:
-                <MudPaper Elevation="1" Class="pa-3 mt-1 mr-1" Style="@TextStyle">
-                    @if (IfTextUseRawText)
-                    {
-                        <pre class="wordWrap"
-                             style="font-size: initial;font-family: var(--mud-typography-default-family);">
-                            @item.Content
-                        </pre>
-                    }
-                    else
-                    {
-                        <MMarkdownIt Source="@item.Content"
-                                     Html="false"
-                                     Class="markdown-parser__basic" Style="font-size: initial;"/>
-                    }
-                </MudPaper>
-                break;
-        }
-    }
-    else
-    {
-        <MudExpansionPanels>
-            <MudExpansionPanel Text="@item.Title" Expanded="true">
-                @switch (item.ContentType)
+            <MudPaper Elevation="1" Class="pa-3 mt-1 mr-1" Style="@TextStyle">
+                @if (IfTextUseRawText)
                 {
-                    case ChatContentType.Image:
-                        <MudImage ObjectFit="ObjectFit.ScaleDown" 
-                                  Style="max-width: 250px;max-height:250px; cursor: pointer;"
-                                  Src="@imageUrl"
-                                  @onclick="() => OpenImagePreview(imageUrl)"
-                                  Elevation="25" Class="rounded-lg"/>
-                        break;
-
-                    case ChatContentType.File:
-                    case ChatContentType.Audio:
-                    case ChatContentType.Video:
-                        <FileContent Name="@item.Content"></FileContent>
-                        break;
-
-                    default:
-                        <MudPaper Elevation="1" Class="pa-3 mt-1 mr-1" Style="@TextStyle">
-                            @if (IfTextUseRawText)
-                            {
-                                <pre class="wordWrap"
-                                     style="font-size: initial;font-family: var(--mud-typography-default-family);">
-                        @item.Content
+                    <pre class="wordWrap"
+                         style="font-size: initial;font-family: var(--mud-typography-default-family);">
+                        @textMessage.Message
                     </pre>
-                            }
-                            else
-                            {
-                                <MMarkdownIt Source="@item.Content"
-                                             Html="false"
-                                             Class="markdown-parser__basic" Style="font-size: initial;"/>
-                            }
-                        </MudPaper>
-                        break;
                 }
-            </MudExpansionPanel>
-        </MudExpansionPanels>
+                else
+                {
+                    <MMarkdownIt Source="@textMessage.Message"
+                                 Html="false"
+                                 Class="markdown-parser__basic" Style="font-size: initial;" />
+                }
+            </MudPaper>
+        }
+        else if (item is AIProviderHandleCustomFileMessageResponse fileMessage)
+        {
+            @switch (fileMessage.Type)
+            {
+                case AIChatHandleMessageType.ImageMessage:
+                    <FileContent FileName="@fileMessage.FileOriginalName" FileCustomID="@fileMessage.FileCustomID" Type="FileContent.FileType.Image"></FileContent>
+                    break;
+                case AIChatHandleMessageType.AudioMessage:
+                    <FileContent FileName="@fileMessage.FileOriginalName" FileCustomID="@fileMessage.FileCustomID" Type="FileContent.FileType.Audio"></FileContent>
+                    break;
+                case AIChatHandleMessageType.FileMessage:
+                    <FileContent FileName="@fileMessage.FileOriginalName" FileCustomID="@fileMessage.FileCustomID" Type="FileContent.FileType.Other"></FileContent>
+                    break;
+
+                default:
+                    break;
+            }
+        }
+        else if (item is AIProviderHandleRefusalMessageResponse refusalMessage)
+        {
+            <MMarkdownIt Source="@(refusalMessage.Refusal ?? "AI拒绝回答")"
+                         Html="false"
+                         Class="markdown-parser__basic" Style="font-size: initial;" />
+        }
+        else if (item is AIProviderHandleReasoningMessageResponse reasoningMessage)
+        {
+            <MudExpansionPanels>
+                <MudExpansionPanel Text="思考中" Expanded="true">
+                    <MMarkdownIt Source="@reasoningMessage.Message"
+                                 Html="false"
+                                 Class="markdown-parser__basic" Style="font-size: initial;" />
+                </MudExpansionPanel>
+            </MudExpansionPanels>
+        }
+        else if (item is AIProviderHandleFunctionCallResponse functionCallMessage)
+        {
+            <MudExpansionPanels>
+                <MudExpansionPanel Text="@($"功能调用：{functionCallMessage.FunctionName}")" Expanded="true">
+                    <MMarkdownIt Source="@($"```参数 \r\n{JsonSerializer.Serialize(functionCallMessage.Arguments)}\r\n```")"
+                                 Html="false"
+                                 Class="markdown-parser__basic" Style="font-size: initial;" />
+                    <MMarkdownIt Source="@($"```返回 \r\n{functionCallMessage.Result}\r\n```")"
+                                 Html="false"
+                                 Class="markdown-parser__basic" Style="font-size: initial;" />
+                </MudExpansionPanel>
+            </MudExpansionPanels>
+        }
     }
 }
 
 @code {
     private List<StringNumber> panel = new() { 0 };
 
-    [Parameter] public List<ChatMsgItemContentInfo> Contents { get; set; }
+    [Parameter] public List<IAIChatHandleMessage> Contents { get; set; }
 
     [Parameter] public bool IfTextUseRawText { get; set; } = false;
 
     [Parameter] public string TextStyle { get; set; }
-    
-    private string GetImageUrl(string content)
-    {
-        if (string.IsNullOrEmpty(content)) return "";
-        return content.StartsWith("http") ? content : $"data:image/png;base64,{content}";
-    }
-
-    private void OpenImagePreview(string imageUrl)
-    {
-        if (string.IsNullOrEmpty(imageUrl)) return;
-        
-        var parameters = new DialogParameters<ImagePreviewDialog>();
-        parameters.Add(p => p.ImageSrc, imageUrl);
-        
-        var options = new DialogOptions() 
-        { 
-            CloseButton = false, 
-            MaxWidth = MaxWidth.Large, 
-            Position = DialogPosition.Center 
-        };
-
-        DialogService.Show<ImagePreviewDialog>("", parameters, options);
-    }
 }

@@ -25,7 +25,7 @@ namespace Tinvo.Provider.XunFei.AIScheduler
         {
         }
 
-        public async IAsyncEnumerable<IAIChatHandleResponse> Handle(object msg, IFunctionManager? functionManager)
+        public async IAsyncEnumerable<IAIChatHandleMessage> Handle(object msg, IFunctionManager? functionManager)
         {
             _logger.Debug("AddHandleMsg: {value}", msg == null ? "null" : JsonSerializer.Serialize(msg));
             if (msg is XFSparkDeskChatAPIResponse chatMsg)
@@ -50,15 +50,12 @@ namespace Tinvo.Provider.XunFei.AIScheduler
                 if (retContent.FunctionCall != null)
                 {
                     _logger.Debug("AddHandleMsg(Chat): Function Call, {name}, {args}", retContent.FunctionCall.Name, retContent.FunctionCall.Arguments);
-                    yield return new AIProviderHandleFunctionStartResponse()
-                    {
-                        FunctionManager = functionManager!,
-                        FunctionName = retContent.FunctionCall.Name
-                    };
+                    var callID = Guid.NewGuid().ToString();
                     yield return new AIProviderHandleFunctionCallResponse()
                     {
                         FunctionManager = functionManager!,
                         FunctionName = retContent.FunctionCall.Name,
+                        CallID = callID,
                         Arguments = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(retContent.FunctionCall.Arguments)
                     };
                     yield break;

@@ -76,9 +76,9 @@ namespace Tinvo.Provider.Onnx
             _modelInfo = loader.Load(config.ModelPath);
         }
 
-        public async IAsyncEnumerable<IAIChatHandleResponse> ChatAsync(ChatHistory chat, ChatSettings? chatSettings = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        public async IAsyncEnumerable<IAIChatHandleMessage> ChatAsync(ChatHistory chat, ChatSettings? chatSettings = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            string prompt = _config.Template.Replace("{user}", (string)chat.Last(x => x.Role == AuthorRole.User).Contents.First().Content);
+            string prompt = _config.Template.Replace("{user}", (chat.Last(x => x.Role == AuthorRole.User).Contents.FirstOrDefault() as AIProviderHandleTextMessageResponse)?.Message ?? "");
             var sequences = _modelInfo.Tokenizer.Encode(prompt);
 
             using GeneratorParams generatorParams = new GeneratorParams(_modelInfo.Model);
@@ -104,9 +104,9 @@ namespace Tinvo.Provider.Onnx
         {
             var ret = new ChatHistory();
             if (instructions == null)
-                ret.AddMessage(AuthorRole.User, [new(Guid.NewGuid().ToString(), $@"现在的时间为：{DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss.fffzzz")}", ChatMessageContentType.Text)]);
+                ret.AddMessage(AuthorRole.User, [new AIProviderHandleTextMessageResponse() { Message = $@"现在的时间为：{DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss.fffzzz")}" }]);
             else if (!string.IsNullOrWhiteSpace(instructions))
-                ret.AddMessage(AuthorRole.User, [new(Guid.NewGuid().ToString(), instructions, ChatMessageContentType.Text)]);
+                ret.AddMessage(AuthorRole.User, [new AIProviderHandleTextMessageResponse() { Message = instructions }]);
             return ret;
         }
     }

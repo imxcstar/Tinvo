@@ -107,40 +107,18 @@ namespace Tinvo.Pages.Chat.Component.ChatMsgList
 
     public class ChatMsgItemInfo
     {
-        public string Id { get; set; }
-        public string Name { get; set; }
-        public string HeadIconURL { get; set; }
-        public List<ChatMsgItemContentInfo> Contents { get; set; } = new List<ChatMsgItemContentInfo>();
-        public ChatUserType UserType { get; set; }
+        public required string Id { get; set; }
+        public string? Name { get; set; }
+        public string? HeadIconURL { get; set; }
+        public List<IAIChatHandleMessage> Contents { get; set; } = new List<IAIChatHandleMessage>();
+        public required ChatUserType UserType { get; set; }
         public AiAppInfo? AiApp { get; set; }
-        public DateTime CreateTime { get; set; }
-    }
-
-    public class ChatMsgItemContentInfo
-    {
-        public string? Title { get; set; }
-
-        public string Content { get; set; } = "";
-
-        public ChatContentType ContentType { get; set; } = ChatContentType.Default;
+        public DateTime? CreateTime { get; set; }
     }
 
     public enum ChatUserType
     {
         Sender,
         Receiver
-    }
-
-    public enum ChatContentType
-    {
-        Text,
-        Video,
-        Audio,
-        Image,
-        File,
-        Default = 99,
-        ErrorInfo = 100,
-        BrowserURL = 101,
-        BrowserHTML = 102,
     }
 }

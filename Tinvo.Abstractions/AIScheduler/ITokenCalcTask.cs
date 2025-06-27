@@ -8,7 +8,6 @@ namespace Tinvo.Abstractions.AIScheduler
 {
     public interface ITokenCalcTask
     {
-        public long GetTokens(string value);
-        public long GetTokens(Stream value, ChatMessageContentType contentType);
+        public long GetTokens(IAIChatHandleMessage value);
     }
 }

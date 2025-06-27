@@ -1,68 +1,99 @@
-﻿<MudPaper Width="200px" Height="60px" Style="background-color:#E6E6FA;border-radius: 5px;padding: 10px;">
-    <MudStack Spacing="1" Row="true">
-        @switch (Type)
-        {
-            case FileType.Audio:
-                <MudAvatar Rounded="true" Color="Color.Primary" Variant="Variant.Filled">
-                    <MudIcon Icon="@Icons.Material.Filled.SpatialAudioOff" Size="Size.Large" />
-                </MudAvatar>
-                break;
-            case FileType.Pdf:
-                <MudAvatar Rounded="true" Color="Color.Primary" Variant="Variant.Filled">
-                    <MudIcon Icon="@Icons.Material.Filled.PictureAsPdf" Size="Size.Large" />
-                </MudAvatar>
-                break;
-            default:
-                <MudAvatar Rounded="true" Color="Color.Primary" Variant="Variant.Filled">
-                    <MudIcon Icon="@Icons.Material.Filled.FilePresent" Size="Size.Large" />
-                </MudAvatar>
-                break;
-        }
-        <MudStack Justify="Justify.Center" Spacing="0">
-            <MudText Typo="Typo.body1" Style="width: 140px;text-overflow: ellipsis;white-space: nowrap;overflow: hidden;">@HName</MudText>
-        </MudStack>
-    </MudStack>
-</MudPaper>
+﻿@inject IDialogService DialogService
+@inject IDataStorageService DataStorageService
 
-    @code {
-    [Parameter]
-    public string Name { get; set; } = "";
-
-    private string HName 
-    {
-        get
-        {
-            var tname = Name.Replace("</a>", "");
-            var i = tname.LastIndexOf(">");
-            if (i < 0)
-                return Name;
-            tname = tname[(i+1)..];
-            return tname;
-        }
-    }
-
-    private FileType Type
-    {
-        get
-        {
-            var ext = Path.GetExtension(HName.ToLower()).Trim('.');
-            if (string.IsNullOrWhiteSpace(ext))
-                return FileType.Other;
-            return ext switch
+@if (Type == FileType.Image)
+{
+    <MudImage ObjectFit="ObjectFit.ScaleDown"
+              Style="max-width: 250px; max-height:250px; cursor: pointer;"
+              Src="@_imageContent"
+              @onclick="() => OpenImagePreview(_imageContent)"
+              Elevation="25" Class="rounded-lg" />
+}
+else
+{
+    <MudPaper Width="200px" Height="60px" Style="background-color:#E6E6FA;border-radius: 5px;padding: 10px;">
+        <MudStack Spacing="1" Row="true">
+            @switch (Type)
             {
-                string audio when "pcm/wav/amr/m4a/aac".Contains(audio) => FileType.Audio,
-                string doc when "doc/docx".Contains(doc) => FileType.Doc,
-                string doc when "pdf".Contains(doc) => FileType.Pdf,
-                _ => FileType.Other
-            };
-        }
-    }
+                case FileType.Audio:
+                    <MudAvatar Rounded="true" Color="Color.Primary" Variant="Variant.Filled">
+                        <MudIcon Icon="@Icons.Material.Filled.MusicVideo" Size="Size.Large" />
+                    </MudAvatar>
+                    break;
+                case FileType.Video:
+                    <MudAvatar Rounded="true" Color="Color.Primary" Variant="Variant.Filled">
+                        <MudIcon Icon="@Icons.Material.Filled.OndemandVideo" Size="Size.Large" />
+                    </MudAvatar>
+                    break;
+                default:
+                    <MudAvatar Rounded="true" Color="Color.Primary" Variant="Variant.Filled">
+                        <MudIcon Icon="@Icons.Material.Filled.FilePresent" Size="Size.Large" />
+                    </MudAvatar>
+                    break;
+            }
+            <MudStack Justify="Justify.Center" Spacing="0">
+                <MudText Typo="Typo.body1" Style="width: 140px;text-overflow: ellipsis;white-space: nowrap;overflow: hidden;">@(FileName ?? FileCustomID)</MudText>
+            </MudStack>
+        </MudStack>
+    </MudPaper>
+}
 
-    private enum FileType
+@code {
+    [Parameter]
+    public string FileCustomID { get; set; } = "";
+    
+    [Parameter]
+    public string? FileName { get; set; }
+
+    [Parameter]
+    public FileType Type { get; set; }
+
+    private string _imageContent = "";
+
+
+    public enum FileType
     {
         Other,
+        Image,
         Audio,
-        Doc,
-        Pdf
+        Video,
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+        if (firstRender)
+        {
+            if (Type == FileType.Image)
+            {
+                _imageContent = await GetImageUrl(FileCustomID);
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async Task<string> GetImageUrl(string content)
+    {
+        if (string.IsNullOrEmpty(content)) return "";
+        var data = await DataStorageService.GetItemAsBinaryAsync(content);
+        if (data == null) return "";
+        return $"data:image/png;base64,{Convert.ToBase64String(data)}";
+    }
+
+    private void OpenImagePreview(string imageUrl)
+    {
+        if (string.IsNullOrEmpty(imageUrl)) return;
+
+        var parameters = new DialogParameters<ImagePreviewDialog>();
+        parameters.Add(p => p.ImageSrc, imageUrl);
+
+        var options = new DialogOptions()
+        {
+            CloseButton = false,
+            MaxWidth = MaxWidth.Large,
+            Position = DialogPosition.Center
+        };
+
+        DialogService.Show<ImagePreviewDialog>("", parameters, options);
     }
 }

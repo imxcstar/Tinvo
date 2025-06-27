@@ -5,26 +5,31 @@ using System.ClientModel;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Mail;
+using System.Reflection.Metadata;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using Tinvo.Abstractions;
 using Tinvo.Abstractions.AIScheduler;
+using Tinvo.Application.DataStorage;
 using Tinvo.Utils.Extend;
 
 namespace Tinvo.Provider.OpenAI.AIScheduler
 {
     public class OpenAIProviderParser : IAIChatParser
     {
+        private readonly IDataStorageService _storageService;
         private string _handleFunctionName = "";
         private StringBuilder _functionContentBuilder = new();
         private Serilog.ILogger _logger;
         private bool _isInReasoning = false;
         private bool _isThinkHandle = false;
 
-        public OpenAIProviderParser(bool isThinkHandle)
+        public OpenAIProviderParser(IDataStorageService storageService, bool isThinkHandle)
         {
+            _storageService = storageService;
             _logger = Log.ForContext<OpenAIProviderParser>();
             _isThinkHandle = isThinkHandle;
         }
@@ -39,12 +44,13 @@ namespace Tinvo.Provider.OpenAI.AIScheduler
             return choice?.GetPrivatePropertyValue<IDictionary<string, BinaryData>>("SerializedAdditionalRawData");
         }
 
-        public async IAsyncEnumerable<IAIChatHandleResponse> Handle(object msg, IFunctionManager? functionManager)
+        public async IAsyncEnumerable<IAIChatHandleMessage> Handle(object msg, IFunctionManager? functionManager)
         {
             if (msg is ChatCompletion tmsg)
             {
                 foreach (var item in tmsg.Content)
                 {
+                    var customFileID = Guid.NewGuid().ToString();
                     _logger.Debug("AddHandleMsg 触发 {value} 信息", item.Kind.ToString());
                     switch (item.Kind)
                     {
@@ -56,12 +62,43 @@ namespace Tinvo.Provider.OpenAI.AIScheduler
                             };
                             break;
                         case ChatMessageContentPartKind.Refusal:
-                            yield return new AIProviderHandleRefusalMessageResponse();
+                            yield return new AIProviderHandleRefusalMessageResponse()
+                            {
+                                Refusal = item.Refusal
+                            };
                             break;
                         case ChatMessageContentPartKind.Image:
-                            yield return new AIProviderHandleImageMessageResponse()
+                            await _storageService.SetItemAsBinaryAsync(customFileID, item.ImageBytes.ToArray());
+                            yield return new AIProviderHandleCustomFileMessageResponse()
                             {
-                                Image = item.ImageBytes.ToStream()
+                                Type = AIChatHandleMessageType.ImageMessage,
+                                FileCustomID = customFileID,
+                                FileOriginalID = item.FileId,
+                                FileOriginalName = item.Filename,
+                                FileOriginalMediaType = item.ImageBytesMediaType,
+                                FileOriginalURL = item.ImageUri.ToString()
+                            };
+                            break;
+                        case ChatMessageContentPartKind.InputAudio:
+                            await _storageService.SetItemAsBinaryAsync(customFileID, item.InputAudioBytes.ToArray());
+                            yield return new AIProviderHandleCustomFileMessageResponse()
+                            {
+                                Type = AIChatHandleMessageType.AudioMessage,
+                                FileCustomID = customFileID,
+                                FileOriginalID = item.FileId,
+                                FileOriginalName = item.Filename,
+                                FileOriginalMediaType = item.InputAudioFormat.ToString(),
+                            };
+                            break;
+                        case ChatMessageContentPartKind.File:
+                            await _storageService.SetItemAsBinaryAsync(customFileID, item.FileBytes.ToArray());
+                            yield return new AIProviderHandleCustomFileMessageResponse()
+                            {
+                                Type = AIChatHandleMessageType.FileMessage,
+                                FileCustomID = customFileID,
+                                FileOriginalID = item.FileId,
+                                FileOriginalName = item.Filename,
+                                FileOriginalMediaType = item.FileBytesMediaType,
                             };
                             break;
                         default:
@@ -105,20 +142,24 @@ namespace Tinvo.Provider.OpenAI.AIScheduler
                         if (!_isInReasoning)
                         {
                             _isInReasoning = true;
-                            yield return new AIProviderHandleReasoningStartResponse();
                         }
 
-                        yield return new AIProviderHandleTextMessageResponse()
-                        {
-                            Message = reasoningContent
-                        };
+                        if (_isInReasoning)
+                            yield return new AIProviderHandleReasoningMessageResponse()
+                            {
+                                Message = reasoningContent
+                            };
+                        else
+                            yield return new AIProviderHandleTextMessageResponse()
+                            {
+                                Message = reasoningContent
+                            };
                     }
                 }
 
                 if (_isInReasoning)
                 {
                     _isInReasoning = false;
-                    yield return new AIProviderHandleReasoningEndResponse();
                 }
 
                 if (streamMsg.ContentUpdate.Count > 0)
@@ -127,6 +168,7 @@ namespace Tinvo.Provider.OpenAI.AIScheduler
                     _functionContentBuilder.Clear();
                     foreach (var item in streamMsg.ContentUpdate)
                     {
+                        var customFileID = Guid.NewGuid().ToString();
                         _logger.Debug("AddHandleMsg 触发 {value} 信息", item.Kind.ToString());
                         switch (item.Kind)
                         {
@@ -134,16 +176,23 @@ namespace Tinvo.Provider.OpenAI.AIScheduler
                                 if (_isThinkHandle)
                                 {
                                     if (item.Text.Replace("\n", "") == "<think>")
-                                        yield return new AIProviderHandleReasoningStartResponse();
+                                        _isInReasoning = true;
                                     else if (item.Text.Replace("\n", "") == "</think>")
-                                        yield return new AIProviderHandleReasoningEndResponse();
+                                        _isInReasoning = false;
                                     else
                                     {
                                         _logger.Debug("AddHandleMsg文本信息：{value}", item.Text);
-                                        yield return new AIProviderHandleTextMessageResponse()
-                                        {
-                                            Message = item.Text
-                                        };
+                                        if (_isInReasoning)
+
+                                            yield return new AIProviderHandleReasoningMessageResponse()
+                                            {
+                                                Message = item.Text
+                                            };
+                                        else
+                                            yield return new AIProviderHandleTextMessageResponse()
+                                            {
+                                                Message = item.Text
+                                            };
                                     }
                                 }
                                 else
@@ -157,12 +206,43 @@ namespace Tinvo.Provider.OpenAI.AIScheduler
 
                                 break;
                             case ChatMessageContentPartKind.Refusal:
-                                yield return new AIProviderHandleRefusalMessageResponse();
+                                yield return new AIProviderHandleRefusalMessageResponse()
+                                {
+                                    Refusal = item.Refusal
+                                };
                                 break;
                             case ChatMessageContentPartKind.Image:
-                                yield return new AIProviderHandleImageMessageResponse()
+                                await _storageService.SetItemAsBinaryAsync(customFileID, item.ImageBytes.ToArray());
+                                yield return new AIProviderHandleCustomFileMessageResponse()
                                 {
-                                    Image = item.ImageBytes.ToStream()
+                                    Type = AIChatHandleMessageType.ImageMessage,
+                                    FileCustomID = customFileID,
+                                    FileOriginalID = item.FileId,
+                                    FileOriginalName = item.Filename,
+                                    FileOriginalMediaType = item.ImageBytesMediaType,
+                                    FileOriginalURL = item.ImageUri.ToString()
+                                };
+                                break;
+                            case ChatMessageContentPartKind.InputAudio:
+                                await _storageService.SetItemAsBinaryAsync(customFileID, item.InputAudioBytes.ToArray());
+                                yield return new AIProviderHandleCustomFileMessageResponse()
+                                {
+                                    Type = AIChatHandleMessageType.AudioMessage,
+                                    FileCustomID = customFileID,
+                                    FileOriginalID = item.FileId,
+                                    FileOriginalName = item.Filename,
+                                    FileOriginalMediaType = item.InputAudioFormat.ToString(),
+                                };
+                                break;
+                            case ChatMessageContentPartKind.File:
+                                await _storageService.SetItemAsBinaryAsync(customFileID, item.FileBytes.ToArray());
+                                yield return new AIProviderHandleCustomFileMessageResponse()
+                                {
+                                    Type = AIChatHandleMessageType.FileMessage,
+                                    FileCustomID = customFileID,
+                                    FileOriginalID = item.FileId,
+                                    FileOriginalName = item.Filename,
+                                    FileOriginalMediaType = item.FileBytesMediaType,
                                 };
                                 break;
                             default:
@@ -196,6 +276,7 @@ namespace Tinvo.Provider.OpenAI.AIScheduler
                     {
                         FunctionManager = functionManager!,
                         FunctionName = _handleFunctionName,
+                        CallID = Guid.NewGuid().ToString(),
                         Arguments = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(argStr)
                     };
                 }

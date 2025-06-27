@@ -85,7 +85,7 @@ namespace Tinvo.Provider.LLama
             _modelPath = config.ModelPath;
         }
 
-        public async IAsyncEnumerable<IAIChatHandleResponse> ChatAsync(Abstractions.AIScheduler.ChatHistory chat, ChatSettings? chatSettings = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        public async IAsyncEnumerable<IAIChatHandleMessage> ChatAsync(Abstractions.AIScheduler.ChatHistory chat, ChatSettings? chatSettings = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             var modelParams = LLamaLoader.GetModelParams(_modelPath, _config.ContextSize);
             var model = LLamaLoader.GetModel(_modelPath, _config.ContextSize);
@@ -100,9 +100,10 @@ namespace Tinvo.Provider.LLama
 
                 if (x.Role == Abstractions.AIScheduler.AuthorRole.Assistant)
                 {
-                    if (fContnet.ContentType != ChatMessageContentType.Text)
-                        throw new NotSupportedException("LLama其它角色发送不支持的内容类型");
-                    return new Message(LLamaCommon.AuthorRole.Assistant, (string)fContnet.Content);
+                    if (fContnet is AIProviderHandleTextMessageResponse textMessage)
+                        return new Message(LLamaCommon.AuthorRole.Assistant, textMessage.Message);
+                    else
+                        throw new NotSupportedException("LLama发送不支持的内容类型");
                 }
                 else
                 {
@@ -111,17 +112,10 @@ namespace Tinvo.Provider.LLama
                         Abstractions.AIScheduler.AuthorRole.User => LLamaCommon.AuthorRole.User,
                         _ => LLamaCommon.AuthorRole.System
                     };
-                    switch (fContnet.ContentType)
-                    {
-                        case ChatMessageContentType.Text:
-                            return new Message(role, (string)fContnet.Content);
-                        case ChatMessageContentType.ImageBase64:
-                        case ChatMessageContentType.ImageURL:
-                        case ChatMessageContentType.DocStream:
-                        case ChatMessageContentType.DocURL:
-                        default:
-                            throw new NotSupportedException("LLama发送不支持的内容类型");
-                    }
+                    if (fContnet is AIProviderHandleTextMessageResponse textMessage)
+                        return new Message(role, textMessage.Message);
+                    else
+                        throw new NotSupportedException("LLama发送不支持的内容类型");
                 }
             }).Where(x => x != null).ToArray()!);
             var inferenceParams = new InferenceParams()
@@ -158,9 +152,9 @@ namespace Tinvo.Provider.LLama
         {
             var ret = new Abstractions.AIScheduler.ChatHistory();
             if (instructions == null)
-                ret.AddMessage(Abstractions.AIScheduler.AuthorRole.System, [new(Guid.NewGuid().ToString(), $@"现在的时间为：{DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss.fffzzz")}", ChatMessageContentType.Text)]);
+                ret.AddMessage(Abstractions.AIScheduler.AuthorRole.System, [new AIProviderHandleTextMessageResponse() { Message = $@"现在的时间为：{DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss.fffzzz")}" }]);
             else if (!string.IsNullOrWhiteSpace(instructions))
-                ret.AddMessage(Abstractions.AIScheduler.AuthorRole.System, [new(Guid.NewGuid().ToString(), instructions, ChatMessageContentType.Text)]);
+                ret.AddMessage(Abstractions.AIScheduler.AuthorRole.System, [new AIProviderHandleTextMessageResponse() { Message = instructions }]);
             return ret;
         }
     }

@@ -27,5 +27,13 @@ namespace Tinvo.Application.DataStorage
         ValueTask SetItemAsync<T>(string key, T data, CancellationToken cancellationToken = default(CancellationToken));
 
         ValueTask SetItemAsStringAsync(string key, string data, CancellationToken cancellationToken = default(CancellationToken));
+
+        ValueTask SetItemAsStreamAsync(string key, Stream data, bool leaveOpen = false, CancellationToken cancellationToken = default(CancellationToken));
+
+        ValueTask SetItemAsBinaryAsync(string key, byte[] data, CancellationToken cancellationToken = default(CancellationToken));
+
+        ValueTask<Stream?> GetItemAsStreamAsync(string key, CancellationToken cancellationToken = default(CancellationToken));
+
+        ValueTask<byte[]?> GetItemAsBinaryAsync(string key, CancellationToken cancellationToken = default(CancellationToken));
     }
 }

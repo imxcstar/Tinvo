@@ -199,7 +199,7 @@ namespace Tinvo.Abstractions
             return _functions.Values.Select(x => x.FunctionInfo).ToList();
         }
 
-        public async IAsyncEnumerable<IAIChatHandleResponse> CallFunctionAsync(string name,
+        public async IAsyncEnumerable<IAIChatHandleMessage> CallFunctionAsync(string name,
             Dictionary<string, object?>? parameters, CancellationToken cancellationToken = default)
         {
             var function = GetFnctionMetaInfo(name);
@@ -222,7 +222,7 @@ namespace Tinvo.Abstractions
             _functionManagerInfos = _functionManagers.Distinct().ToDictionary(x => x, x => x.GetFunctionInfos());
         }
 
-        public IAsyncEnumerable<IAIChatHandleResponse> CallFunctionAsync(string name, Dictionary<string, object?>? parameters, CancellationToken cancellationToken = default)
+        public IAsyncEnumerable<IAIChatHandleMessage> CallFunctionAsync(string name, Dictionary<string, object?>? parameters, CancellationToken cancellationToken = default)
         {
 
             foreach (var functionManagerInfo in _functionManagerInfos)
