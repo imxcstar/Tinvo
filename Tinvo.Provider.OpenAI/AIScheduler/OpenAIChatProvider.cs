@@ -279,7 +279,6 @@ Current date: {DateTime.Now.ToString("yyyy-MM-dd")}" }]);
             {
                 var options = new ResponseCreationOptions()
                 {
-                    PreviousResponseId = requestSettings?.SessionId,
                     MaxOutputTokenCount = requestSettings?.MaxOutputTokens ?? _config.MaxOutputTokens,
                     Temperature = (float?)requestSettings?.Temperature ?? _config.Temperature,
                     TopP = (float?)requestSettings?.TopP ?? _config.TopP,
