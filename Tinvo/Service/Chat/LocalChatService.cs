@@ -359,7 +359,7 @@ namespace Tinvo.Service.Chat
                                 Id = Guid.NewGuid().ToString(),
                                 UserType = ChatUserType.Sender,
                                 Contents = [
-                                    new AIProviderHandleTextMessageResponse() { Message= "总结以上工具返回的内容" }
+                                    new AIProviderHandleTextMessageResponse() { Message= "总结以上工具返回的内容，并且根据要求调用剩余的工具（如何还有）" }
                                 ]
                             });
                             functionCallMessage.Result = await HandleMessage(ai, chatSettings, funCallRet, cloneChatMessages, functionMsg.Contents, cancellationToken);
