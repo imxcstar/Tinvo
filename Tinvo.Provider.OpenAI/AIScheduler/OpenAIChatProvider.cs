@@ -72,6 +72,10 @@ namespace Tinvo.Provider.OpenAI.AIScheduler
         [Description("响应模式")]
         [DefaultValue(false)]
         public bool IsResponseMode { get; set; } = false;
+
+        [Description("网页搜索")]
+        [DefaultValue(false)]
+        public bool EnableWebSearch { get; set; } = false;
     }
 
     public class BlazorHttpClientTransport : HttpClientPipelineTransport
@@ -313,6 +317,11 @@ Current date: {DateTime.Now.ToString("yyyy-MM-dd")}" }]);
                         ReasoningSummaryVerbosity = ResponseReasoningSummaryVerbosity.Concise
                     };
                 }
+                if (_config.EnableWebSearch && options.Tools != null)
+                {
+                    options.Tools.Add(ResponseTool.CreateWebSearchTool());
+                }
+
                 var chatMessages = new List<ResponseItem>();
                 foreach (var chatPart in chat)
                 {
@@ -368,6 +377,10 @@ Current date: {DateTime.Now.ToString("yyyy-MM-dd")}" }]);
                 if (_config.ThinkHandle)
                 {
                     options.ReasoningEffortLevel = ChatReasoningEffortLevel.Medium;
+                }
+                if (_config.EnableWebSearch)
+                {
+                    options.WebSearchOptions = new ChatWebSearchOptions();
                 }
 
                 var chatMessages = new List<OpenAIChatMessage>();
