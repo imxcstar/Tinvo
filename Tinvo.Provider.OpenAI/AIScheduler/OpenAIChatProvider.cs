@@ -50,7 +50,8 @@ namespace Tinvo.Provider.OpenAI.AIScheduler
 
         [Description("Temperature")]
         [DefaultValue(0.6f)]
-        public float Temperature { get; set; } = 0.6f;
+        [TypeMetadataAllowNull]
+        public float? Temperature { get; set; } = 0.6f;
 
         [Description("TopP")]
         [DefaultValue(1)]
@@ -149,10 +150,12 @@ Current date: {DateTime.Now.ToString("yyyy-MM-dd")}" }]);
             rawData["max_tokens"] = BinaryData.FromObjectAsJson(value);
         }
 
-        private async Task<OpenAIChatMessage> CreateOpenAIChatMessage(IDataStorageService dataStorageService, AuthorRole role, List<IAIChatHandleMessage> contents, CancellationToken cancellationToken = default)
+        private async Task<List<OpenAIChatMessage>> CreateOpenAIChatMessage(IDataStorageService dataStorageService, AuthorRole role, List<IAIChatHandleMessage> contents, CancellationToken cancellationToken = default)
         {
             var msg = new List<ChatMessageContentPart>();
             var toolCallId = "";
+            var functionName = "";
+            BinaryData? functionCallArgs = null;
             foreach (var content in contents)
             {
                 ChatMessageContentPart? contentPart = null;
@@ -167,6 +170,8 @@ Current date: {DateTime.Now.ToString("yyyy-MM-dd")}" }]);
                 else if (content is AIProviderHandleFunctionCallResponse functionCallMessage)
                 {
                     toolCallId = functionCallMessage.CallID;
+                    functionName = functionCallMessage.FunctionName;
+                    functionCallArgs = BinaryData.FromObjectAsJson(functionCallMessage.Arguments);
                 }
                 else if (content is AIProviderHandleCustomFileMessageResponse fileMessage)
                 {
@@ -204,10 +209,15 @@ Current date: {DateTime.Now.ToString("yyyy-MM-dd")}" }]);
 
             return role switch
             {
-                AuthorRole.User => OpenAIChatMessage.CreateUserMessage(msg),
-                AuthorRole.System => OpenAIChatMessage.CreateSystemMessage(msg),
-                AuthorRole.Assistant => OpenAIChatMessage.CreateAssistantMessage(msg),
-                AuthorRole.Tool => OpenAIChatMessage.CreateToolMessage(string.IsNullOrWhiteSpace(toolCallId) ? Guid.NewGuid().ToString() : toolCallId, msg),
+                AuthorRole.User => [OpenAIChatMessage.CreateUserMessage(msg)],
+                AuthorRole.System => [OpenAIChatMessage.CreateSystemMessage(msg)],
+                AuthorRole.Assistant => [OpenAIChatMessage.CreateAssistantMessage(msg)],
+                AuthorRole.Tool => [
+                    OpenAIChatMessage.CreateAssistantMessage([
+                        ChatToolCall.CreateFunctionToolCall(toolCallId, functionName, functionCallArgs)
+                    ]),
+                    OpenAIChatMessage.CreateToolMessage(toolCallId, msg)
+                ],
                 _ => throw new NotImplementedException(),
             };
         }
@@ -215,7 +225,7 @@ Current date: {DateTime.Now.ToString("yyyy-MM-dd")}" }]);
         private async Task<List<ResponseItem>> CreateOpenAIResponseItem(IDataStorageService dataStorageService, AuthorRole role, List<IAIChatHandleMessage> contents, CancellationToken cancellationToken = default)
         {
             var msg = new List<ResponseContentPart>();
-            var toolCallId = Guid.NewGuid().ToString();
+            var toolCallId = "";
             var functionName = "";
             var functionCallResult = "";
             BinaryData? functionCallArgs = null;
@@ -224,7 +234,12 @@ Current date: {DateTime.Now.ToString("yyyy-MM-dd")}" }]);
                 ResponseContentPart? contentPart = null;
                 if (content is AIProviderHandleTextMessageResponse textMessage)
                 {
-                    contentPart = ResponseContentPart.CreateInputTextPart(textMessage.Message);
+                    if (role == AuthorRole.User)
+                        contentPart = ResponseContentPart.CreateInputTextPart(textMessage.Message);
+                    else if (role == AuthorRole.Tool)
+                        functionCallResult = textMessage.Message;
+                    else
+                        contentPart = ResponseContentPart.CreateOutputTextPart(textMessage.Message, []);
                 }
                 else if (content is AIProviderHandleRefusalMessageResponse refusalMessage)
                 {
@@ -235,7 +250,6 @@ Current date: {DateTime.Now.ToString("yyyy-MM-dd")}" }]);
                     toolCallId = functionCallMessage.CallID;
                     functionName = functionCallMessage.FunctionName;
                     functionCallArgs = BinaryData.FromObjectAsJson(functionCallMessage.Arguments);
-                    functionCallResult = functionCallMessage.Result;
                 }
                 else if (content is AIProviderHandleCustomFileMessageResponse fileMessage)
                 {
@@ -291,6 +305,14 @@ Current date: {DateTime.Now.ToString("yyyy-MM-dd")}" }]);
                             options.Tools.Add(ResponseTool.CreateFunctionTool(item.Name, item.Description, BinaryData.FromObjectAsJson(item.Parameters, serializerOptions), true));
                         }
                 }
+                if (_config.ThinkHandle)
+                {
+                    options.ReasoningOptions = new ResponseReasoningOptions()
+                    {
+                        ReasoningEffortLevel = ResponseReasoningEffortLevel.Medium,
+                        ReasoningSummaryVerbosity = ResponseReasoningSummaryVerbosity.Concise
+                    };
+                }
                 var chatMessages = new List<ResponseItem>();
                 foreach (var chatPart in chat)
                 {
@@ -343,11 +365,15 @@ Current date: {DateTime.Now.ToString("yyyy-MM-dd")}" }]);
                             options.Tools.Add(ChatTool.CreateFunctionTool(item.Name, item.Description, BinaryData.FromObjectAsJson(item.Parameters, serializerOptions), true));
                         }
                 }
+                if (_config.ThinkHandle)
+                {
+                    options.ReasoningEffortLevel = ChatReasoningEffortLevel.Medium;
+                }
 
                 var chatMessages = new List<OpenAIChatMessage>();
                 foreach (var chatPart in chat)
                 {
-                    chatMessages.Add(await CreateOpenAIChatMessage(_storageService, chatPart.Role, chatPart.Contents, cancellationToken));
+                    chatMessages.AddRange(await CreateOpenAIChatMessage(_storageService, chatPart.Role, chatPart.Contents, cancellationToken));
                 }
 
                 if (_config.CompatibleOldAPI)

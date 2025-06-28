@@ -25,7 +25,7 @@
     }
 </style>
 
-@if (Contents.Count == 0)
+@if (Contents == null || Contents.Count == 0)
 {
     <MudPaper Elevation="1" Class="pa-3 mt-1 mr-1" Style="@TextStyle">
         AI思考中。。。
@@ -91,12 +91,14 @@ else
         {
             <MudExpansionPanels>
                 <MudExpansionPanel Text="@($"功能调用：{functionCallMessage.FunctionName}")" Expanded="true">
-                    <MMarkdownIt Source="@($"```参数 \r\n{JsonSerializer.Serialize(functionCallMessage.Arguments)}\r\n```")"
+                    <MMarkdownIt Source="@($"```参数 \r\n{JsonSerializer.Serialize(functionCallMessage.Arguments, jsonOptions)}\r\n```")"
                                  Html="false"
                                  Class="markdown-parser__basic" Style="font-size: initial;" />
-                    <MMarkdownIt Source="@($"```返回 \r\n{functionCallMessage.Result}\r\n```")"
-                                 Html="false"
-                                 Class="markdown-parser__basic" Style="font-size: initial;" />
+                    <MudExpansionPanels>
+                        <MudExpansionPanel Text="返回" Expanded="true">
+                            <ChatMsgContent Contents="@functionCallMessage.Result" IfTextUseRawText="@IfTextUseRawText" TextStyle="@TextStyle"></ChatMsgContent>
+                        </MudExpansionPanel>
+                    </MudExpansionPanels>
                 </MudExpansionPanel>
             </MudExpansionPanels>
         }
@@ -106,9 +108,11 @@ else
 @code {
     private List<StringNumber> panel = new() { 0 };
 
-    [Parameter] public List<IAIChatHandleMessage> Contents { get; set; }
+    [Parameter] public List<IAIChatHandleMessage>? Contents { get; set; }
 
     [Parameter] public bool IfTextUseRawText { get; set; } = false;
 
-    [Parameter] public string TextStyle { get; set; }
+    [Parameter] public string TextStyle { get; set; } = "";
+
+    private JsonSerializerOptions jsonOptions = new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 }

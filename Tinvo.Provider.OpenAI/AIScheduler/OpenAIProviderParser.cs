@@ -22,6 +22,7 @@ namespace Tinvo.Provider.OpenAI.AIScheduler
     {
         private readonly IDataStorageService _storageService;
         private string _handleFunctionName = "";
+        private string _handleFunctionCallId = "";
         private StringBuilder _functionContentBuilder = new();
         private Serilog.ILogger _logger;
         private bool _isInReasoning = false;
@@ -117,7 +118,8 @@ namespace Tinvo.Provider.OpenAI.AIScheduler
                                 case ChatToolCallKind.Function:
                                     var functionText = item.FunctionArguments.ToString();
                                     _handleFunctionName = item.FunctionName;
-                                    _logger.Debug("AddHandleMsg函数信息：{name}, {value}", _handleFunctionName,
+                                    _handleFunctionCallId = item.Id;
+                                    _logger.Debug("AddHandleMsg函数信息：{id}, {name}, {value}", _handleFunctionCallId, _handleFunctionName,
                                         functionText);
                                     _functionContentBuilder.Append(functionText);
                                     break;
@@ -165,6 +167,7 @@ namespace Tinvo.Provider.OpenAI.AIScheduler
                 if (streamMsg.ContentUpdate.Count > 0)
                 {
                     _handleFunctionName = "";
+                    _handleFunctionCallId = "";
                     _functionContentBuilder.Clear();
                     foreach (var item in streamMsg.ContentUpdate)
                     {
@@ -259,7 +262,9 @@ namespace Tinvo.Provider.OpenAI.AIScheduler
                             var functionText = Encoding.UTF8.GetString(item.FunctionArgumentsUpdate.ToArray());
                             if (!string.IsNullOrWhiteSpace(item.FunctionName))
                                 _handleFunctionName = item.FunctionName;
-                            _logger.Debug("AddHandleMsg函数信息：{name}, {value}", _handleFunctionName, functionText);
+                            if(!string.IsNullOrWhiteSpace(item.ToolCallId))
+                                _handleFunctionCallId = item.ToolCallId;
+                            _logger.Debug("AddHandleMsg函数信息：{id}, {name}, {value}", _handleFunctionCallId, _handleFunctionName, functionText);
                             _functionContentBuilder.Append(functionText);
                             break;
                         default:
@@ -276,7 +281,7 @@ namespace Tinvo.Provider.OpenAI.AIScheduler
                     {
                         FunctionManager = functionManager!,
                         FunctionName = _handleFunctionName,
-                        CallID = Guid.NewGuid().ToString(),
+                        CallID = _handleFunctionCallId,
                         Arguments = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(argStr)
                     };
                 }

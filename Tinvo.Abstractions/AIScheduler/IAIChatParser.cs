@@ -19,7 +19,6 @@ namespace Tinvo.Abstractions.AIScheduler
         ImageMessage,
         FunctionStart,
         FunctionCall,
-        FunctionCallResult,
         Refusal,
         ReasoningMessage,
         AudioMessage,
@@ -74,7 +73,7 @@ namespace Tinvo.Abstractions.AIScheduler
 
         public required string CallID { get; set; }
 
-        public string? Result { get; set; }
+        public List<IAIChatHandleMessage>? Result { get; set; }
 
         public Dictionary<string, JsonElement>? Arguments { get; set; }
     }

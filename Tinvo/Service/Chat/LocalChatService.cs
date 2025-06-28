@@ -210,6 +210,7 @@ namespace Tinvo.Service.Chat
                         "user" => AuthorRole.User,
                         "system" => AuthorRole.System,
                         "assistant" => AuthorRole.Assistant,
+                        "tool" => AuthorRole.Tool,
                         _ => AuthorRole.User
                     }, [
                         new AIProviderHandleTextMessageResponse()
@@ -237,7 +238,7 @@ namespace Tinvo.Service.Chat
 
                 var chatRet = ai.ChatAsync(msgChat, chatSettings, cancellationToken);
 
-                await HandleMessage(ai, chatSettings, chatRet, msgHistory, newRetMsg.Contents, null, cancellationToken);
+                await HandleMessage(ai, chatSettings, chatRet, msgHistory, newRetMsg.Contents, cancellationToken);
             }
             catch (TaskCanceledException)
             {
@@ -258,26 +259,28 @@ namespace Tinvo.Service.Chat
         {
             foreach (var item in historyMessages)
             {
-                foreach (var content in item.Contents)
+                if (item.Contents.Count == 0)
+                    continue;
+                switch (item.UserType)
                 {
-                    switch (item.UserType)
-                    {
-                        case ChatUserType.Sender:
-                            chatHistory.AddMessage(AuthorRole.User, [content]);
-                            break;
-                        case ChatUserType.Receiver:
-                            chatHistory.AddMessage(AuthorRole.Assistant, [content]);
-                            break;
-                        default:
-                            break;
-                    }
+                    case ChatUserType.Sender:
+                        chatHistory.AddMessage(AuthorRole.User, item.Contents);
+                        break;
+                    case ChatUserType.Receiver:
+                        if (item.Name == "tool")
+                            chatHistory.AddMessage(AuthorRole.Tool, item.Contents);
+                        else
+                            chatHistory.AddMessage(AuthorRole.Assistant, item.Contents);
+                        break;
+                    default:
+                        break;
                 }
             }
         }
 
         private async Task<List<IAIChatHandleMessage>> HandleMessage(IAIChatTask ai, ChatSettings chatSettings,
             IAsyncEnumerable<IAIChatHandleMessage> receiveMessages, List<ChatMsgItemInfo> historyMessages,
-            List<IAIChatHandleMessage> newResultMessages, Action<string>? orReturnTextCallback = null, CancellationToken cancellationToken = default)
+            List<IAIChatHandleMessage> newResultMessages, CancellationToken cancellationToken = default)
         {
             var ret = new List<IAIChatHandleMessage>();
             IAIChatHandleMessage? oldResponse = null;
@@ -290,15 +293,14 @@ namespace Tinvo.Service.Chat
                 if (response is AIProviderHandleTextMessageResponse textMessageResponse && oldResponse != null && oldResponse is AIProviderHandleTextMessageResponse oldTextMessageResponse)
                 {
                     oldTextMessageResponse.Message += textMessageResponse.Message;
-                    orReturnTextCallback?.Invoke(textMessageResponse.Message);
                 }
                 else if (response is AIProviderHandleReasoningMessageResponse reasoningMessageResponse && oldResponse != null && oldResponse is AIProviderHandleReasoningMessageResponse oldReasoningMessageResponse)
                 {
                     oldReasoningMessageResponse.Message += reasoningMessageResponse.Message;
                 }
-                else if (response is AIProviderHandleFunctionCallResponse functionCallMessageResponse && oldResponse != null && oldResponse is AIProviderHandleFunctionCallResponse oldFunctionCallMessageResponse)
+                else if (response is AIProviderHandleRefusalMessageResponse refusalMessageResponse && oldResponse != null && oldResponse is AIProviderHandleRefusalMessageResponse oldRefusalMessageResponse)
                 {
-                    oldFunctionCallMessageResponse.Result += functionCallMessageResponse.Result;
+                    oldRefusalMessageResponse.Refusal += refusalMessageResponse.Refusal;
                 }
                 else if (response is AIProviderHandleAudioStreamMessageResponse audioStreamMessageResponse && oldResponse != null && oldResponse is AIProviderHandleAudioStreamMessageResponse oldAudioStreamMessageResponse)
                 {
@@ -316,21 +318,14 @@ namespace Tinvo.Service.Chat
                 }
                 else
                 {
-                    if (orReturnTextCallback != null && response is AIProviderHandleTextMessageResponse textMessage)
-                    {
-                        orReturnTextCallback.Invoke(textMessage.Message);
-                    }
-                    else
-                    {
-                        newResultMessages.Add(response);
-                    }
+                    newResultMessages.Add(response);
                     ret.Add(response);
                     oldResponse = response;
                 }
                 await OnStateHasChange.InvokeAsync();
                 if (response is AIProviderHandleFunctionCallResponse functionCallMessage)
                 {
-                    if (string.IsNullOrWhiteSpace(functionCallMessage.Result))
+                    if (functionCallMessage.Result == null)
                     {
                         var funCallRet = functionCallMessage.FunctionManager?.CallFunctionAsync(
                             functionCallMessage.FunctionName,
@@ -346,26 +341,32 @@ namespace Tinvo.Service.Chat
                                 {
                                     Id = Guid.NewGuid().ToString(),
                                     UserType = ChatUserType.Receiver,
-                                    Contents = newMessages
+                                    Contents = newMessages,
                                 }
                             );
                             var functionMsg = new ChatMsgItemInfo()
                             {
                                 Id = Guid.NewGuid().ToString(),
                                 UserType = ChatUserType.Receiver,
+                                Name = "tool",
+                                Contents = [
+                                    functionCallMessage
+                                ]
                             };
                             cloneChatMessages.Add(functionMsg);
-                            functionMsg.Contents = await HandleMessage(ai, chatSettings, funCallRet, cloneChatMessages, newResultMessages, message =>
+                            cloneChatMessages.Add(new ChatMsgItemInfo()
                             {
-                                functionCallMessage.Result += message;
-                            }, cancellationToken);
-                            if (!string.IsNullOrWhiteSpace(functionCallMessage.Result))
-                            {
-                                var chatHistory = new ChatHistory();
-                                AddChatHistory(cloneChatMessages, chatHistory);
-                                var functionCallChatRet = ai.ChatAsync(chatHistory, chatSettings, cancellationToken);
-                                await HandleMessage(ai, chatSettings, functionCallChatRet, cloneChatMessages, newResultMessages, null, cancellationToken);
-                            }
+                                Id = Guid.NewGuid().ToString(),
+                                UserType = ChatUserType.Sender,
+                                Contents = [
+                                    new AIProviderHandleTextMessageResponse() { Message= "总结以上工具返回的内容" }
+                                ]
+                            });
+                            functionCallMessage.Result = await HandleMessage(ai, chatSettings, funCallRet, cloneChatMessages, functionMsg.Contents, cancellationToken);
+                            var chatHistory = new ChatHistory();
+                            AddChatHistory(cloneChatMessages, chatHistory);
+                            var functionCallResultAISummaryResult = ai.ChatAsync(chatHistory, chatSettings, cancellationToken);
+                            await HandleMessage(ai, chatSettings, functionCallResultAISummaryResult, cloneChatMessages, newResultMessages, cancellationToken);
                         }
                     }
                 }
