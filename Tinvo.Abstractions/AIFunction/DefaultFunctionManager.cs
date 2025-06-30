@@ -228,12 +228,12 @@ namespace Tinvo.Abstractions
             return func;
         }
 
-        public List<FunctionInfo> GetFunctionInfos()
+        public virtual List<FunctionInfo> GetFunctionInfos()
         {
             return _functions.Values.Select(x => x.FunctionInfo).ToList();
         }
 
-        public async IAsyncEnumerable<IAIChatHandleMessage> CallFunctionAsync(
+        public virtual async IAsyncEnumerable<IAIChatHandleMessage> CallFunctionAsync(
             string name,
             Dictionary<string, object?>? parameters,
             [EnumeratorCancellation] CancellationToken cancellationToken = default)
