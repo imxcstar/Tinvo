@@ -98,10 +98,7 @@ namespace Tinvo.Provider.OpenAI.AIScheduler
         private readonly OpenAIChatConfig _config;
 
         private readonly ChatClient _chatClient;
-        private readonly IAIChatParser _parser;
-
         private readonly OpenAIResponseClient? _chatResponsetClient;
-        private readonly IAIChatParser _responsetParser;
 
         public OpenAIChatProvider(IDataStorageService storageService, OpenAIChatConfig config)
         {
@@ -113,7 +110,6 @@ namespace Tinvo.Provider.OpenAI.AIScheduler
                 NetworkTimeout = TimeSpan.FromDays(10),
                 Transport = new BlazorHttpClientTransport()
             });
-            _parser = new OpenAIProviderParser(_storageService, _config.ThinkHandle);
             if (_config.IsResponseMode)
             {
                 _chatResponsetClient = new OpenAIResponseClient(_config.Model, new ApiKeyCredential(_config.Token ?? ""), new OpenAIClientOptions()
@@ -122,7 +118,6 @@ namespace Tinvo.Provider.OpenAI.AIScheduler
                     NetworkTimeout = TimeSpan.FromDays(10),
                     Transport = new BlazorHttpClientTransport()
                 });
-                _responsetParser = new OpenAIProviderResponsetParser(_storageService, _config.ThinkHandle);
             }
         }
 
@@ -156,6 +151,7 @@ Current date: {DateTime.Now.ToString("yyyy-MM-dd")}" }]);
 
         private async Task<List<OpenAIChatMessage>> CreateOpenAIChatMessage(IDataStorageService dataStorageService, AuthorRole role, List<IAIChatHandleMessage> contents, CancellationToken cancellationToken = default)
         {
+            var currentRole = role;
             var msg = new List<ChatMessageContentPart>();
             var toolCallId = "";
             var functionName = "";
@@ -173,18 +169,27 @@ Current date: {DateTime.Now.ToString("yyyy-MM-dd")}" }]);
                 }
                 else if (content is AIProviderHandleFunctionCallResponse functionCallMessage)
                 {
+                    currentRole = AuthorRole.Tool; 
                     toolCallId = functionCallMessage.CallID;
                     functionName = functionCallMessage.FunctionName;
                     functionCallArgs = BinaryData.FromObjectAsJson(functionCallMessage.Arguments);
+                    var functionResult = functionCallMessage.Result?.FirstOrDefault(x => x is AIProviderHandleTextMessageResponse) as AIProviderHandleTextMessageResponse ?? new AIProviderHandleTextMessageResponse()
+                    {
+                        Message = "调用成功"
+                    };
+                    contentPart = ChatMessageContentPart.CreateTextPart(functionResult.Message);
                 }
                 else if (content is AIProviderHandleCustomFileMessageResponse fileMessage)
                 {
+                    msg.Add(ChatMessageContentPart.CreateTextPart($"文件ID：{fileMessage.FileCustomID}"));
                     switch (fileMessage.Type)
                     {
                         case AIChatHandleMessageType.ImageMessage:
                             var imageData = await dataStorageService.GetItemAsBinaryAsync(fileMessage.FileCustomID, cancellationToken);
                             if (imageData != null)
+                            {
                                 contentPart = ChatMessageContentPart.CreateImagePart(BinaryData.FromBytes(imageData), "image/png");
+                            }
                             break;
                         case AIChatHandleMessageType.AudioMessage:
                             var audioData = await dataStorageService.GetItemAsBinaryAsync(fileMessage.FileCustomID, cancellationToken);
@@ -211,7 +216,7 @@ Current date: {DateTime.Now.ToString("yyyy-MM-dd")}" }]);
                     msg.Add(contentPart);
             }
 
-            return role switch
+            return currentRole switch
             {
                 AuthorRole.User => [OpenAIChatMessage.CreateUserMessage(msg)],
                 AuthorRole.System => [OpenAIChatMessage.CreateSystemMessage(msg)],
@@ -228,6 +233,7 @@ Current date: {DateTime.Now.ToString("yyyy-MM-dd")}" }]);
 
         private async Task<List<ResponseItem>> CreateOpenAIResponseItem(IDataStorageService dataStorageService, AuthorRole role, List<IAIChatHandleMessage> contents, CancellationToken cancellationToken = default)
         {
+            var currentRole = role;
             var msg = new List<ResponseContentPart>();
             var toolCallId = "";
             var functionName = "";
@@ -251,12 +257,19 @@ Current date: {DateTime.Now.ToString("yyyy-MM-dd")}" }]);
                 }
                 else if (content is AIProviderHandleFunctionCallResponse functionCallMessage)
                 {
+                    currentRole = AuthorRole.Tool;
                     toolCallId = functionCallMessage.CallID;
                     functionName = functionCallMessage.FunctionName;
                     functionCallArgs = BinaryData.FromObjectAsJson(functionCallMessage.Arguments);
+                    var functionResult = functionCallMessage.Result?.FirstOrDefault(x => x is AIProviderHandleTextMessageResponse) as AIProviderHandleTextMessageResponse ?? new AIProviderHandleTextMessageResponse()
+                    {
+                        Message = "调用成功"
+                    };
+                    contentPart = ResponseContentPart.CreateOutputTextPart(functionResult.Message, []);
                 }
                 else if (content is AIProviderHandleCustomFileMessageResponse fileMessage)
                 {
+                    msg.Add(ResponseContentPart.CreateInputTextPart($"文件ID：{fileMessage.FileCustomID}"));
                     switch (fileMessage.Type)
                     {
                         case AIChatHandleMessageType.ImageMessage:
@@ -278,7 +291,7 @@ Current date: {DateTime.Now.ToString("yyyy-MM-dd")}" }]);
                     msg.Add(contentPart);
             }
 
-            return role switch
+            return currentRole switch
             {
                 AuthorRole.User => [ResponseItem.CreateUserMessageItem(msg)],
                 AuthorRole.System => [ResponseItem.CreateSystemMessageItem(msg)],
@@ -328,12 +341,14 @@ Current date: {DateTime.Now.ToString("yyyy-MM-dd")}" }]);
                     chatMessages.AddRange(await CreateOpenAIResponseItem(_storageService, chatPart.Role, chatPart.Contents, cancellationToken));
                 }
 
+                var responsetParser = new OpenAIProviderResponsetParser(_storageService, _config.ThinkHandle);
+
                 if (_config.IsStream)
                 {
                     AsyncCollectionResult<StreamingResponseUpdate> ret = _chatResponsetClient.CreateResponseStreamingAsync(chatMessages, options, cancellationToken);
                     await foreach (var msg in ret)
                     {
-                        var handleRet = _responsetParser.Handle(msg, requestSettings?.FunctionManager);
+                        var handleRet = responsetParser.Handle(msg, requestSettings?.FunctionManager);
                         await foreach (var item2 in handleRet)
                         {
                             yield return item2;
@@ -343,7 +358,7 @@ Current date: {DateTime.Now.ToString("yyyy-MM-dd")}" }]);
                 else
                 {
                     ClientResult<OpenAIResponse> ret = await _chatResponsetClient.CreateResponseAsync(chatMessages, options, cancellationToken);
-                    var handleRet = _responsetParser.Handle(ret, requestSettings?.FunctionManager);
+                    var handleRet = responsetParser.Handle(ret, requestSettings?.FunctionManager);
                     await foreach (var item2 in handleRet)
                     {
                         yield return item2;
@@ -392,6 +407,9 @@ Current date: {DateTime.Now.ToString("yyyy-MM-dd")}" }]);
                 if (_config.CompatibleOldAPI)
                     SetMaxTokens(options, requestSettings?.MaxOutputTokens ?? _config.MaxOutputTokens);
 
+
+                var parser = new OpenAIProviderParser(_storageService, _config.ThinkHandle);
+
                 if (_config.IsStream)
                 {
                     AsyncCollectionResult<StreamingChatCompletionUpdate> ret = _chatClient.CompleteChatStreamingAsync(
@@ -399,7 +417,7 @@ Current date: {DateTime.Now.ToString("yyyy-MM-dd")}" }]);
                     );
                     await foreach (var msg in ret)
                     {
-                        var handleRet = _parser.Handle(msg, requestSettings?.FunctionManager);
+                        var handleRet = parser.Handle(msg, requestSettings?.FunctionManager);
                         await foreach (var item2 in handleRet)
                         {
                             yield return item2;
@@ -411,7 +429,7 @@ Current date: {DateTime.Now.ToString("yyyy-MM-dd")}" }]);
                     ChatCompletion ret = await _chatClient.CompleteChatAsync(
                         chatMessages, options, cancellationToken
                     );
-                    var handleRet = _parser.Handle(ret, requestSettings?.FunctionManager);
+                    var handleRet = parser.Handle(ret, requestSettings?.FunctionManager);
                     await foreach (var item2 in handleRet)
                     {
                         yield return item2;

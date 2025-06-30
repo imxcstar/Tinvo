@@ -16,6 +16,7 @@ using Tinvo.Abstractions.AIScheduler;
 using Tinvo.Abstractions.MCP;
 using Tinvo.Application.AIAssistant;
 using Tinvo.Application.AIAssistant.Entities;
+using Tinvo.Application.AISkill;
 using Tinvo.Application.DataStorage;
 using Tinvo.Application.Provider;
 using Tinvo.Pages.Chat;
@@ -221,14 +222,17 @@ namespace Tinvo.Service.Chat
                 }
 
                 var msgHistory = msgCache.MsgList[..^1];
-                AddChatHistory(msgHistory, msgChat);
+                ConvertChatHistory(msgHistory, msgChat);
 
                 var functionManagers = new List<IFunctionManager>();
+                var customFunctionManager = new DefaultFunctionManager();
+                customFunctionManager.AddFunction(typeof(AIUtilsSkill), nameof(AIUtilsSkill.QueryNowDate), clsArgs: [_dataStorageService]);
                 foreach (var mcpService in mcpServices)
                 {
                     var functionManager = await mcpService.GetIFunctionManager(cancellationToken);
                     functionManagers.Add(functionManager);
                 }
+                functionManagers.Add(customFunctionManager);
 
                 var chatSettings = new ChatSettings()
                 {
@@ -248,6 +252,7 @@ namespace Tinvo.Service.Chat
             }
             catch (Exception ex)
             {
+                _logger.Error("SendAnyMsgAsync: {error}\r\n{stackTrace}", ex.Message, ex.StackTrace);
                 if (!cancellationToken.IsCancellationRequested)
                     throw;
             }
@@ -255,12 +260,10 @@ namespace Tinvo.Service.Chat
             await _dataStorageService.SetItemAsync("msgCache", _msgCaches);
         }
 
-        private void AddChatHistory(List<ChatMsgItemInfo> historyMessages, ChatHistory chatHistory)
+        private void ConvertChatHistory(List<ChatMsgItemInfo> historyMessages, ChatHistory chatHistory)
         {
             foreach (var item in historyMessages)
             {
-                if (item.Contents.Count == 0)
-                    continue;
                 switch (item.UserType)
                 {
                     case ChatUserType.Sender:
@@ -269,6 +272,8 @@ namespace Tinvo.Service.Chat
                     case ChatUserType.Receiver:
                         if (item.Name == "tool")
                             chatHistory.AddMessage(AuthorRole.Tool, item.Contents);
+                        if (item.Name == "system")
+                            chatHistory.AddMessage(AuthorRole.System, item.Contents);
                         else
                             chatHistory.AddMessage(AuthorRole.Assistant, item.Contents);
                         break;
@@ -334,8 +339,7 @@ namespace Tinvo.Service.Chat
                         if (funCallRet != null)
                         {
                             var cloneChatMessages = historyMessages.ToList();
-                            var newMessages = newResultMessages.ToList();
-                            newMessages.Remove(response);
+                            var newMessages = ret.ToList();
                             cloneChatMessages.Add(
                                 new ChatMsgItemInfo()
                                 {
@@ -344,29 +348,12 @@ namespace Tinvo.Service.Chat
                                     Contents = newMessages,
                                 }
                             );
-                            var functionMsg = new ChatMsgItemInfo()
-                            {
-                                Id = Guid.NewGuid().ToString(),
-                                UserType = ChatUserType.Receiver,
-                                Name = "tool",
-                                Contents = [
-                                    functionCallMessage
-                                ]
-                            };
-                            cloneChatMessages.Add(functionMsg);
-                            cloneChatMessages.Add(new ChatMsgItemInfo()
-                            {
-                                Id = Guid.NewGuid().ToString(),
-                                UserType = ChatUserType.Sender,
-                                Contents = [
-                                    new AIProviderHandleTextMessageResponse() { Message= "总结以上工具返回的内容，并且根据要求调用剩余的工具（如何还有）" }
-                                ]
-                            });
-                            functionCallMessage.Result = await HandleMessage(ai, chatSettings, funCallRet, cloneChatMessages, functionMsg.Contents, cancellationToken);
+                            functionCallMessage.Result = await HandleMessage(ai, chatSettings, funCallRet, cloneChatMessages, [], cancellationToken);
                             var chatHistory = new ChatHistory();
-                            AddChatHistory(cloneChatMessages, chatHistory);
+                            ConvertChatHistory(cloneChatMessages, chatHistory);
                             var functionCallResultAISummaryResult = ai.ChatAsync(chatHistory, chatSettings, cancellationToken);
                             await HandleMessage(ai, chatSettings, functionCallResultAISummaryResult, cloneChatMessages, newResultMessages, cancellationToken);
+                            break;
                         }
                     }
                 }

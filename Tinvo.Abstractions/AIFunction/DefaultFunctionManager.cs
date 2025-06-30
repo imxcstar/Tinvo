@@ -4,6 +4,8 @@ using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Tinvo.Abstractions.AIScheduler;
 
@@ -103,16 +105,48 @@ namespace Tinvo.Abstractions
         public FunctionInfo FunctionInfo { get; set; } = null!;
         public bool IsCustomFunction { get; set; } = false;
 
-        public object? Call(object?[]? parameters)
+        public IAIChatHandleMessage? Call(object?[]? parameters)
         {
             if (IsCustomFunction)
                 throw new NotSupportedException("Not Support Custom Function Call");
-            var or = Activator.CreateInstance(SourceCls!, SourceArgs) ?? throw new NotImplementedException();
-            return MethodInfo!.Invoke(or, parameters);
+
+            var instance = Activator.CreateInstance(SourceCls!, SourceArgs) ?? throw new NotImplementedException();
+            var methodParams = MethodInfo!.GetParameters();
+
+            if (parameters == null || parameters.Length == 0)
+            {
+                return MethodInfo.Invoke(instance, null) as IAIChatHandleMessage;
+            }
+
+            var convertedParams = new object?[parameters.Length];
+            for (int i = 0; i < parameters.Length; i++)
+            {
+                var expectedType = methodParams[i].ParameterType;
+                var paramValue = parameters[i];
+
+                if (paramValue == null)
+                {
+                    convertedParams[i] = null;
+                }
+                else if (expectedType.IsInstanceOfType(paramValue))
+                {
+                    convertedParams[i] = paramValue;
+                }
+                else if (paramValue is JsonElement jsonElement)
+                {
+                    convertedParams[i] = JsonSerializer.Deserialize(jsonElement.GetRawText(), expectedType);
+                }
+                else
+                {
+                    convertedParams[i] = Convert.ChangeType(paramValue, expectedType);
+                }
+            }
+
+            return MethodInfo.Invoke(instance, convertedParams) as IAIChatHandleMessage;
         }
     }
 
-    public class FunctionManager : IFunctionManager
+    public class DefaultFunctionManager : IFunctionManager
     {
         public Dictionary<string, FunctionMetaInfo> _functions;
 
@@ -121,7 +155,7 @@ namespace Tinvo.Abstractions
         private object? _options;
         public object? Options => _options;
 
-        public FunctionManager(object? options = null)
+        public DefaultFunctionManager(object? options = null)
         {
             _functions = new Dictionary<string, FunctionMetaInfo>();
             _options = options;
@@ -199,15 +233,29 @@ namespace Tinvo.Abstractions
             return _functions.Values.Select(x => x.FunctionInfo).ToList();
         }
 
-        public async IAsyncEnumerable<IAIChatHandleMessage> CallFunctionAsync(string name,
-            Dictionary<string, object?>? parameters, CancellationToken cancellationToken = default)
+        public async IAsyncEnumerable<IAIChatHandleMessage> CallFunctionAsync(
+            string name,
+            Dictionary<string, object?>? parameters,
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             var function = GetFnctionMetaInfo(name);
-            var ret = function.Call(parameters?.Values.ToArray());
-            yield return new AIProviderHandleTextMessageResponse()
+            var methodParams = function.MethodInfo!.GetParameters();
+
+            var orderedParams = methodParams.Select(p =>
+                parameters != null && parameters.TryGetValue(p.Name!, out var value) ? value : GetDefault(p.ParameterType)
+            ).ToArray();
+
+            var ret = function.Call(orderedParams) ?? new AIProviderHandleTextMessageResponse()
             {
-                Message = ret?.ToString() ?? "调用成功"
+                Message = "调用成功"
             };
+
+            yield return ret;
+        }
+
+        private static object? GetDefault(Type type)
+        {
+            return type.IsValueType ? Activator.CreateInstance(type) : null;
         }
     }
 

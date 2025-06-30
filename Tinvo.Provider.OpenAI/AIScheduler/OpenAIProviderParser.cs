@@ -18,20 +18,27 @@ using Tinvo.Utils.Extend;
 
 namespace Tinvo.Provider.OpenAI.AIScheduler
 {
+    public class OpenAIProviderToolInfo
+    {
+        public string? CallId { get; set; }
+        public string? FunctionName { get; set; }
+        public string Args { get; set; } = "";
+    }
+
     public class OpenAIProviderParser : IAIChatParser
     {
         private readonly IDataStorageService _storageService;
-        private string _handleFunctionName = "";
-        private string _handleFunctionCallId = "";
-        private StringBuilder _functionContentBuilder = new();
+        private Dictionary<string, OpenAIProviderToolInfo> _handleFunctions;
         private Serilog.ILogger _logger;
         private bool _isInReasoning = false;
         private bool _isThinkHandle = false;
+        private string _lastHandleFunctionId = "";
 
         public OpenAIProviderParser(IDataStorageService storageService, bool isThinkHandle)
         {
             _storageService = storageService;
             _logger = Log.ForContext<OpenAIProviderParser>();
+            _handleFunctions = new Dictionary<string, OpenAIProviderToolInfo>();
             _isThinkHandle = isThinkHandle;
         }
 
@@ -117,11 +124,16 @@ namespace Tinvo.Provider.OpenAI.AIScheduler
                             {
                                 case ChatToolCallKind.Function:
                                     var functionText = item.FunctionArguments.ToString();
-                                    _handleFunctionName = item.FunctionName;
-                                    _handleFunctionCallId = item.Id;
-                                    _logger.Debug("AddHandleMsg函数信息：{id}, {name}, {value}", _handleFunctionCallId, _handleFunctionName,
-                                        functionText);
-                                    _functionContentBuilder.Append(functionText);
+                                    _logger.Debug("AddHandleMsg函数信息：{id}, {name}, {args}", item.Id, item.FunctionName, functionText);
+                                    if (!string.IsNullOrWhiteSpace(item.Id))
+                                        _lastHandleFunctionId = item.Id;
+                                    if (!_handleFunctions.ContainsKey(_lastHandleFunctionId))
+                                        _handleFunctions[_lastHandleFunctionId] = new OpenAIProviderToolInfo();
+                                    if (string.IsNullOrWhiteSpace(_handleFunctions[_lastHandleFunctionId].CallId))
+                                        _handleFunctions[_lastHandleFunctionId].CallId = _lastHandleFunctionId;
+                                    if (string.IsNullOrWhiteSpace(_handleFunctions[_lastHandleFunctionId].FunctionName))
+                                        _handleFunctions[_lastHandleFunctionId].FunctionName = item.FunctionName;
+                                    _handleFunctions[_lastHandleFunctionId].Args += functionText;
                                     break;
                                 default:
                                     break;
@@ -166,9 +178,6 @@ namespace Tinvo.Provider.OpenAI.AIScheduler
 
                 if (streamMsg.ContentUpdate.Count > 0)
                 {
-                    _handleFunctionName = "";
-                    _handleFunctionCallId = "";
-                    _functionContentBuilder.Clear();
                     foreach (var item in streamMsg.ContentUpdate)
                     {
                         var customFileID = Guid.NewGuid().ToString();
@@ -260,12 +269,16 @@ namespace Tinvo.Provider.OpenAI.AIScheduler
                     {
                         case ChatToolCallKind.Function:
                             var functionText = Encoding.UTF8.GetString(item.FunctionArgumentsUpdate.ToArray());
-                            if (!string.IsNullOrWhiteSpace(item.FunctionName))
-                                _handleFunctionName = item.FunctionName;
-                            if(!string.IsNullOrWhiteSpace(item.ToolCallId))
-                                _handleFunctionCallId = item.ToolCallId;
-                            _logger.Debug("AddHandleMsg函数信息：{id}, {name}, {value}", _handleFunctionCallId, _handleFunctionName, functionText);
-                            _functionContentBuilder.Append(functionText);
+                            _logger.Debug("AddHandleMsg函数信息：{id}, {name}, {args}", item.ToolCallId, item.FunctionName, functionText);
+                            if (!string.IsNullOrWhiteSpace(item.ToolCallId))
+                                _lastHandleFunctionId = item.ToolCallId;
+                            if (!_handleFunctions.ContainsKey(_lastHandleFunctionId))
+                                _handleFunctions[_lastHandleFunctionId] = new OpenAIProviderToolInfo();
+                            if (string.IsNullOrWhiteSpace(_handleFunctions[_lastHandleFunctionId].CallId))
+                                _handleFunctions[_lastHandleFunctionId].CallId = _lastHandleFunctionId;
+                            if (string.IsNullOrWhiteSpace(_handleFunctions[_lastHandleFunctionId].FunctionName))
+                                _handleFunctions[_lastHandleFunctionId].FunctionName = item.FunctionName;
+                            _handleFunctions[_lastHandleFunctionId].Args += functionText;
                             break;
                         default:
                             break;
@@ -275,15 +288,18 @@ namespace Tinvo.Provider.OpenAI.AIScheduler
                 if (streamMsg.FinishReason == ChatFinishReason.ToolCalls ||
                     streamMsg.FinishReason == ChatFinishReason.FunctionCall)
                 {
-                    var argStr = _functionContentBuilder.ToString();
-                    _logger.Debug("调用函数前触发：{name}, {argStr}", _handleFunctionName, argStr);
-                    yield return new AIProviderHandleFunctionCallResponse()
+                    foreach (var handleFunction in _handleFunctions.Values)
                     {
-                        FunctionManager = functionManager!,
-                        FunctionName = _handleFunctionName,
-                        CallID = _handleFunctionCallId,
-                        Arguments = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(argStr)
-                    };
+                        _logger.Debug("调用函数前触发：{id}, {name}, {args}", handleFunction.CallId, handleFunction.FunctionName, handleFunction.Args);
+                        yield return new AIProviderHandleFunctionCallResponse()
+                        {
+                            FunctionManager = functionManager!,
+                            FunctionName = handleFunction.FunctionName,
+                            CallID = handleFunction.CallId,
+                            Arguments = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(handleFunction.Args)
+                        };
+                    }
+                    _handleFunctions.Clear();
                 }
             }
             else
