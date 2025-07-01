@@ -44,6 +44,7 @@ namespace Tinvo.Application.AIAssistant.Entities
 
     public class AssistantSkill
     {
+        public string UniqueId { get; set; }
         public AssistantSkillType Type { get; set; }
         public AssistantSupportSkillType SupportType { get; set; }
         public string Id { get; set; } = null!;

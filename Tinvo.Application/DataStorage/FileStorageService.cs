@@ -114,20 +114,18 @@ namespace Tinvo.Application.DataStorage
         public async ValueTask SetItemAsStreamAsync(string key, Stream data, bool leaveOpen = false, CancellationToken cancellationToken = default)
         {
             string filePath = GetFilePath(key);
-            using var file = new FileStream(filePath, FileMode.OpenOrCreate, FileAccess.ReadWrite);
+            using var file = new FileStream(filePath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.ReadWrite);
             await data.CopyToAsync(file);
             file.Close();
             if (!leaveOpen)
                 data.Close();
         }
 
-        public async ValueTask SetItemAsBinaryAsync(string key, byte[] data, CancellationToken cancellationToken = default)
+        public ValueTask SetItemAsBinaryAsync(string key, byte[] data, CancellationToken cancellationToken = default)
         {
             string filePath = GetFilePath(key);
-            using var file = new FileStream(filePath, FileMode.OpenOrCreate, FileAccess.ReadWrite);
-            var memoryStream = new MemoryStream(data);
-            await memoryStream.CopyToAsync(file);
-            file.Close();
+            File.WriteAllBytes(filePath, data);
+            return ValueTask.CompletedTask;
         }
 
         public ValueTask<Stream?> GetItemAsStreamAsync(string key, CancellationToken cancellationToken = default)
@@ -135,7 +133,7 @@ namespace Tinvo.Application.DataStorage
             string filePath = GetFilePath(key);
             if (!File.Exists(filePath))
                 return ValueTask.FromResult<Stream?>(null);
-            return ValueTask.FromResult<Stream?>(new FileStream(filePath, FileMode.OpenOrCreate, FileAccess.ReadWrite));
+            return ValueTask.FromResult<Stream?>(new FileStream(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite));
         }
 
         public ValueTask<byte[]?> GetItemAsBinaryAsync(string key, CancellationToken cancellationToken = default)

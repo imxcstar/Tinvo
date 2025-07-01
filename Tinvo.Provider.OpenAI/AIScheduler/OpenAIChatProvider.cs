@@ -156,6 +156,7 @@ Current date: {DateTime.Now.ToString("yyyy-MM-dd")}" }]);
             var toolCallId = "";
             var functionName = "";
             BinaryData? functionCallArgs = null;
+            var functionOtherMessage = new List<OpenAIChatMessage>();
             foreach (var content in contents)
             {
                 ChatMessageContentPart? contentPart = null;
@@ -169,7 +170,7 @@ Current date: {DateTime.Now.ToString("yyyy-MM-dd")}" }]);
                 }
                 else if (content is AIProviderHandleFunctionCallResponse functionCallMessage)
                 {
-                    currentRole = AuthorRole.Tool; 
+                    currentRole = AuthorRole.Tool;
                     toolCallId = functionCallMessage.CallID;
                     functionName = functionCallMessage.FunctionName;
                     functionCallArgs = BinaryData.FromObjectAsJson(functionCallMessage.Arguments);
@@ -178,6 +179,45 @@ Current date: {DateTime.Now.ToString("yyyy-MM-dd")}" }]);
                         Message = "调用成功"
                     };
                     contentPart = ChatMessageContentPart.CreateTextPart(functionResult.Message);
+                    if (functionCallMessage.Result != null)
+                    {
+                        foreach (var item in functionCallMessage.Result)
+                        {
+                            if (item is AIProviderHandleCustomFileMessageResponse fileMessage)
+                            {
+                                functionOtherMessage.Add(OpenAIChatMessage.CreateAssistantMessage(ChatMessageContentPart.CreateTextPart($"文件ID：{fileMessage.FileCustomID}")));
+                                switch (fileMessage.Type)
+                                {
+                                    case AIChatHandleMessageType.ImageMessage:
+                                        var imageData = await dataStorageService.GetItemAsBinaryAsync(fileMessage.FileCustomID, cancellationToken);
+                                        if (imageData != null)
+                                        {
+                                            functionOtherMessage.Add(OpenAIChatMessage.CreateAssistantMessage(ChatMessageContentPart.CreateImagePart(BinaryData.FromBytes(imageData), "image/png")));
+                                        }
+                                        break;
+                                    case AIChatHandleMessageType.AudioMessage:
+                                        var audioData = await dataStorageService.GetItemAsBinaryAsync(fileMessage.FileCustomID, cancellationToken);
+                                        if (audioData != null)
+                                            functionOtherMessage.Add(OpenAIChatMessage.CreateAssistantMessage(ChatMessageContentPart.CreateInputAudioPart(BinaryData.FromBytes(audioData), (fileMessage.FileOriginalMediaType ?? "").ToLower().Contains("mp3") ? ChatInputAudioFormat.Mp3 : ChatInputAudioFormat.Wav)));
+                                        break;
+                                    case AIChatHandleMessageType.FileMessage:
+                                        if (!string.IsNullOrWhiteSpace(fileMessage.FileOriginalID))
+                                        {
+                                            functionOtherMessage.Add(OpenAIChatMessage.CreateAssistantMessage(ChatMessageContentPart.CreateFilePart(fileMessage.FileOriginalID)));
+                                        }
+                                        else
+                                        {
+                                            var fileData = await dataStorageService.GetItemAsBinaryAsync(fileMessage.FileCustomID, cancellationToken);
+                                            if (fileData != null)
+                                                functionOtherMessage.Add(OpenAIChatMessage.CreateAssistantMessage(ChatMessageContentPart.CreateFilePart(BinaryData.FromBytes(fileData), fileMessage.FileOriginalMediaType, fileMessage.FileOriginalName)));
+                                        }
+                                        break;
+                                    default:
+                                        break;
+                                }
+                            }
+                        }
+                    }
                 }
                 else if (content is AIProviderHandleCustomFileMessageResponse fileMessage)
                 {
@@ -220,12 +260,13 @@ Current date: {DateTime.Now.ToString("yyyy-MM-dd")}" }]);
             {
                 AuthorRole.User => [OpenAIChatMessage.CreateUserMessage(msg)],
                 AuthorRole.System => [OpenAIChatMessage.CreateSystemMessage(msg)],
-                AuthorRole.Assistant => [OpenAIChatMessage.CreateAssistantMessage(msg)],
+                AuthorRole.Assistant => [OpenAIChatMessage.CreateAssistantMessage(msg), .. functionOtherMessage],
                 AuthorRole.Tool => [
                     OpenAIChatMessage.CreateAssistantMessage([
                         ChatToolCall.CreateFunctionToolCall(toolCallId, functionName, functionCallArgs)
                     ]),
-                    OpenAIChatMessage.CreateToolMessage(toolCallId, msg)
+                    OpenAIChatMessage.CreateToolMessage(toolCallId, msg),
+                    .. functionOtherMessage
                 ],
                 _ => throw new NotImplementedException(),
             };
@@ -239,6 +280,7 @@ Current date: {DateTime.Now.ToString("yyyy-MM-dd")}" }]);
             var functionName = "";
             var functionCallResult = "";
             BinaryData? functionCallArgs = null;
+            var functionOtherMessage = new List<ResponseItem>();
             foreach (var content in contents)
             {
                 ResponseContentPart? contentPart = null;
@@ -266,6 +308,34 @@ Current date: {DateTime.Now.ToString("yyyy-MM-dd")}" }]);
                         Message = "调用成功"
                     };
                     contentPart = ResponseContentPart.CreateOutputTextPart(functionResult.Message, []);
+                    if (functionCallMessage.Result != null)
+                    {
+                        foreach (var item in functionCallMessage.Result)
+                        {
+                            if (item is AIProviderHandleCustomFileMessageResponse fileMessage)
+                            {
+                                functionOtherMessage.Add(ResponseItem.CreateAssistantMessageItem([ResponseContentPart.CreateOutputTextPart($"文件ID：{fileMessage.FileCustomID}", [])]));
+                                switch (fileMessage.Type)
+                                {
+                                    case AIChatHandleMessageType.ImageMessage:
+                                        var imageData = await dataStorageService.GetItemAsBinaryAsync(fileMessage.FileCustomID, cancellationToken);
+                                        if (imageData != null)
+                                        {
+                                            functionOtherMessage.Add(ResponseItem.CreateAssistantMessageItem([ResponseContentPart.CreateInputImagePart(BinaryData.FromBytes(imageData), "image/png")]));
+                                        }
+                                        break;
+                                    case AIChatHandleMessageType.AudioMessage:
+                                    case AIChatHandleMessageType.FileMessage:
+                                        var fileData = await dataStorageService.GetItemAsBinaryAsync(fileMessage.FileCustomID, cancellationToken);
+                                        if (fileData != null)
+                                            functionOtherMessage.Add(ResponseItem.CreateAssistantMessageItem([ResponseContentPart.CreateInputFilePart(fileMessage.FileCustomID, fileMessage.FileOriginalMediaType, BinaryData.FromBytes(fileData))]));
+                                        break;
+                                    default:
+                                        break;
+                                }
+                            }
+                        }
+                    }
                 }
                 else if (content is AIProviderHandleCustomFileMessageResponse fileMessage)
                 {

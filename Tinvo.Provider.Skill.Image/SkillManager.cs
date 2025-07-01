@@ -9,6 +9,9 @@ namespace Tinvo.Provider.Skill.Image
         public SkillManager(IDataStorageService dataStorageService)
         {
             this.AddFunction(typeof(ImageSkill), nameof(ImageSkill.ImageAddTextWatermark), clsArgs: [dataStorageService]);
+            this.AddFunction(typeof(ImageSkill), nameof(ImageSkill.ImageAddImageWatermark), clsArgs: [dataStorageService]);
+            this.AddFunction(typeof(ImageSkill), nameof(ImageSkill.ImageConvertToGrayscale), clsArgs: [dataStorageService]);
+            this.AddFunction(typeof(ImageSkill), nameof(ImageSkill.ImageResize), clsArgs: [dataStorageService]);
         }
     }
 }

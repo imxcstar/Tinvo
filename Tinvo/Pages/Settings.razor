@@ -1,4 +1,5 @@
 ﻿@page "/settings"
+@using Tinvo.Abstractions.AIScheduler
 @implements IDisposable
 @inject ISnackbar _snackbar
 @inject IJSRuntime _js
@@ -49,7 +50,9 @@
         try
         {
             using var stream = file.OpenReadStream(100 * 1024 * 1024);
-            var data = await JsonSerializer.DeserializeAsync<List<MsgCacheInfo>>(stream);
+            var serializerOptions = new JsonSerializerOptions();
+            serializerOptions.Converters.Add(new IAIChatHandleMessageConverter());
+            var data = await JsonSerializer.DeserializeAsync<List<MsgCacheInfo>>(stream, serializerOptions);
             await _dataStorageService.SetItemAsync("msgCache", data);
             _snackbar.Add("导入成功！", Severity.Success);
         }
@@ -64,7 +67,9 @@
         try
         {
             var ret = await _dataStorageService.GetItemAsync<List<MsgCacheInfo>>("msgCache");
-            using var streamRef = new DotNetStreamReference(new MemoryStream(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(ret))));
+            var serializerOptions = new JsonSerializerOptions();
+            serializerOptions.Converters.Add(new IAIChatHandleMessageConverter());
+            using var streamRef = new DotNetStreamReference(new MemoryStream(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(ret, serializerOptions))));
             await _js.InvokeVoidAsync("blazorHelper.DownloadFileFromStream", "msgCache.json", streamRef);
             _snackbar.Add("导出成功！", Severity.Success);
         }

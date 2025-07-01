@@ -92,7 +92,7 @@
                                 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
                                     <MudText>@skillInfo.Metadata.ProviderTask.Name</MudText>
                                     <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                                   OnClick="(async () => await DeleteSkillMetadata(skillInfo.Metadata.ProviderTask.ID))"></MudIconButton>
+                                                   OnClick="(async () => await DeleteSkillMetadata(skillInfo.Info.UniqueId))"></MudIconButton>
                                 </MudStack>
                             </TitleContent>
                             <ChildContent>
@@ -316,6 +316,7 @@
             return;
         _selectEntity.Skills.Add(new AssistantSkill()
         {
+            UniqueId = Guid.NewGuid().ToString(),
             Name = metadata.ProviderTask.Name,
             Id = metadata.ProviderTask.ID,
             SupportType = supportType.Value,
@@ -323,9 +324,10 @@
             Content = JsonSerializer.Serialize(metadata.GetAllParameterInstanceMetadata())
         });
         StateHasChanged();
+        await SelectChangedAsync();
     }
 
-    private async Task DeleteSkillMetadata(string id)
+    private async Task DeleteSkillMetadata(string uniqueId)
     {
         if (_selectEntity == null)
             return;
@@ -335,8 +337,9 @@
             yesText: "确认", cancelText: "取消");
         if (ret != null && ret.Value)
         {
-            _selectEntity.Skills.RemoveAll(x => x.Id == id && x.Type == AssistantSkillType.Provider);
+            _selectEntity.Skills.RemoveAll(x => x.UniqueId == uniqueId && x.Type == AssistantSkillType.Provider);
             StateHasChanged();
+            await SelectChangedAsync();
         }
     }
 
