@@ -25,7 +25,7 @@ using Tinvo.Provider.OpenAI;
 using Tinvo.Provider.XunFei;
 using Tinvo.Application;
 using Tinvo.Provider.MCP;
-using Tinvo.Provider.Skill.Image;
+using Tinvo.Provider.Skills;
 
 namespace Tinvo
 {
@@ -81,7 +81,7 @@ namespace Tinvo
                             .RegistererLLamaProvider()
                             .RegistererOnnxProvider()
                             .RegistererMCPProvider()
-                            .RegistererTinvoMCPImageProvider();
+                            .RegistererTinvoSkillsProvider();
 
                     services.AddSingleton<ProviderService>();
 

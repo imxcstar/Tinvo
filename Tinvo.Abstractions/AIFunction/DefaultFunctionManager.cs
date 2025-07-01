@@ -105,6 +105,14 @@ namespace Tinvo.Abstractions
         public FunctionInfo FunctionInfo { get; set; } = null!;
         public bool IsCustomFunction { get; set; } = false;
 
+        public bool IsAsyncMethod()
+        {
+            if (MethodInfo == null)
+                throw new InvalidOperationException("MethodInfo is not set.");
+
+            return typeof(Task).IsAssignableFrom(MethodInfo.ReturnType);
+        }
+
         public IAIChatHandleMessage? Call(object?[]? parameters)
         {
             if (IsCustomFunction)
@@ -143,6 +151,56 @@ namespace Tinvo.Abstractions
             }
 
             return MethodInfo.Invoke(instance, convertedParams) as IAIChatHandleMessage;
+        }
+
+        public async Task<IAIChatHandleMessage?> CallAsync(object?[]? parameters)
+        {
+            if (IsCustomFunction)
+                throw new NotSupportedException("Not Support Custom Function Call");
+
+            var instance = Activator.CreateInstance(SourceCls!, SourceArgs) ?? throw new NotImplementedException();
+            var methodParams = MethodInfo!.GetParameters();
+
+            object?[]? convertedParams = null;
+
+            if (parameters != null && parameters.Length > 0)
+            {
+                convertedParams = new object?[parameters.Length];
+                for (int i = 0; i < parameters.Length; i++)
+                {
+                    var expectedType = methodParams[i].ParameterType;
+                    var paramValue = parameters[i];
+
+                    if (paramValue == null)
+                    {
+                        convertedParams[i] = null;
+                    }
+                    else if (expectedType.IsInstanceOfType(paramValue))
+                    {
+                        convertedParams[i] = paramValue;
+                    }
+                    else if (paramValue is JsonElement jsonElement)
+                    {
+                        convertedParams[i] = JsonSerializer.Deserialize(jsonElement.GetRawText(), expectedType);
+                    }
+                    else
+                    {
+                        convertedParams[i] = Convert.ChangeType(paramValue, expectedType);
+                    }
+                }
+            }
+
+            var result = MethodInfo.Invoke(instance, convertedParams);
+
+            if (result is Task task)
+            {
+                await task.ConfigureAwait(false);
+
+                var resultProperty = task.GetType().GetProperty("Result");
+                return resultProperty?.GetValue(task) as IAIChatHandleMessage;
+            }
+
+            return result as IAIChatHandleMessage;
         }
     }
 
@@ -245,10 +303,21 @@ namespace Tinvo.Abstractions
                 parameters != null && parameters.TryGetValue(p.Name!, out var value) ? value : GetDefault(p.ParameterType)
             ).ToArray();
 
-            var ret = function.Call(orderedParams) ?? new AIProviderHandleTextMessageResponse()
+            IAIChatHandleMessage ret;
+            if (function.IsAsyncMethod())
             {
-                Message = "调用成功"
-            };
+                ret = await function.CallAsync(orderedParams) ?? new AIProviderHandleTextMessageResponse()
+                {
+                    Message = "调用成功"
+                };
+            }
+            else
+            {
+                ret = function.Call(orderedParams) ?? new AIProviderHandleTextMessageResponse()
+                {
+                    Message = "调用成功"
+                };
+            }
 
             yield return ret;
         }

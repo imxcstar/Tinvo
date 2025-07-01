@@ -25,7 +25,7 @@
 		<ProjectReference Include="..\Libs\WinFormedge\src\WinFormedge\WinFormedge.csproj" />
 		<ProjectReference Include="..\Tinvo.Provider.MCP\Tinvo.Provider.MCP.csproj" />
 		<ProjectReference Include="..\Tinvo.Provider.Onnx\Tinvo.Provider.Onnx.csproj" />
-		<ProjectReference Include="..\Tinvo.Provider.Skill.Image\Tinvo.Provider.Skill.Image.csproj" />
+		<ProjectReference Include="..\Tinvo.Provider.Skills\Tinvo.Provider.Skills.csproj" />
 		<ProjectReference Include="..\Tinvo\Tinvo.csproj" />
 		<ProjectReference Include="..\Tinvo.Provider.Baidu\Tinvo.Provider.Baidu.csproj" />
 		<ProjectReference Include="..\Tinvo.Provider.LLama\Tinvo.Provider.LLama.csproj" />

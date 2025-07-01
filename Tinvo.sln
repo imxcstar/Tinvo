@@ -47,7 +47,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WinFormedge", "Libs\WinForm
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WinFormedge.Blazor", "Libs\WinFormedge\src\WinFormedge.Blazor\WinFormedge.Blazor.csproj", "{271A5C2B-A1CD-D1C6-881E-20D793B2F0CA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tinvo.Provider.Skill.Image", "Tinvo.Provider.Skill.Image\Tinvo.Provider.Skill.Image.csproj", "{5174C513-00F0-4BB7-B844-CE26A6F49837}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tinvo.Provider.Skills", "Tinvo.Provider.Skills\Tinvo.Provider.Skills.csproj", "{5174C513-00F0-4BB7-B844-CE26A6F49837}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

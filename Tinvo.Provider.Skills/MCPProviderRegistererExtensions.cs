@@ -6,17 +6,17 @@ using System.Text;
 using System.Threading.Tasks;
 using Tinvo.Abstractions;
 
-namespace Tinvo.Provider.Skill.Image
+namespace Tinvo.Provider.Skills
 {
     public static class MCPProviderRegistererExtensions
     {
-        public static ProviderRegisterer RegistererTinvoMCPImageProvider(this ProviderRegisterer registerer)
+        public static ProviderRegisterer RegistererTinvoSkillsProvider(this ProviderRegisterer registerer)
         {
             var types = Assembly.GetExecutingAssembly().GetTypes();
             registerer.AddProviderInfo(new ProviderInfo()
             {
-                ID = "TinvoMCPImage",
-                Name = "TinvoMCPImage",
+                ID = "TinvoSkills",
+                Name = "TinvoSkills",
                 AllTaskType = types.Where(x => x.GetCustomAttribute<ProviderTaskAttribute>() != null).ToList(),
                 AllTaskConfigType = types.Where(x => x.GetCustomAttribute<TypeMetadataDisplayNameAttribute>() != null).ToList(),
             });

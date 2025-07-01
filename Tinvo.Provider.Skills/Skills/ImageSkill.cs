@@ -15,7 +15,7 @@ using System.Threading.Tasks;
 using Tinvo.Abstractions.AIScheduler;
 using Tinvo.Application.DataStorage;
 
-namespace Tinvo.Provider.Skill.Image
+namespace Tinvo.Provider.Skills
 {
     public class ImageSkill
     {

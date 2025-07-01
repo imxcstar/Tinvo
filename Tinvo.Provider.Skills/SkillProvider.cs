@@ -7,16 +7,16 @@ using Tinvo.Abstractions;
 using Tinvo.Abstractions.MCP;
 using Tinvo.Application.DataStorage;
 
-namespace Tinvo.Provider.Skill.Image
+namespace Tinvo.Provider.Skills
 {
-    [ProviderTask("Tinvo.MCP.Skill.Image", "图片处理")]
+    [ProviderTask("Tinvo.Skills", "技能集合")]
     public class SkillProvider : MCPStreamService
     {
         private SkillManager _skillManager;
 
-        public SkillProvider(IDataStorageService dataStorageService)
+        public SkillProvider(IDataStorageService dataStorageService, SkillConfig config)
         {
-            _skillManager = new SkillManager(dataStorageService);
+            _skillManager = new SkillManager(dataStorageService, config);
         }
 
         public override Task<IFunctionManager> GetIFunctionManager(CancellationToken cancellationToken = default)
