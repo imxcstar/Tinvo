@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
+using Tinvo.Abstractions.AIScheduler;
 using Tinvo.Application.AIAssistant.Entities;
 using Tinvo.Application.DataStorage;
 using Tinvo.Application.DB;
@@ -40,9 +42,35 @@ namespace Tinvo.Application.AIAssistant
             await _assistantDb.SaveChangeAsync();
         }
 
+        public async Task RemoveAllAssistantAsync()
+        {
+            _assistantDb.Clear();
+            await _assistantDb.SaveChangeAsync();
+        }
+
         public async Task UpdateAssistantAsync(AssistantEntity assistant)
         {
             _assistantDb.TryUpdate(assistant.Id, assistant, _assistantDb[assistant.Id]);
+            await _assistantDb.SaveChangeAsync();
+        }
+
+        public async Task UpdateAssistantAsync()
+        {
+            await _assistantDb.SaveChangeAsync();
+        }
+
+        public string ExportJsonText()
+        {
+            var serializerOptions = new JsonSerializerOptions();
+            serializerOptions.Converters.Add(new IAIChatHandleMessageConverter());
+            return _assistantDb.ExportJsonText(serializerOptions);
+        }
+
+        public async Task ImportAsync(Stream values)
+        {
+            var serializerOptions = new JsonSerializerOptions();
+            serializerOptions.Converters.Add(new IAIChatHandleMessageConverter());
+            await _assistantDb.ImportAsync(values, serializerOptions);
             await _assistantDb.SaveChangeAsync();
         }
     }

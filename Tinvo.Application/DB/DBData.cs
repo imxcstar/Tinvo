@@ -5,6 +5,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using Tinvo.Application.DataStorage;
@@ -35,6 +36,21 @@ namespace Tinvo.Application.DB
         public async Task SaveChangeAsync()
         {
             await _dataStorageService.SetItemAsync(_name, this.Values);
+        }
+
+        public string ExportJsonText(JsonSerializerOptions jsonSerializerOptions)
+        {
+            return JsonSerializer.Serialize(this.Values, jsonSerializerOptions);
+        }
+
+        public async Task ImportAsync(Stream values, JsonSerializerOptions jsonSerializerOptions)
+        {
+            this.Clear();
+            var data = await JsonSerializer.DeserializeAsync<List<T>>(values, jsonSerializerOptions) ?? new List<T>();
+            foreach (var item in data)
+            {
+                this.TryAdd(item.Id, item);
+            }
         }
     }
 }
