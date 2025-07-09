@@ -152,9 +152,11 @@ class Program
             };
         });
 
-        services.AddSingleton<IDataStorageService>(s =>
+        services.AddSingleton<ICryptographyService, MachineFingerprintCryptographyService>();
+
+        services.AddSingleton<IDataStorageServiceFactory>(s =>
         {
-            return new FileStorageService(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Tinvo"));
+            return new DataStorageServiceFactory(new FileStorageService(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Tinvo")), s.GetRequiredService<ICryptographyService>());
         });
 
         services.AddSingleton<DBData<AssistantEntity>>();

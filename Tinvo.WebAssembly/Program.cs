@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using Microsoft.JSInterop;
 using MudBlazor;
 using MudBlazor.Services;
 using Serilog;
@@ -14,6 +15,7 @@ using Tinvo.Application.DataStorage;
 using Tinvo.Application.DB;
 using Tinvo.Application.Provider;
 using Tinvo.Provider.Baidu;
+using Tinvo.Provider.MCP;
 using Tinvo.Provider.Ollama;
 using Tinvo.Provider.OpenAI;
 using Tinvo.Provider.XunFei;
@@ -21,7 +23,6 @@ using Tinvo.Service;
 using Tinvo.Service.Chat;
 using Tinvo.Service.KBS;
 using Tinvo.Services;
-using Tinvo.Provider.MCP;
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
@@ -43,7 +44,13 @@ services.AddSingleton<IPlatform>(s =>
     };
 });
 
-services.AddSingleton<IDataStorageService, LocalForageService>();
+services.AddSingleton<ICryptographyService, MachineFingerprintCryptographyService>();
+
+services.AddSingleton<IDataStorageServiceFactory>(s =>
+{
+    var jsRuntime = s.GetRequiredService<IJSRuntime>();
+    return new DataStorageServiceFactory(new LocalForageService(jsRuntime), s.GetRequiredService<ICryptographyService>());
+});
 
 services.AddSingleton<DBData<AssistantEntity>>();
 services.AddSingleton<AIAssistantService>();

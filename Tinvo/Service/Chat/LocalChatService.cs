@@ -35,16 +35,16 @@ namespace Tinvo.Service.Chat
     public class LocalChatService : IChatService
     {
         private readonly Serilog.ILogger _logger;
-        private readonly IDataStorageService _dataStorageService;
+        private readonly IDataStorageServiceFactory _dataStorageServiceFactory;
         private readonly ProviderRegisterer _providerRegisterer;
         private readonly AIAssistantService _aiAssistantService;
         private readonly ProviderService _providerService;
 
-        public LocalChatService(IDataStorageService dataStorageService, ProviderRegisterer providerRegisterer,
+        public LocalChatService(IDataStorageServiceFactory dataStorageServiceFactory, ProviderRegisterer providerRegisterer,
             AIAssistantService aiAssistantService, ProviderService providerService)
         {
             _logger = Log.ForContext<LocalChatService>();
-            _dataStorageService = dataStorageService;
+            _dataStorageServiceFactory = dataStorageServiceFactory;
             _providerRegisterer = providerRegisterer;
             _aiAssistantService = aiAssistantService;
             _providerService = providerService;
@@ -83,7 +83,7 @@ namespace Tinvo.Service.Chat
 
         public async Task LoadMsgGroupListAsync()
         {
-            var ret = await _dataStorageService.GetItemAsync<List<MsgCacheInfo>>("msgCache");
+            var ret = await (await _dataStorageServiceFactory.CreateAsync()).GetItemAsync<List<MsgCacheInfo>>("msgCache");
             if (ret == null)
             {
                 _msgCaches = [];
@@ -112,6 +112,7 @@ namespace Tinvo.Service.Chat
             ChatMsgGroupItemInfo? msgGroup = null, List<string>? domainId = null, bool? kbsExactMode = null,
             CancellationToken cancellationToken = default)
         {
+            var dataStorageService = await _dataStorageServiceFactory.CreateAsync();
             try
             {
                 ChatMsgGroupItemInfo tmsgGroup;
@@ -145,7 +146,7 @@ namespace Tinvo.Service.Chat
                         {
                             using var fileStream = file.OpenReadStream(30 * 1024 * 1024);
                             var fileCustomID = Guid.NewGuid().ToString();
-                            await _dataStorageService.SetItemAsStreamAsync(fileCustomID, fileStream, false, cancellationToken);
+                            await dataStorageService.SetItemAsStreamAsync(fileCustomID, fileStream, false, cancellationToken);
                             newMsg.Contents.Add(new AIProviderHandleCustomFileMessageResponse()
                             {
                                 Type = AIChatHandleMessageType.ImageMessage,
@@ -156,7 +157,7 @@ namespace Tinvo.Service.Chat
                         {
                             using var fileStream = file.OpenReadStream(30 * 1024 * 1024);
                             var fileCustomID = Guid.NewGuid().ToString();
-                            await _dataStorageService.SetItemAsStreamAsync(fileCustomID, fileStream, false, cancellationToken);
+                            await dataStorageService.SetItemAsStreamAsync(fileCustomID, fileStream, false, cancellationToken);
                             newMsg.Contents.Add(new AIProviderHandleCustomFileMessageResponse()
                             {
                                 Type = AIChatHandleMessageType.FileMessage,
@@ -198,7 +199,7 @@ namespace Tinvo.Service.Chat
                 }
 
                 MsgList.AddRange(nMsgs);
-                await _dataStorageService.SetItemAsync("msgCache", _msgCaches, cancellationToken);
+                await dataStorageService.SetItemAsync("msgCache", _msgCaches, cancellationToken);
                 await OnStateHasChange.InvokeAsync();
                 var ai = aiApp.GetAIProvider(_providerService);
                 var mcpServices = aiApp.GetMCPServices(_providerService);
@@ -226,7 +227,7 @@ namespace Tinvo.Service.Chat
 
                 var functionManagers = new List<IFunctionManager>();
                 var customFunctionManager = new DefaultFunctionManager();
-                customFunctionManager.AddFunction(typeof(AIUtilsSkill), nameof(AIUtilsSkill.QueryNowDate), clsArgs: [_dataStorageService]);
+                customFunctionManager.AddFunction(typeof(AIUtilsSkill), nameof(AIUtilsSkill.QueryNowDate), clsArgs: [dataStorageService]);
                 foreach (var mcpService in mcpServices)
                 {
                     var functionManager = await mcpService.GetIFunctionManager(cancellationToken);
@@ -257,7 +258,7 @@ namespace Tinvo.Service.Chat
                     throw;
             }
 
-            await _dataStorageService.SetItemAsync("msgCache", _msgCaches);
+            await dataStorageService.SetItemAsync("msgCache", _msgCaches);
         }
 
         private void ConvertChatHistory(List<ChatMsgItemInfo> historyMessages, ChatHistory chatHistory)

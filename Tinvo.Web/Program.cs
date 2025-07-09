@@ -22,6 +22,7 @@ using Tinvo.Service.KBS;
 using Tinvo.Services;
 using Tinvo.Shared;
 using Tinvo.Provider.MCP;
+using Microsoft.JSInterop;
 
 var renderMode = args.ElementAtOrDefault(0) ?? "Server";
 
@@ -55,7 +56,13 @@ services.AddSingleton<IPlatform>(s =>
     };
 });
 
-services.AddScoped<IDataStorageService, LocalForageService>();
+services.AddSingleton<ICryptographyService, MachineFingerprintCryptographyService>();
+
+services.AddScoped<IDataStorageServiceFactory>(s =>
+{
+    var jsRuntime = s.GetRequiredService<IJSRuntime>();
+    return new DataStorageServiceFactory(new LocalForageService(jsRuntime), s.GetRequiredService<ICryptographyService>());
+});
 
 services.AddScoped<DBData<AssistantEntity>>();
 services.AddScoped<AIAssistantService>();
@@ -71,7 +78,7 @@ services.AddProviderRegisterer()
         .RegistererLLamaProvider()
         .RegistererMCPProvider();
 
-services.AddSingleton<ProviderService>();
+services.AddScoped<ProviderService>();
 
 services.AddMudServices();
 

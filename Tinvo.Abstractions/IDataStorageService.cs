@@ -6,6 +6,35 @@ using System.Threading.Tasks;
 
 namespace Tinvo.Application.DataStorage
 {
+    public interface IDataStorageServiceFactory
+    {
+        public IDataStorageService Create();
+
+        public Task<IDataStorageService> CreateAsync();
+
+        public Task<DataStorageSettingInfo> GetConfigAsync();
+
+        public Task SaveConfigAsync(DataStorageSettingInfo setting);
+    }
+
+
+    public class DataStorageSettingInfo
+    {
+        public DataStorageType Type { get; set; }
+
+        public string? WebDavURI { get; set; }
+
+        public string? WebDavUserName { get; set; }
+
+        public string? WebDavPassword { get; set; }
+    }
+
+    public enum DataStorageType
+    {
+        Local,
+        WebDav
+    }
+
     public interface IDataStorageService
     {
         ValueTask ClearAsync(CancellationToken cancellationToken = default(CancellationToken));

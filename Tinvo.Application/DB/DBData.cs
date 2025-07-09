@@ -14,18 +14,21 @@ namespace Tinvo.Application.DB
 {
     public class DBData<T> : ConcurrentDictionary<string, T> where T : IDBEntity
     {
-        private readonly IDataStorageService _dataStorageService;
+        private IDataStorageService _dataStorageService;
+
+        private readonly IDataStorageServiceFactory _dataStorageServiceFactory;
         private readonly string _name;
 
-        public DBData(IDataStorageService dataStorageService)
+        public DBData(IDataStorageServiceFactory dataStorageServiceFactory)
         {
-            _dataStorageService = dataStorageService;
+            _dataStorageServiceFactory = dataStorageServiceFactory;
             _name = typeof(T).GetCustomAttributes<TableAttribute>(false).FirstOrDefault()?.Name ?? typeof(T).Name.Replace("Entity", "");
             _name = $"db_{_name}";
         }
 
         public async Task InitAsync()
         {
+            _dataStorageService = await _dataStorageServiceFactory.CreateAsync();
             var data = await _dataStorageService.GetItemAsync<List<T>>(_name) ?? new List<T>();
             foreach (var item in data)
             {

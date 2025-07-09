@@ -100,9 +100,9 @@ namespace Tinvo.Provider.OpenAI.AIScheduler
         private readonly ChatClient _chatClient;
         private readonly OpenAIResponseClient? _chatResponsetClient;
 
-        public OpenAIChatProvider(IDataStorageService storageService, OpenAIChatConfig config)
+        public OpenAIChatProvider(IDataStorageServiceFactory storageServiceFactory, OpenAIChatConfig config)
         {
-            _storageService = storageService;
+            _storageService = storageServiceFactory.Create();
             _config = config;
             _chatClient = new ChatClient(_config.Model, new ApiKeyCredential(_config.Token ?? ""), new OpenAIClientOptions()
             {

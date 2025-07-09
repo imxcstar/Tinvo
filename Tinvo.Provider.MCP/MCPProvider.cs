@@ -65,9 +65,9 @@ namespace Tinvo.Provider.MCP
         private readonly MCPConfig _config;
         private readonly IDataStorageService _storageService;
 
-        public MCPProvider(IDataStorageService storageService, MCPConfig config)
+        public MCPProvider(IDataStorageServiceFactory storageServiceFactory, MCPConfig config)
         {
-            _storageService = storageService;
+            _storageService = storageServiceFactory.Create();
             _config = config;
         }
 

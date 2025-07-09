@@ -14,9 +14,9 @@ namespace Tinvo.Provider.Skills
     {
         private SkillManager _skillManager;
 
-        public SkillProvider(IDataStorageService dataStorageService, SkillConfig config)
+        public SkillProvider(IDataStorageServiceFactory dataStorageServiceFactory, SkillConfig config)
         {
-            _skillManager = new SkillManager(dataStorageService, config);
+            _skillManager = new SkillManager(dataStorageServiceFactory.Create(), config);
         }
 
         public override Task<IFunctionManager> GetIFunctionManager(CancellationToken cancellationToken = default)

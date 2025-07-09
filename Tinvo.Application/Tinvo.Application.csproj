@@ -19,6 +19,7 @@
 
 	<ItemGroup>
 	  <PackageReference Include="Mapster" Version="7.4.0" />
+	  <PackageReference Include="WebDav.Client" Version="2.9.0" />
 	</ItemGroup>
 
 </Project>

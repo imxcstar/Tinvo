@@ -1,5 +1,5 @@
 ﻿@inject IDialogService DialogService
-@inject IDataStorageService DataStorageService
+@inject IDataStorageServiceFactory DataStorageServiceFactory
 
 @if (Type == FileType.Image)
 {
@@ -41,7 +41,7 @@ else
 @code {
     [Parameter]
     public string FileCustomID { get; set; } = "";
-    
+
     [Parameter]
     public string? FileName { get; set; }
 
@@ -49,6 +49,8 @@ else
     public FileType Type { get; set; }
 
     private string _imageContent = "";
+
+    private IDataStorageService dataStorageService;
 
 
     public enum FileType
@@ -64,6 +66,7 @@ else
         await base.OnAfterRenderAsync(firstRender);
         if (firstRender)
         {
+            dataStorageService = await DataStorageServiceFactory.CreateAsync();
             if (Type == FileType.Image)
             {
                 _imageContent = await GetImageUrl(FileCustomID);
@@ -75,7 +78,7 @@ else
     private async Task<string> GetImageUrl(string content)
     {
         if (string.IsNullOrEmpty(content)) return "";
-        var data = await DataStorageService.GetItemAsBinaryAsync(content);
+        var data = await dataStorageService.GetItemAsBinaryAsync(content);
         if (data == null) return "";
         return $"data:image/png;base64,{Convert.ToBase64String(data)}";
     }

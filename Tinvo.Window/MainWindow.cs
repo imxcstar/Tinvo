@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.JSInterop;
 using MudBlazor.Services;
 using Serilog;
 using System;
@@ -7,25 +8,25 @@ using System.Diagnostics.Metrics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Tinvo.Abstractions;
+using Tinvo.Application;
 using Tinvo.Application.AIAssistant;
 using Tinvo.Application.AIAssistant.Entities;
 using Tinvo.Application.DataStorage;
 using Tinvo.Application.DB;
 using Tinvo.Application.Provider;
+using Tinvo.Provider.Baidu;
+using Tinvo.Provider.LLama;
+using Tinvo.Provider.MCP;
+using Tinvo.Provider.Ollama;
+using Tinvo.Provider.Onnx;
+using Tinvo.Provider.OpenAI;
+using Tinvo.Provider.Skills;
+using Tinvo.Provider.XunFei;
 using Tinvo.Service.Chat;
 using Tinvo.Service.KBS;
 using WinFormedge;
 using WinFormedge.Blazor;
-using Tinvo.Abstractions;
-using Tinvo.Provider.Baidu;
-using Tinvo.Provider.LLama;
-using Tinvo.Provider.Ollama;
-using Tinvo.Provider.Onnx;
-using Tinvo.Provider.OpenAI;
-using Tinvo.Provider.XunFei;
-using Tinvo.Application;
-using Tinvo.Provider.MCP;
-using Tinvo.Provider.Skills;
 
 namespace Tinvo
 {
@@ -62,9 +63,11 @@ namespace Tinvo
                         };
                     });
 
-                    services.AddSingleton<IDataStorageService>(s =>
+                    services.AddSingleton<ICryptographyService, MachineFingerprintCryptographyService>();
+
+                    services.AddSingleton<IDataStorageServiceFactory>(s =>
                     {
-                        return new FileStorageService(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Tinvo"));
+                        return new DataStorageServiceFactory(new FileStorageService(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Tinvo")), s.GetRequiredService<ICryptographyService>());
                     });
 
                     services.AddSingleton<DBData<AssistantEntity>>();

@@ -1,10 +1,14 @@
 ﻿@page "/settings"
+@using System.Text
+@using System.Text.Json
+@using Microsoft.AspNetCore.Components.Forms
 @using Tinvo.Abstractions.AIScheduler
 @using Tinvo.Application.AIAssistant
+@using Tinvo.Application.DataStorage
 @implements IDisposable
 @inject ISnackbar _snackbar
 @inject IJSRuntime _js
-@inject IDataStorageService _dataStorageService
+@inject IDataStorageServiceFactory _dataStorageConfigServiceFactory
 @inject IDialogService _dialogService
 @inject NavigationManager _navigationManager
 @inject AIAssistantService _aiAssistantService
@@ -41,11 +45,38 @@
                 </MudButton>
             </MudStack>
         </MudExpansionPanel>
+        <MudExpansionPanel Text="数据存储" Expanded="true">
+            <MudStack Row="false" Spacing="4">
+                <MudRadioGroup @bind-Value="_dataStorageSetting.Type">
+                    <MudRadio Value="DataStorageType.Local">本地存储</MudRadio>
+                    <MudRadio Value="DataStorageType.WebDav">WebDav</MudRadio>
+                </MudRadioGroup>
+
+                @if (_dataStorageSetting.Type == DataStorageType.WebDav)
+                {
+                    <MudTextField @bind-Value="_dataStorageSetting.WebDavURI" Label="WebDav 地址" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    <MudTextField @bind-Value="_dataStorageSetting.WebDavUserName" Label="WebDav 用户名" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    <MudTextField @bind-Value="_dataStorageSetting.WebDavPassword" Label="WebDav 密码" InputType="InputType.Password" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                }
+
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveDataStorageSettings" Class="mt-4">
+                    保存
+                </MudButton>
+            </MudStack>
+        </MudExpansionPanel>
     </MudExpansionPanels>
 </MudStack>
 
 @code {
     private bool isBrowser;
+    private DataStorageSettingInfo _dataStorageSetting = new();
+    private IDataStorageService _dataStorageService;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _dataStorageSetting = await _dataStorageConfigServiceFactory.GetConfigAsync();
+        await base.OnInitializedAsync();
+    }
 
     private void GoHome()
     {
@@ -56,6 +87,7 @@
     {
         if (firstRender)
         {
+            _dataStorageService = await _dataStorageConfigServiceFactory.CreateAsync();
             isBrowser = OperatingSystem.IsBrowser();
             StateHasChanged();
         }
@@ -63,6 +95,19 @@
         await base.OnAfterRenderAsync(firstRender);
     }
 
+    private async Task SaveDataStorageSettings()
+    {
+        try
+        {
+            await _dataStorageConfigServiceFactory.SaveConfigAsync(_dataStorageSetting);
+            _snackbar.Add("存储设置已保存！", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            _snackbar.Add($"保存失败: {ex.Message}", Severity.Error);
+        }
+    }
+    
     private async Task ImportChatHistory(IBrowserFile file)
     {
         try
