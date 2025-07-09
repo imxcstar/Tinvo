@@ -191,6 +191,87 @@ window.blazorHelper = {
         window.sendWarnMessage = async value => {
             await dotNetReference.invokeMethodAsync(methodName, value);
         }
+    },
+    initializePasteHandler: function (textAreaId, fileInputClassName) {
+        const textArea = document.getElementById(textAreaId);
+        const fileInput = document.getElementsByClassName(fileInputClassName)[0];
+
+        if (!textArea || !fileInput) {
+            console.error("Text area or file input for paste handler not found.");
+            return;
+        }
+
+        textArea.addEventListener('paste', function (e) {
+            if (e.clipboardData && e.clipboardData.files && e.clipboardData.files.length > 0) {
+                e.preventDefault();
+
+                const dataTransfer = new DataTransfer();
+                const allFileNames = new Set();
+                const filesToAdd = [];
+
+                if (fileInput.files.length > 0) {
+                    for (const existingFile of fileInput.files) {
+                        filesToAdd.push(existingFile);
+                        allFileNames.add(existingFile.name);
+                    }
+                }
+
+                for (const originalFile of e.clipboardData.files) {
+                    let finalName = originalFile.name;
+
+                    while (allFileNames.has(finalName)) {
+                        const timestamp = Date.now();
+                        const nameParts = finalName.split('.');
+                        const extension = nameParts.length > 1 ? `.${nameParts.pop()}` : '';
+                        const baseName = nameParts.join('.');
+                        finalName = `${baseName}_${timestamp}${extension}`;
+                    }
+
+                    const newFile = new File([originalFile], finalName, {
+                        type: originalFile.type,
+                        lastModified: originalFile.lastModified,
+                    });
+
+                    filesToAdd.push(newFile);
+                    allFileNames.add(finalName);
+                }
+
+                for (const file of filesToAdd) {
+                    dataTransfer.items.add(file);
+                }
+
+                fileInput.files = dataTransfer.files;
+                const event = new Event('change', { bubbles: true });
+                fileInput.dispatchEvent(event);
+            }
+        });
+    },
+    clearPasteFile: function (fileInputClassName) {
+        const fileInput = document.getElementsByClassName(fileInputClassName)[0];
+        if (fileInput) {
+            fileInput.files = new DataTransfer().files;
+        }
+    },
+    removePasteFile: function (fileInputClassName, fileName) {
+        const fileInput = document.getElementsByClassName(fileInputClassName)[0];
+        if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+            return;
+        }
+
+        const dataTransfer = new DataTransfer();
+        let fileRemoved = false;
+
+        for (const file of fileInput.files) {
+            if (file.name !== fileName) {
+                dataTransfer.items.add(file);
+            } else {
+                fileRemoved = true;
+            }
+        }
+
+        if (fileRemoved) {
+            fileInput.files = dataTransfer.files;
+        }
     }
 }
 

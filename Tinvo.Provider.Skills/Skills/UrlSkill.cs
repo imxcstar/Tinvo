@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Tinvo.Abstractions.AIScheduler;
+using Tinvo.Application.DataStorage;
 
 namespace Tinvo.Provider.Skills
 {
@@ -14,11 +15,13 @@ namespace Tinvo.Provider.Skills
     {
         private readonly ILogger _logger;
         private readonly HttpClient _httpClient;
+        private readonly IDataStorageService _dataStorageService;
 
-        public UrlSkill(HttpClient httpClient)
+        public UrlSkill(HttpClient httpClient, IDataStorageService dataStorageService)
         {
             _logger = Log.ForContext<UrlSkill>();
             _httpClient = httpClient;
+            _dataStorageService = dataStorageService;
         }
 
         [Description("下载指定URL的文本内容")]
@@ -39,7 +42,36 @@ namespace Tinvo.Provider.Skills
             }
             catch (Exception ex)
             {
-                _logger.Error(ex, "下载URL内容失败: {Url}", url);
+                _logger.Error(ex, "下载URL文本内容失败: {Url}", url);
+                return new AIProviderHandleTextMessageResponse()
+                {
+                    Message = $"下载失败: {ex.Message}"
+                };
+            }
+        }
+
+        [Description("下载指定URL的图片内容")]
+        public async Task<IAIChatHandleMessage> DownloadImageAsync([Description("URL地址"), Required] string url)
+        {
+            _logger.Debug("AIUrlUtilsSkill: DownloadImageAsync {Url}", url);
+            try
+            {
+                var response = await _httpClient.GetAsync(url);
+                response.EnsureSuccessStatusCode();
+                var content = await response.Content.ReadAsStreamAsync();
+                var fileCustomId = Guid.NewGuid().ToString();
+                await _dataStorageService.SetItemAsStreamAsync(fileCustomId, content);
+
+                return new AIProviderHandleCustomFileMessageResponse()
+                {
+                    Type = AIChatHandleMessageType.ImageMessage,
+                    FileCustomID = fileCustomId,
+                    FileOriginalURL = url
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "下载URL图片内容失败: {Url}", url);
                 return new AIProviderHandleTextMessageResponse()
                 {
                     Message = $"下载失败: {ex.Message}"

@@ -2,6 +2,7 @@
 using Tinvo.Abstractions;
 using Tinvo.Abstractions.MCP;
 using Tinvo.Application.DataStorage;
+using Tinvo.Provider.Skills.Skills;
 
 namespace Tinvo.Provider.Skills
 {
@@ -15,6 +16,18 @@ namespace Tinvo.Provider.Skills
         [Description("启用URL访问技能")]
         [DefaultValue(false)]
         public bool EnableURLSkill { get; set; } = false;
+
+        [Description("启用CMD执行技能（危险）")]
+        [DefaultValue(false)]
+        public bool EnableCMDSkill { get; set; } = false;
+
+        [Description("启用文件操作技能（危险）")]
+        [DefaultValue(false)]
+        public bool EnableFileSkill { get; set; } = false;
+
+        [Description("启用目标跟踪技能")]
+        [DefaultValue(false)]
+        public bool EnableGoalTrackingSkill { get; set; } = false;
     }
 
     public class SkillManager : DefaultFunctionManager
@@ -31,9 +44,38 @@ namespace Tinvo.Provider.Skills
 
             if (config.EnableURLSkill)
             {
-                this.AddFunction(typeof(UrlSkill), nameof(UrlSkill.DownloadTextAsync), clsArgs: [new HttpClient()]);
-                this.AddFunction(typeof(UrlSkill), nameof(UrlSkill.CheckUrlAvailableAsync), clsArgs: [new HttpClient()]);
-                this.AddFunction(typeof(UrlSkill), nameof(UrlSkill.GetUrlHeadersAsync), clsArgs: [new HttpClient()]);
+                this.AddFunction(typeof(UrlSkill), nameof(UrlSkill.DownloadTextAsync), clsArgs: [new HttpClient(), dataStorageService]);
+                this.AddFunction(typeof(UrlSkill), nameof(UrlSkill.DownloadImageAsync), clsArgs: [new HttpClient(), dataStorageService]);
+                this.AddFunction(typeof(UrlSkill), nameof(UrlSkill.CheckUrlAvailableAsync), clsArgs: [new HttpClient(), dataStorageService]);
+                this.AddFunction(typeof(UrlSkill), nameof(UrlSkill.GetUrlHeadersAsync), clsArgs: [new HttpClient(), dataStorageService]);
+            }
+
+            if (config.EnableCMDSkill)
+            {
+                if (!Directory.Exists("tmp"))
+                    Directory.CreateDirectory("tmp");
+                var path = Path.GetFullPath("tmp");
+                this.AddFunction(typeof(CmdSkill), nameof(CmdSkill.RunCommandAsync), clsArgs: [path]);
+            }
+
+            if (config.EnableCMDSkill)
+            {
+                if (!Directory.Exists("tmp"))
+                    Directory.CreateDirectory("tmp");
+                var path = Path.GetFullPath("tmp");
+                this.AddFunction(typeof(FileSkill), nameof(FileSkill.CheckFileExistsAsync), clsArgs: [path]);
+                this.AddFunction(typeof(FileSkill), nameof(FileSkill.ReadTextFileAsync), clsArgs: [path]);
+                this.AddFunction(typeof(FileSkill), nameof(FileSkill.GetFileInfoAsync), clsArgs: [path]);
+                this.AddFunction(typeof(FileSkill), nameof(FileSkill.WriteTextFileAsync), clsArgs: [path]);
+                this.AddFunction(typeof(FileSkill), nameof(FileSkill.AppendTextFileAsync), clsArgs: [path]);
+                this.AddFunction(typeof(FileSkill), nameof(FileSkill.ListDirectoryContentAsync), clsArgs: [path]);
+            }
+
+            if (config.EnableGoalTrackingSkill)
+            {
+                this.AddFunction(typeof(GoalTrackingSkill), nameof(GoalTrackingSkill.SetGoalAsync));
+                this.AddFunction(typeof(GoalTrackingSkill), nameof(GoalTrackingSkill.AddGoalProgressAsync));
+                this.AddFunction(typeof(GoalTrackingSkill), nameof(GoalTrackingSkill.GetGoalProgressAsync));
             }
         }
     }

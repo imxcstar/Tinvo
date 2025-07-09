@@ -157,6 +157,8 @@ public partial class Chat
                 await _js.InvokeVoidAsync("blazorHelper.InitScrollEndListener", "msg-history-group", DotNetObjectReference.Create(this), nameof(OnMsgGroupScrollToEnd));
                 await _js.InvokeVoidAsync("blazorHelper.OnKeyDownListen", "input-msg", "!shift + !ctrl + Enter", DotNetObjectReference.Create(this), nameof(OnMsgInputKeyDownBefore), nameof(OnMsgInputKeyDownAfter));
 
+                await _js.InvokeVoidAsync("blazorHelper.initializePasteHandler", "input-msg", "paste-file-input");
+
                 await _js.InvokeVoidAsync("blazorHelper.RegisterInfoMessageFun", DotNetObjectReference.Create(this), nameof(SendInfoMessage));
                 await _js.InvokeVoidAsync("blazorHelper.RegisterSuccessMessageFun", DotNetObjectReference.Create(this), nameof(SendSuccessMessage));
                 await _js.InvokeVoidAsync("blazorHelper.RegisterErrorMessageFun", DotNetObjectReference.Create(this), nameof(SendErrorMessage));
@@ -256,17 +258,25 @@ public partial class Chat
         await GetMsgList(fMsgGroup);
     }
 
+    private async Task ClearSelectFiles()
+    {
+        selectedFiles.Clear();
+        await _js.InvokeVoidAsync("blazorHelper.clearPasteFile", "paste-file-input");
+    }
+
     private async Task HandleFileSelection(IReadOnlyList<IBrowserFile>? files)
     {
         if (files == null)
             return;
+        selectedFiles.Clear();
         selectedFiles.AddRange(files);
         StateHasChanged();
     }
 
-    private void RemoveSelectedFile(IBrowserFile file)
+    private async Task RemoveSelectedFile(IBrowserFile file)
     {
         selectedFiles.Remove(file);
+        await _js.InvokeVoidAsync("blazorHelper.removePasteFile", "paste-file-input", file.Name);
         StateHasChanged();
     }
 
@@ -330,7 +340,7 @@ public partial class Chat
 
             List<IBrowserFile> tempFiles = [..selectedFiles];
 
-            selectedFiles.Clear();
+            await ClearSelectFiles();
 
             await _chatService.SendMsgAsync(trimmedMsgContent, tempFiles, selectAiApp, msgGroup, null, null,
                 chatMsgGenerateCancellationTokenSource.Token);
