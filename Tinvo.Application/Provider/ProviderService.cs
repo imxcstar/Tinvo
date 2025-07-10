@@ -67,7 +67,7 @@ namespace Tinvo.Application.Provider
             }
         }
 
-        public object? Instance(List<Dictionary<string, JsonElement?>> parameters)
+        public async Task<object?> InstanceAsync(List<Dictionary<string, JsonElement?>> parameters)
         {
             var paramDict = parameters.SelectMany(dict => dict).ToDictionary(pair => pair.Key, pair => pair.Value);
 
@@ -106,7 +106,12 @@ namespace Tinvo.Application.Provider
                 }
             }
 
-            return ctor.Invoke(args);
+            var ret = ctor.Invoke(args);
+            if (ret is IProvider provider)
+            {
+                await provider.InitAsync();
+            }
+            return ret;
         }
     }
 

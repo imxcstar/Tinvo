@@ -94,15 +94,22 @@ namespace Tinvo.Provider.OpenAI.AIScheduler
             DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
         };
 
-        private readonly IDataStorageService _storageService;
+        private readonly IDataStorageServiceFactory _dataStorageServiceFactory;
         private readonly OpenAIChatConfig _config;
 
         private readonly ChatClient _chatClient;
         private readonly OpenAIResponseClient? _chatResponsetClient;
 
+        private IDataStorageService _storageService;
+
+        public async Task InitAsync()
+        {
+            _storageService = await _dataStorageServiceFactory.CreateAsync();
+        }
+
         public OpenAIChatProvider(IDataStorageServiceFactory storageServiceFactory, OpenAIChatConfig config)
         {
-            _storageService = storageServiceFactory.Create();
+            _dataStorageServiceFactory = storageServiceFactory;
             _config = config;
             _chatClient = new ChatClient(_config.Model, new ApiKeyCredential(_config.Token ?? ""), new OpenAIClientOptions()
             {

@@ -31,7 +31,7 @@ namespace Tinvo.Pages.Chat.Component.ChatMsgList
             return Name;
         }
 
-        public IAIChatTask GetAIProvider(ProviderService providerService)
+        public async Task<IAIChatTask> GetAIProviderAsync(ProviderService providerService)
         {
             var chatSkill = Assistant.Skills.FirstOrDefault(x => x.SupportType == AssistantSupportSkillType.Chat);
             if (chatSkill == null)
@@ -44,55 +44,35 @@ namespace Tinvo.Pages.Chat.Component.ChatMsgList
             var metadata = providerService.GetProviderTaskParameterMetadataById(chatSkill.Id);
             if (metadata == null)
                 throw new NotSupportedException("请重新配置此助手的聊天技能");
-            var task = metadata.Instance(config) as IAIChatTask;
+            var task = (await metadata.InstanceAsync(config)) as IAIChatTask;
             if (task == null)
                 throw new NotSupportedException("此助手的聊天实例化错误");
             return task;
         }
 
-        public IImageAnalysisTask? GetImageAnalysis(ProviderService providerService)
+        public async Task<List<IMCPService>> GetMCPServicesAsync(ProviderService providerService)
         {
-            var imageAnalysisSkill =
-                Assistant.Skills.FirstOrDefault(x => x.SupportType == AssistantSupportSkillType.ImageAnalysis);
-            if (imageAnalysisSkill == null)
-                return null;
-            if (string.IsNullOrWhiteSpace(imageAnalysisSkill.Content))
-                throw new NotSupportedException("此助手的图片识别配置错误");
-            var config = JsonSerializer.Deserialize<List<Dictionary<string, JsonElement?>>>(imageAnalysisSkill.Content);
-            if (config == null)
-                throw new NotSupportedException("此助手的图片识别配置异常");
-            var metadata = providerService.GetProviderTaskParameterMetadataById(imageAnalysisSkill.Id);
-            if (metadata == null)
-                throw new NotSupportedException("请重新配置此助手的图片识别技能");
-            var task = metadata.Instance(config) as IImageAnalysisTask;
-            if (task == null)
-                throw new NotSupportedException("此助手的图片识别实例化错误");
-            return task;
-        }
-
-        public List<IMCPService> GetMCPServices(ProviderService providerService)
-        {
-            return
+            var ret = new List<IMCPService>();
+            var data =
                 Assistant.Skills
                 .Where(x =>
                     x.SupportType == AssistantSupportSkillType.MCP &&
                     !string.IsNullOrWhiteSpace(x.Content)
-                )
-                .Select(x =>
-                {
-                    var config = JsonSerializer.Deserialize<List<Dictionary<string, JsonElement?>>>(x.Content!);
-                    if (config == null)
-                        return null;
-                    var metadata = providerService.GetProviderTaskParameterMetadataById(x.Id);
-                    if (metadata == null)
-                        return null;
-                    var task = metadata.Instance(config) as IMCPService;
-                    if (task == null)
-                        return null;
-                    return task;
-                })
-                .Where(x => x != null)
-                .ToList()!;
+                );
+            foreach (var item in data)
+            {
+                var config = JsonSerializer.Deserialize<List<Dictionary<string, JsonElement?>>>(item.Content!);
+                if (config == null)
+                    continue;
+                var metadata = providerService.GetProviderTaskParameterMetadataById(item.Id);
+                if (metadata == null)
+                    continue;
+                var task = (await metadata.InstanceAsync(config)) as IMCPService;
+                if (task == null)
+                    continue;
+                ret.Add(task);
+            }
+            return ret;
         }
     }
 

@@ -19,6 +19,11 @@ namespace Tinvo.Provider.XunFei.AIScheduler
         private readonly IAIChatParser _parser;
         private readonly ILogger _logger;
 
+        public Task InitAsync()
+        {
+            return Task.CompletedTask;
+        }
+
         public XFSparkDeskAIChatProvider(XFSparkDeskChatAPIConfig config)
         {
             _chatApi = new XFSparkDeskChatAPI(config);

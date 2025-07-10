@@ -30,6 +30,11 @@ namespace Tinvo.Provider.Ollama
         private string _model;
         private OllamaApiClient _client;
 
+        public Task InitAsync()
+        {
+            return Task.CompletedTask;
+        }
+
         public OllamaChatProvider(OllamaChatConfig config)
         {
             _config = config;

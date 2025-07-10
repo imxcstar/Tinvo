@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace Tinvo.Abstractions.MCP
 {
-    public interface IMCPService
+    public interface IMCPService : IProvider
     {
         public Task<IFunctionManager> GetIFunctionManager(CancellationToken cancellationToken = default);
     }
@@ -13,5 +13,6 @@ namespace Tinvo.Abstractions.MCP
     public abstract class MCPStreamService : IMCPService
     {
         public abstract Task<IFunctionManager> GetIFunctionManager(CancellationToken cancellationToken = default);
+        public abstract Task InitAsync();
     }
 }

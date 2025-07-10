@@ -63,11 +63,18 @@ namespace Tinvo.Provider.MCP
     public class MCPProvider : MCPStreamService
     {
         private readonly MCPConfig _config;
-        private readonly IDataStorageService _storageService;
+        private readonly IDataStorageServiceFactory _dataStorageServiceFactory;
+
+        private IDataStorageService _storageService;
+
+        public override async Task InitAsync()
+        {
+            _storageService = await _dataStorageServiceFactory.CreateAsync();
+        }
 
         public MCPProvider(IDataStorageServiceFactory storageServiceFactory, MCPConfig config)
         {
-            _storageService = storageServiceFactory.Create();
+            _dataStorageServiceFactory = storageServiceFactory;
             _config = config;
         }
 

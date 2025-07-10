@@ -2,7 +2,7 @@
 
 namespace Tinvo.Abstractions.AIScheduler
 {
-    public interface IAIChatTask
+    public interface IAIChatTask : IProvider
     {
         public ChatHistory CreateNewChat(string? instructions = null);
         public IAsyncEnumerable<IAIChatHandleMessage> ChatAsync(ChatHistory chat, ChatSettings? chatSettings = null, CancellationToken cancellationToken = default);

@@ -201,8 +201,8 @@ namespace Tinvo.Service.Chat
                 MsgList.AddRange(nMsgs);
                 await dataStorageService.SetItemAsync("msgCache", _msgCaches, cancellationToken);
                 await OnStateHasChange.InvokeAsync();
-                var ai = aiApp.GetAIProvider(_providerService);
-                var mcpServices = aiApp.GetMCPServices(_providerService);
+                var ai = await aiApp.GetAIProviderAsync(_providerService);
+                var mcpServices = await aiApp.GetMCPServicesAsync(_providerService);
                 var msgChat = ai.CreateNewChat(aiApp.Assistant.Prompt);
                 var defaultMsgHistory = aiApp.Assistant.HistoryMsg.Where(x => !string.IsNullOrWhiteSpace(x.Name));
                 foreach (var tmsg in defaultMsgHistory)

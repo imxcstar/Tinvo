@@ -79,6 +79,11 @@ namespace Tinvo.Provider.LLama
         private LLamaChatConfig _config;
         private string _modelPath;
 
+        public Task InitAsync()
+        {
+            return Task.CompletedTask;
+        }
+
         public LLamaChatProvider(LLamaChatConfig config)
         {
             _config = config;

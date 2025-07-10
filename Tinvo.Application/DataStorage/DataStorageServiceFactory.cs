@@ -21,12 +21,6 @@ namespace Tinvo.Application.DataStorage
             _cryptographyService = cryptographyService;
         }
 
-        public IDataStorageService Create()
-        {
-            var ret = Task.Run(() => CreateAsync());
-            return ret.Result;
-        }
-
         public async Task<IDataStorageService> CreateAsync()
         {
             if (_currentDataStorageService != null)

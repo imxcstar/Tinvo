@@ -56,7 +56,7 @@ services.AddSingleton<IPlatform>(s =>
     };
 });
 
-services.AddSingleton<ICryptographyService, MachineFingerprintCryptographyService>();
+services.AddSingleton<ICryptographyService, BasicCryptographyService>();
 
 services.AddScoped<IDataStorageServiceFactory>(s =>
 {

@@ -8,8 +8,6 @@ namespace Tinvo.Application.DataStorage
 {
     public interface IDataStorageServiceFactory
     {
-        public IDataStorageService Create();
-
         public Task<IDataStorageService> CreateAsync();
 
         public Task<DataStorageSettingInfo> GetConfigAsync();

@@ -70,6 +70,11 @@ namespace Tinvo.Provider.Onnx
         private OnnxChatConfig _config;
         private OnnxChatProviderLoadInfo _modelInfo;
 
+        public Task InitAsync()
+        {
+            return Task.CompletedTask;
+        }
+
         public OnnxChatProvider(OnnxChatConfig config, OnnxChatProviderLoader loader)
         {
             _config = config;
