@@ -42,16 +42,21 @@
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'tizen'">6.5</SupportedOSPlatformVersion>
     </PropertyGroup>
 
+    <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net9.0-android|AnyCPU'">
+      <AndroidPackageFormat>apk</AndroidPackageFormat>
+      <AndroidCreatePackagePerAbi>True</AndroidCreatePackagePerAbi>
+      <PublishTrimmed>True</PublishTrimmed>
+    </PropertyGroup>
+
     <ItemGroup>
         <!-- App Icon -->
         <MauiIcon Include="Resources\AppIcon\appicon.svg" />
+		
+		<!-- Splash Screen -->
+		<MauiSplashScreen Include="Resources\AppIcon\appicon.svg" Color="#ffffff" BaseSize="128,128" />
 
-        <!-- Splash Screen -->
-        <MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#512BD4" BaseSize="128,128" />
-
-        <!-- Images -->
+		<!-- Images -->
         <MauiImage Include="Resources\Images\*" />
-        <MauiImage Update="Resources\Images\dotnet_bot.svg" BaseSize="168,208" />
 
         <!-- Custom Fonts -->
         <MauiFont Include="Resources\Fonts\*" />
@@ -71,6 +76,11 @@
         <ProjectReference Include="..\Tinvo.Provider.MCP\Tinvo.Provider.MCP.csproj" />
         <ProjectReference Include="..\Tinvo\Tinvo.csproj" />
         <ProjectReference Include="..\Tinvo.Provider.OpenAI\Tinvo.Provider.OpenAI.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Resources\Images\" />
+      <Folder Include="Resources\Splash\" />
     </ItemGroup>
 
 </Project>
