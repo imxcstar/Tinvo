@@ -10,6 +10,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using System.Web;
 
@@ -35,7 +36,7 @@ namespace Tinvo
         {
             var u = absoluteUri.ToString();
             _logger.Debug($"MiniblinkWebViewManager: {u}");
-            MiniblinkNative.mbLoadURL(_webView, absoluteUri.AbsoluteUri.StrToUtf8Ptr());
+            MiniblinkNative.LoadURL(_webView, absoluteUri.AbsoluteUri);
         }
 
         protected override void SendMessage(string message)
@@ -46,24 +47,9 @@ namespace Tinvo
                 if (string.IsNullOrWhiteSpace(message))
                     return;
 
-                var messageJSStringLiteral = message;
-                const int chunkSize = 1024; // 可根据实际情况调整每段的长度
-                int totalChunks = (messageJSStringLiteral.Length + chunkSize - 1) / chunkSize;
-                // 先初始化缓存区
-                MessageQueue.Enqueue("window.__msg_chunks = [];");
-                for (int i = 0; i < totalChunks; i++)
+                MiniblinkNative.RunJs(WebView, MiniblinkNative.WebFrameGetMainFrame(WebView), $"window.__dispatchMessageCallback(\"{HttpUtility.JavaScriptStringEncode(message)}\");", false, static (IntPtr webView, IntPtr param, IntPtr es, long v) =>
                 {
-                    int startIndex = i * chunkSize;
-                    int length = Math.Min(chunkSize, messageJSStringLiteral.Length - startIndex);
-                    string chunk = HttpUtility.JavaScriptStringEncode(messageJSStringLiteral.Substring(startIndex, length));
-                    // 把每个chunk写入数组
-                    var script = $"window.__msg_chunks.push(\"{chunk}\");";
-                    MessageQueue.Enqueue(script);
-                }
-                // 拼接并调用回调
-                string finalScript = "window.__dispatchMessageCallback(window.__msg_chunks.join(''));" +
-                                     "delete window.__msg_chunks;";
-                MessageQueue.Enqueue(finalScript);
+                }, IntPtr.Zero, IntPtr.Zero);
             }
             catch (Exception ex)
             {

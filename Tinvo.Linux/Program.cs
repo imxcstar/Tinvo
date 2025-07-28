@@ -35,13 +35,9 @@ class Program
 
     public static Uri BaseUri = new Uri("https://localhost/");
 
-    public static bool isStart = false;
-
     public static ILogger logger;
 
     public static IntPtr webWindow;
-
-    public static IntPtr mainFrameId;
 
     private static IntPtr DllImportResolver(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
     {
@@ -52,9 +48,9 @@ class Program
             else if (RuntimeInformation.ProcessArchitecture == Architecture.X86 && OperatingSystem.IsWindows())
                 return NativeLibrary.Load("runtimes\\win-x86\\native\\miniblink.dll", assembly, searchPath);
             else if (RuntimeInformation.ProcessArchitecture == Architecture.X64 && OperatingSystem.IsLinux())
-                return NativeLibrary.Load("runtimes\\linux-x64\\native\\miniblink.so", assembly, searchPath);
+                return NativeLibrary.Load("runtimes/linux-x64/native/miniblink.so", assembly, searchPath);
             else if (RuntimeInformation.ProcessArchitecture == Architecture.Arm64 && OperatingSystem.IsLinux())
-                return NativeLibrary.Load("runtimes\\linux-arm64\\native\\miniblink.so", assembly, searchPath);
+                return NativeLibrary.Load("runtimes/linux-arm64/native/miniblink.so", assembly, searchPath);
         }
 
         return IntPtr.Zero;
@@ -72,47 +68,42 @@ class Program
                 .CreateLogger();
         logger = Log.ForContext<Program>();
 
-        MiniblinkNative.mbInit(IntPtr.Zero);
+        MiniblinkNative.Init(IntPtr.Zero);
 
-        webWindow = MiniblinkNative.mbCreateWebWindow(MiniblinkNative.mbWindowType.WKE_WINDOW_TYPE_POPUP, IntPtr.Zero, 0, 0, 800, 600);
-        mainFrameId = MiniblinkNative.mbWebFrameGetMainFrame(webWindow);
+        webWindow = MiniblinkNative.CreateWebWindow(MiniblinkNative.mbWindowType.MB_WINDOW_TYPE_POPUP, IntPtr.Zero, 0, 0, 800, 600);
 
-        MiniblinkNative.mbSetCspCheckEnable(webWindow, false);
+        MiniblinkNative.SetCspCheckEnable(webWindow, false);
 
-        MiniblinkNative.mbOnClose(webWindow, static (IntPtr webView, IntPtr param, IntPtr unuse) =>
+        MiniblinkNative.OnClose(webWindow, static (IntPtr webView, IntPtr param, IntPtr unuse) =>
         {
             Environment.Exit(0);
             return true;
         }, IntPtr.Zero);
 
-        MiniblinkNative.mbOnJsQuery(webWindow, static (IntPtr webView, IntPtr param, IntPtr es, long queryId, int customMsg, IntPtr request) =>
+        MiniblinkNative.OnJsQuery(webWindow, static (IntPtr webView, IntPtr param, IntPtr es, long queryId, int customMsg, [MarshalAs(UnmanagedType.LPUTF8Str)] string request) =>
         {
             if (customMsg != 0)
                 return;
-            var str = request.UTF8PtrToStr();
-            Program.logger.Debug($"MiniblinkPostMessage: {str}");
-            m!.MessageReceived(str!);
+            Program.logger.Debug($"MiniblinkPostMessage: {request}");
+            m!.MessageReceived(request);
         }, IntPtr.Zero);
 
-        MiniblinkNative.mbOnConsole(webWindow, static (IntPtr webView, IntPtr param, mbConsoleLevel level, IntPtr message, IntPtr sourceName, uint sourceLine, IntPtr stackTrace) =>
+        MiniblinkNative.OnConsole(webWindow, static (IntPtr webView, IntPtr param, mbConsoleLevel level, [MarshalAs(UnmanagedType.LPUTF8Str)] string message, [MarshalAs(UnmanagedType.LPUTF8Str)] string sourceName, uint sourceLine, [MarshalAs(UnmanagedType.LPUTF8Str)] string stackTrace) =>
         {
-            var messageStr = message.UTF8PtrToStr();
-            var sourceNameStr = sourceName.UTF8PtrToStr();
-            Program.logger.Debug($"wkeOnConsole({level})({sourceNameStr})({sourceLine}): {messageStr}");
+            Program.logger.Debug($"wkeOnConsole({level})({sourceName})({sourceLine}): {message}");
         }, IntPtr.Zero);
 
-        MiniblinkNative.mbOnLoadUrlBegin(webWindow, static (IntPtr webView, IntPtr param, IntPtr url, IntPtr job) =>
+        MiniblinkNative.OnLoadUrlBegin(webWindow, static (IntPtr webView, IntPtr param, [MarshalAs(UnmanagedType.LPUTF8Str)] string url, IntPtr job) =>
         {
-            var urlStr = url.UTF8PtrToStr();
-            Program.logger.Debug($"wkeOnLoadUrlBegin: {urlStr}");
-            var ruri = new Uri(urlStr);
+            Program.logger.Debug($"wkeOnLoadUrlBegin: {url}");
+            var ruri = new Uri(url);
             if (ruri.Host != "localhost")
                 return false;
 
-            var allowFallbackOnHostPage = BaseUri.IsBaseOfPage(urlStr);
+            var allowFallbackOnHostPage = BaseUri.IsBaseOfPage(url);
             var requestWrapper = new WebResourceRequest
             {
-                RequestUri = urlStr,
+                RequestUri = url,
                 AllowFallbackOnHostPage = allowFallbackOnHostPage,
             };
 
@@ -120,7 +111,7 @@ class Program
 
             if (!bRet || response is null)
             {
-                Program.logger.Debug($"wkeOnLoadUrlBegin(404): {urlStr}");
+                Program.logger.Debug($"wkeOnLoadUrlBegin(404): {url}");
                 return false;
             }
 
@@ -130,16 +121,36 @@ class Program
             using var ms = new MemoryStream();
             response.Content.CopyTo(ms);
             var requestData = ms.ToArray();
+            //Program.logger.Debug($"wkeOnLoadUrlBegin_content: {Encoding.UTF8.GetString(requestData)}");
 
-            MiniblinkNative.mbNetSetMIMEType(job, headerString.StrToUtf8Ptr());
-            MiniblinkNative.mbNetSetData(job, requestData, requestData.Length);
+            MiniblinkNative.NetSetMIMEType(job, headerString);
+            IntPtr requestDataPtr = Marshal.AllocHGlobal(requestData.Length);
+            try
+            {
+                Marshal.Copy(requestData, 0, requestDataPtr, requestData.Length);
+                MiniblinkNative.NetSetData(job, requestDataPtr, requestData.Length);
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(requestDataPtr);
+            }
 
             Program.logger.Debug($"wkeOnLoadUrlBegin_wkeNetSetData: {requestData.Length}");
             return true;
         }, IntPtr.Zero);
 
-        MiniblinkNative.mbMoveToCenter(webWindow);
-        MiniblinkNative.mbShowWindow(webWindow, true);
+        MiniblinkNative.OnLoadingFinish(webWindow, static (IntPtr webView, IntPtr param, IntPtr frameId, [MarshalAs(UnmanagedType.LPUTF8Str)] string url, mbLoadingResult result, [MarshalAs(UnmanagedType.LPUTF8Str)] string failedReason) =>
+        {
+            Program.logger.Debug($"OnLoadingFinish: {url}");
+        }, IntPtr.Zero);
+
+        MiniblinkNative.OnLoadUrlEnd(webWindow, static (IntPtr webView, IntPtr param, [MarshalAs(UnmanagedType.LPUTF8Str)] string url, IntPtr job, IntPtr buf, int len) =>
+        {
+            Program.logger.Debug($"OnLoadUrlEnd: {url}");
+        }, IntPtr.Zero);
+
+        MiniblinkNative.MoveToCenter(webWindow);
+        MiniblinkNative.ShowWindow(webWindow, 1);
 
         var services = new ServiceCollection();
         services.AddLogging(loggingBuilder => loggingBuilder.AddSerilog(dispose: true));
@@ -199,26 +210,6 @@ class Program
         Program.logger.Debug("Start...");
         m.Navigate("/");
 
-        isStart = true;
-
-        var t = new Thread(() =>
-        {
-            while (true)
-            {
-                if (isStart && m != null)
-                {
-                    if (m.MessageQueue.TryDequeue(out var script))
-                    {
-                        MiniblinkNative.mbRunJs(m.WebView, mainFrameId, script.StrToUtf8Ptr(), false, static (IntPtr webView, IntPtr param, IntPtr es, long v) =>
-                        {
-
-                        }, IntPtr.Zero, IntPtr.Zero);
-                    }
-                }
-            }
-        });
-        t.Start();
-
-        MiniblinkNative.mbRunMessageLoop();
+        MiniblinkNative.RunMessageLoop();
     }
 }
