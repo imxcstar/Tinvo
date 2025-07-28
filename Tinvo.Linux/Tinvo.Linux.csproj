@@ -7,13 +7,6 @@
 		<Nullable>enable</Nullable>
 		<RootNamespace>Tinvo</RootNamespace>
 		<ApplicationIcon>icon.ico</ApplicationIcon>
-		<InvariantGlobalization>true</InvariantGlobalization>
-
-		<PublishSingleFile>true</PublishSingleFile>
-		<PublishTrimmed>false</PublishTrimmed>
-		<TrimMode>partial</TrimMode>
-		<IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-		<Platforms>AnyCPU;x64;x86</Platforms>
 	</PropertyGroup>
 
 	<ItemGroup>

@@ -70,7 +70,7 @@ class Program
 
         MiniblinkNative.Init(IntPtr.Zero);
 
-        webWindow = MiniblinkNative.CreateWebWindow(MiniblinkNative.mbWindowType.MB_WINDOW_TYPE_POPUP, IntPtr.Zero, 0, 0, 800, 600);
+        webWindow = MiniblinkNative.CreateWebWindow(MiniblinkNative.mbWindowType.MB_WINDOW_TYPE_POPUP, IntPtr.Zero, 0, 0, 1024, 768);
 
         MiniblinkNative.SetCspCheckEnable(webWindow, false);
 
