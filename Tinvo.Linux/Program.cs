@@ -72,6 +72,9 @@ class Program
 
         webWindow = MiniblinkNative.CreateWebWindow(MiniblinkNative.mbWindowType.MB_WINDOW_TYPE_POPUP, IntPtr.Zero, 0, 0, 1024, 768);
 
+        MiniblinkNative.SetWindowTitle(webWindow, "Tinvo");
+        MiniblinkNative.SetDebugConfig(webWindow, "ncHittestPaddingWidth", "2");
+
         MiniblinkNative.SetCspCheckEnable(webWindow, false);
 
         MiniblinkNative.OnClose(webWindow, static (IntPtr webView, IntPtr param, IntPtr unuse) =>
@@ -88,10 +91,12 @@ class Program
             m!.MessageReceived(request);
         }, IntPtr.Zero);
 
+#if DEBUG
         MiniblinkNative.OnConsole(webWindow, static (IntPtr webView, IntPtr param, mbConsoleLevel level, [MarshalAs(UnmanagedType.LPUTF8Str)] string message, [MarshalAs(UnmanagedType.LPUTF8Str)] string sourceName, uint sourceLine, [MarshalAs(UnmanagedType.LPUTF8Str)] string stackTrace) =>
         {
             Program.logger.Debug($"wkeOnConsole({level})({sourceName})({sourceLine}): {message}");
         }, IntPtr.Zero);
+#endif
 
         MiniblinkNative.OnLoadUrlBegin(webWindow, static (IntPtr webView, IntPtr param, [MarshalAs(UnmanagedType.LPUTF8Str)] string url, IntPtr job) =>
         {
@@ -139,6 +144,7 @@ class Program
             return true;
         }, IntPtr.Zero);
 
+#if DEBUG
         MiniblinkNative.OnLoadingFinish(webWindow, static (IntPtr webView, IntPtr param, IntPtr frameId, [MarshalAs(UnmanagedType.LPUTF8Str)] string url, mbLoadingResult result, [MarshalAs(UnmanagedType.LPUTF8Str)] string failedReason) =>
         {
             Program.logger.Debug($"OnLoadingFinish: {url}");
@@ -148,9 +154,20 @@ class Program
         {
             Program.logger.Debug($"OnLoadUrlEnd: {url}");
         }, IntPtr.Zero);
+#endif
 
-        MiniblinkNative.MoveToCenter(webWindow);
-        MiniblinkNative.ShowWindow(webWindow, 1);
+        if (OperatingSystem.IsLinux())
+        {
+            MiniblinkNative.ShowWindow(webWindow, 1);
+
+            var gtkWin = MiniblinkNative.GetPlatformWindowHandle(webWindow);
+            Program.logger.Information($"gtkWin: {gtkWin}");
+        }
+        else
+        {
+            MiniblinkNative.MoveToCenter(webWindow);
+            MiniblinkNative.ShowWindow(webWindow, 1);
+        }
 
         var services = new ServiceCollection();
         services.AddLogging(loggingBuilder => loggingBuilder.AddSerilog(dispose: true));
