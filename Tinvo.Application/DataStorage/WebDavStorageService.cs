@@ -1,16 +1,21 @@
-﻿using System;
+﻿using Metalama.Extensions.DependencyInjection;
+using Metalama.Extensions.Multicast;
+using Metalama.Framework.Aspects;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Tinvo.Abstractions;
 using Tinvo.Abstractions.AIScheduler;
 using WebDav;
 
 namespace Tinvo.Application.DataStorage
 {
-    public class WebDavStorageService : IDataStorageService
+    [ExceptionNotification]
+    public partial class WebDavStorageService : IDataStorageService
     {
         private readonly IWebDavClient _client;
         private readonly string _baseUri;

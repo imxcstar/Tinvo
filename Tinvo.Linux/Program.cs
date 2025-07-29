@@ -184,8 +184,10 @@ class Program
 
         services.AddSingleton<IDataStorageServiceFactory>(s =>
         {
-            return new DataStorageServiceFactory(new FileStorageService(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Tinvo")), s.GetRequiredService<ICryptographyService>());
+            return new DataStorageServiceFactory(s, new FileStorageService(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Tinvo")));
         });
+
+        services.AddSingleton<INotification, DefaultNotificationService>();
 
         services.AddSingleton<DBData<AssistantEntity>>();
         services.AddSingleton<AIAssistantService>();

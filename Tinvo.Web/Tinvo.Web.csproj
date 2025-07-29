@@ -10,7 +10,7 @@
 	<ItemGroup>
 		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="9.0.4" />
 	</ItemGroup>
-
+	
 	<ItemGroup>
 		<ProjectReference Include="..\Tinvo.Provider.MCP\Tinvo.Provider.MCP.csproj" />
 		<ProjectReference Include="..\Tinvo.WebAssembly\Tinvo.WebAssembly.csproj" />
@@ -20,7 +20,7 @@
 		<ProjectReference Include="..\Tinvo.Provider.OpenAI\Tinvo.Provider.OpenAI.csproj" />
 		<ProjectReference Include="..\Tinvo.Provider.XunFei\Tinvo.Provider.XunFei.csproj" />
 	</ItemGroup>
-
+	
 	<PropertyGroup>
 		<ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
 	</PropertyGroup>

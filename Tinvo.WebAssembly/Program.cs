@@ -49,8 +49,10 @@ services.AddSingleton<ICryptographyService, BasicCryptographyService>();
 services.AddSingleton<IDataStorageServiceFactory>(s =>
 {
     var jsRuntime = s.GetRequiredService<IJSRuntime>();
-    return new DataStorageServiceFactory(new LocalForageService(jsRuntime), s.GetRequiredService<ICryptographyService>());
+    return new DataStorageServiceFactory(s, new LocalForageService(jsRuntime));
 });
+
+services.AddSingleton<INotification, DefaultNotificationService>();
 
 services.AddSingleton<DBData<AssistantEntity>>();
 services.AddSingleton<AIAssistantService>();

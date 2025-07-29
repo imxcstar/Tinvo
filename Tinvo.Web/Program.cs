@@ -1,3 +1,4 @@
+using Microsoft.JSInterop;
 using MudBlazor.Services;
 using Serilog;
 using Serilog.Events;
@@ -13,6 +14,7 @@ using Tinvo.Application.Provider;
 using Tinvo.Pages.Chat;
 using Tinvo.Provider.Baidu;
 using Tinvo.Provider.LLama;
+using Tinvo.Provider.MCP;
 using Tinvo.Provider.Ollama;
 using Tinvo.Provider.OpenAI;
 using Tinvo.Provider.XunFei;
@@ -21,8 +23,6 @@ using Tinvo.Service.Chat;
 using Tinvo.Service.KBS;
 using Tinvo.Services;
 using Tinvo.Shared;
-using Tinvo.Provider.MCP;
-using Microsoft.JSInterop;
 
 var renderMode = args.ElementAtOrDefault(0) ?? "Server";
 
@@ -47,7 +47,6 @@ builder.Host.UseSerilog((context, services, configuration) => configuration
 
 var services = builder.Services;
 
-
 services.AddSingleton<IPlatform>(s =>
 {
     return new Platform()
@@ -61,8 +60,10 @@ services.AddSingleton<ICryptographyService, BasicCryptographyService>();
 services.AddScoped<IDataStorageServiceFactory>(s =>
 {
     var jsRuntime = s.GetRequiredService<IJSRuntime>();
-    return new DataStorageServiceFactory(new LocalForageService(jsRuntime), s.GetRequiredService<ICryptographyService>());
+    return new DataStorageServiceFactory(s, new LocalForageService(jsRuntime));
 });
+
+services.AddScoped<INotification, DefaultNotificationService>();
 
 services.AddScoped<DBData<AssistantEntity>>();
 services.AddScoped<AIAssistantService>();

@@ -1,9 +1,12 @@
 ﻿@using System.Runtime.InteropServices
+@using Tinvo.Abstractions
 @using Tinvo.Application
 @inherits LayoutComponentBase
 @inject NavigationManager navigationManager
 @inject ISnackbar _snackbar
 @inject IPlatform _platform
+@inject INotification _notification
+@implements IDisposable
 
 <MudThemeProvider />
 <MudPopoverProvider />
@@ -107,3 +110,59 @@
         </MudPaper>
     </MudHidden>
 </MudStack>
+
+@code {
+    // 用于安全地取消后台任务
+    private CancellationTokenSource _cts;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        // 创建 CancellationTokenSource 实例
+        _cts = new CancellationTokenSource();
+        // 启动后台处理任务
+        _ = ProcessNotificationQueueAsync(_cts.Token);
+    }
+
+    private async Task ProcessNotificationQueueAsync(CancellationToken token)
+    {
+        // 只要组件未被销毁（即取消请求未发出），就持续运行
+        while (!token.IsCancellationRequested)
+        {
+            // 尝试从队列中取出一个通知
+            if (_notification.NotificationQueue.TryDequeue(out var notification))
+            {
+                // 显示 Snackbar 通知
+                _snackbar.Add(notification.Message, notification.Type switch
+                {
+                    NotificationType.Error => Severity.Error,
+                    _ => Severity.Info,
+                }, config => { config.RequireInteraction = notification.Type == NotificationType.Error; });
+
+                // 通知 Blazor UI 需要更新
+                // 因为此逻辑在后台任务中执行，必须使用 InvokeAsync 来安全地更新UI
+                await InvokeAsync(StateHasChanged);
+            }
+
+            try
+            {
+                // 等待 200 毫秒，避免CPU占用过高。
+                // 传递 token 使得在取消时能立即停止等待。
+                await Task.Delay(200, token);
+            }
+            catch (TaskCanceledException)
+            {
+                // 当 Task.Delay 被取消时，会抛出此异常，直接中断循环即可
+                break;
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        // 组件销毁时，请求取消任务
+        _cts?.Cancel();
+        // 释放 CancellationTokenSource
+        _cts?.Dispose();
+    }
+}

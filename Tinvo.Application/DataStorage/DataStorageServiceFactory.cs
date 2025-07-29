@@ -1,4 +1,5 @@
 ﻿using Mapster;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,15 +11,19 @@ namespace Tinvo.Application.DataStorage
 {
     public class DataStorageServiceFactory : IDataStorageServiceFactory
     {
+        private readonly IServiceProvider _serviceProvider;
         private readonly IDataStorageService _defaultdDataStorageService;
         private readonly ICryptographyService _cryptographyService;
+        private readonly INotification _notification;
 
         private IDataStorageService? _currentDataStorageService = null;
 
-        public DataStorageServiceFactory(IDataStorageService defaultdDataStorageService, ICryptographyService cryptographyService)
+        public DataStorageServiceFactory(IServiceProvider serviceProvider, IDataStorageService defaultdDataStorageService)
         {
+            _serviceProvider = serviceProvider;
             _defaultdDataStorageService = defaultdDataStorageService;
-            _cryptographyService = cryptographyService;
+            _cryptographyService = serviceProvider.GetRequiredService<ICryptographyService>();
+            _notification = serviceProvider.GetRequiredService<INotification>();
         }
 
         public async Task<IDataStorageService> CreateAsync()
@@ -31,7 +36,7 @@ namespace Tinvo.Application.DataStorage
             };
             _currentDataStorageService = settingInfo.Type switch
             {
-                DataStorageType.WebDav => new WebDavStorageService(new HttpClient(), settingInfo.WebDavURI!, settingInfo.WebDavUserName!, string.IsNullOrEmpty(settingInfo.WebDavPassword) ? "" : _cryptographyService.Decrypt(settingInfo.WebDavPassword)),
+                DataStorageType.WebDav => new WebDavStorageService(new HttpClient(), settingInfo.WebDavURI!, settingInfo.WebDavUserName!, string.IsNullOrEmpty(settingInfo.WebDavPassword) ? "" : _cryptographyService.Decrypt(settingInfo.WebDavPassword), _notification),
                 _ => _defaultdDataStorageService,
             };
             return _currentDataStorageService;

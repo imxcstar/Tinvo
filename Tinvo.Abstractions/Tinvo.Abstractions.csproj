@@ -7,6 +7,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Metalama.Extensions.DependencyInjection" Version="2025.1.11" />
+    <PackageReference Include="Metalama.Extensions.Multicast" Version="2025.1.11" />
+    <PackageReference Include="Metalama.Framework" Version="2025.1.11" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.4" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.4" />
   </ItemGroup>
