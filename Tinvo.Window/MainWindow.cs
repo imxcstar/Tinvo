@@ -9,11 +9,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Tinvo.Abstractions;
+using Tinvo.Abstractions.DB;
 using Tinvo.Application;
 using Tinvo.Application.AIAssistant;
 using Tinvo.Application.AIAssistant.Entities;
 using Tinvo.Application.DataStorage;
-using Tinvo.Application.DB;
 using Tinvo.Application.Provider;
 using Tinvo.Provider.Baidu;
 using Tinvo.Provider.LLama;
@@ -25,7 +25,6 @@ using Tinvo.Provider.Skills;
 using Tinvo.Provider.XunFei;
 using Tinvo.Service;
 using Tinvo.Service.Chat;
-using Tinvo.Service.KBS;
 using WinFormedge;
 using WinFormedge.Blazor;
 
@@ -73,11 +72,10 @@ namespace Tinvo
 
                     services.AddSingleton<INotification, DefaultNotificationService>();
 
-                    services.AddSingleton<DBData<AssistantEntity>>();
+                    services.AddSingleton<LinkedDB<AssistantEntity>>();
                     services.AddSingleton<AIAssistantService>();
 
-                    services.AddScoped<IChatService, LocalChatService>();
-                    services.AddScoped<IKBSService, LocalKBSService>();
+                    services.AddScoped<IChatService, ChatService>();
 
                     services.AddProviderRegisterer()
                             .RegistererBaiduProvider()

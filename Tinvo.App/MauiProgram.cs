@@ -1,19 +1,18 @@
-﻿using Tinvo.Service.Chat;
-using Tinvo.Service.KBS;
-using Tinvo.Service;
+﻿using Microsoft.Extensions.Logging;
+using MudBlazor.Services;
 using Serilog;
 using Serilog.Events;
-using Tinvo.Application.DataStorage;
-using MudBlazor.Services;
-using Microsoft.Extensions.Logging;
 using Tinvo.Abstractions;
-using Tinvo.Provider.OpenAI;
-using Tinvo.Application.AIAssistant.Entities;
-using Tinvo.Application.AIAssistant;
-using Tinvo.Application.DB;
-using Tinvo.Application.Provider;
+using Tinvo.Abstractions.DB;
 using Tinvo.Application;
+using Tinvo.Application.AIAssistant;
+using Tinvo.Application.AIAssistant.Entities;
+using Tinvo.Application.DataStorage;
+using Tinvo.Application.Provider;
 using Tinvo.Provider.MCP;
+using Tinvo.Provider.OpenAI;
+using Tinvo.Service;
+using Tinvo.Service.Chat;
 
 namespace Tinvo
 {
@@ -56,11 +55,10 @@ namespace Tinvo
 
             services.AddSingleton<INotification, DefaultNotificationService>();
 
-            services.AddSingleton<DBData<AssistantEntity>>();
+            services.AddSingleton<LinkedDB<AssistantEntity>>();
             services.AddSingleton<AIAssistantService>();
 
-            services.AddScoped<IChatService, LocalChatService>();
-            services.AddScoped<IKBSService, LocalKBSService>();
+            services.AddScoped<IChatService, ChatService>();
 
             services.AddProviderRegisterer()
                 .RegistererOpenAIProvider()

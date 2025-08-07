@@ -182,7 +182,7 @@
         try
         {
             await _aiAssistantService.InitAsync();
-            using var streamRef = new DotNetStreamReference(new MemoryStream(Encoding.UTF8.GetBytes(_aiAssistantService.ExportJsonText())));
+            using var streamRef = new DotNetStreamReference(new MemoryStream(Encoding.UTF8.GetBytes(await _aiAssistantService.ExportJsonTextAsync())));
             await _js.InvokeVoidAsync("blazorHelper.DownloadFileFromStream", "assistant.json", streamRef);
             _snackbar.Add("导出成功！", Severity.Success);
         }

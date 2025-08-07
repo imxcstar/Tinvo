@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Tinvo.Application.DB
+namespace Tinvo.Abstractions.DB
 {
     public interface IDBEntity
     {

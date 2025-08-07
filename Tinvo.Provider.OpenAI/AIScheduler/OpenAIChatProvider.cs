@@ -20,6 +20,7 @@ using Tinvo.Application.DataStorage;
 using OpenAIChatMessage = OpenAI.Chat.ChatMessage;
 using OpenAIChatMessageContent = OpenAI.Chat.ChatMessageContent;
 
+#pragma warning disable OPENAI001 // 类型仅用于评估，在将来的更新中可能会被更改或删除。取消此诊断以继续。
 namespace Tinvo.Provider.OpenAI.AIScheduler
 {
     [TypeMetadataDisplayName("聊天配置")]
@@ -35,6 +36,10 @@ namespace Tinvo.Provider.OpenAI.AIScheduler
 
         [Description("模型")]
         public string Model { get; set; } = null!;
+
+        [Description("限制最大输出")]
+        [DefaultValue(true)]
+        public bool IsLimitMaxOutput { get; set; } = true;
 
         [Description("最大输出Token")]
         [DefaultValue(8192)]
@@ -335,7 +340,7 @@ Current date: {DateTime.Now.ToString("yyyy-MM-dd")}" }]);
                                     case AIChatHandleMessageType.FileMessage:
                                         var fileData = await dataStorageService.GetItemAsBinaryAsync(fileMessage.FileCustomID, cancellationToken);
                                         if (fileData != null)
-                                            functionOtherMessage.Add(ResponseItem.CreateAssistantMessageItem([ResponseContentPart.CreateInputFilePart(fileMessage.FileCustomID, fileMessage.FileOriginalMediaType, BinaryData.FromBytes(fileData))]));
+                                            functionOtherMessage.Add(ResponseItem.CreateAssistantMessageItem([ResponseContentPart.CreateInputFilePart(BinaryData.FromBytes(fileData), fileMessage.FileOriginalMediaType, fileMessage.FileCustomID)]));
                                         break;
                                     default:
                                         break;
@@ -358,7 +363,7 @@ Current date: {DateTime.Now.ToString("yyyy-MM-dd")}" }]);
                         case AIChatHandleMessageType.FileMessage:
                             var fileData = await dataStorageService.GetItemAsBinaryAsync(fileMessage.FileCustomID, cancellationToken);
                             if (fileData != null)
-                                contentPart = ResponseContentPart.CreateInputFilePart(fileMessage.FileCustomID, fileMessage.FileOriginalMediaType, BinaryData.FromBytes(fileData));
+                                contentPart = ResponseContentPart.CreateInputFilePart(BinaryData.FromBytes(fileData), fileMessage.FileOriginalMediaType, fileMessage.FileCustomID);
                             break;
                         default:
                             break;
@@ -446,13 +451,18 @@ Current date: {DateTime.Now.ToString("yyyy-MM-dd")}" }]);
             {
                 var options = new ChatCompletionOptions()
                 {
-                    ToolChoice = (requestSettings?.FunctionManager == null || requestSettings.FunctionManager.GetFunctionInfos().Count <= 0) ? null : ChatToolChoice.CreateAutoChoice(),
                     FrequencyPenalty = (float?)requestSettings?.FrequencyPenalty ?? _config.FrequencyPenalty,
-                    MaxOutputTokenCount = requestSettings?.MaxOutputTokens ?? _config.MaxOutputTokens,
+                    MaxOutputTokenCount = _config.IsLimitMaxOutput ? (requestSettings?.MaxOutputTokens ?? _config.MaxOutputTokens) : null,
                     PresencePenalty = (float?)requestSettings?.PresencePenalty ?? _config.PresencePenalty,
                     Temperature = (float?)requestSettings?.Temperature ?? _config.Temperature,
                     TopP = (float?)requestSettings?.TopP ?? _config.TopP,
                 };
+
+                if (requestSettings?.FunctionManager != null && requestSettings.FunctionManager.GetFunctionInfos().Count > 0)
+                {
+                    options.ToolChoice = ChatToolChoice.CreateAutoChoice();
+                }
+
                 if (requestSettings != null)
                 {
                     if (options.StopSequences != null)
@@ -481,7 +491,7 @@ Current date: {DateTime.Now.ToString("yyyy-MM-dd")}" }]);
                     chatMessages.AddRange(await CreateOpenAIChatMessage(_storageService, chatPart.Role, chatPart.Contents, cancellationToken));
                 }
 
-                if (_config.CompatibleOldAPI)
+                if (_config.CompatibleOldAPI && _config.IsLimitMaxOutput)
                     SetMaxTokens(options, requestSettings?.MaxOutputTokens ?? _config.MaxOutputTokens);
 
 
@@ -516,3 +526,4 @@ Current date: {DateTime.Now.ToString("yyyy-MM-dd")}" }]);
         }
     }
 }
+#pragma warning restore OPENAI001 // 类型仅用于评估，在将来的更新中可能会被更改或删除。取消此诊断以继续。

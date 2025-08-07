@@ -12,11 +12,11 @@ using System.Runtime.InteropServices;
 using System.Text;
 using Tinvo;
 using Tinvo.Abstractions;
+using Tinvo.Abstractions.DB;
 using Tinvo.Application;
 using Tinvo.Application.AIAssistant;
 using Tinvo.Application.AIAssistant.Entities;
 using Tinvo.Application.DataStorage;
-using Tinvo.Application.DB;
 using Tinvo.Application.Provider;
 using Tinvo.Provider.Baidu;
 using Tinvo.Provider.MCP;
@@ -24,7 +24,6 @@ using Tinvo.Provider.OpenAI;
 using Tinvo.Provider.XunFei;
 using Tinvo.Service;
 using Tinvo.Service.Chat;
-using Tinvo.Service.KBS;
 using static Tinvo.MiniblinkNative;
 
 namespace Tinvo;
@@ -189,11 +188,10 @@ class Program
 
         services.AddSingleton<INotification, DefaultNotificationService>();
 
-        services.AddSingleton<DBData<AssistantEntity>>();
+        services.AddSingleton<LinkedDB<AssistantEntity>>();
         services.AddSingleton<AIAssistantService>();
 
-        services.AddScoped<IChatService, LocalChatService>();
-        services.AddScoped<IKBSService, LocalKBSService>();
+        services.AddScoped<IChatService, ChatService>();
 
         services.AddProviderRegisterer()
                 .RegistererBaiduProvider()

@@ -11,6 +11,7 @@ using ModelContextProtocol.Client;
 using Tinvo.Abstractions.AIScheduler;
 using System.Text.Json;
 using Tinvo.Application.DataStorage;
+using ModelContextProtocol.Protocol;
 
 namespace Tinvo.Provider.MCP
 {
@@ -143,11 +144,11 @@ namespace Tinvo.Provider.MCP
                     case "text":
                         yield return new AIProviderHandleTextMessageResponse()
                         {
-                            Message = content.Text!
+                            Message = ((TextContentBlock)content).Text!
                         };
                         break;
                     case "image":
-                        await _storageService.SetItemAsBinaryAsync(customFileID, Convert.FromBase64String(content.Data!), cancellationToken);
+                        await _storageService.SetItemAsBinaryAsync(customFileID, Convert.FromBase64String(((ImageContentBlock)content).Data!), cancellationToken);
                         yield return new AIProviderHandleCustomFileMessageResponse()
                         {
                             Type = AIChatHandleMessageType.ImageMessage,
@@ -155,7 +156,7 @@ namespace Tinvo.Provider.MCP
                         };
                         break;
                     case "audio":
-                        await _storageService.SetItemAsBinaryAsync(customFileID, Convert.FromBase64String(content.Data!), cancellationToken);
+                        await _storageService.SetItemAsBinaryAsync(customFileID, Convert.FromBase64String(((AudioContentBlock)content).Data!), cancellationToken);
                         yield return new AIProviderHandleCustomFileMessageResponse()
                         {
                             Type = AIChatHandleMessageType.AudioMessage,
@@ -165,7 +166,7 @@ namespace Tinvo.Provider.MCP
                     case "resource":
                         yield return new AIProviderHandleTextMessageResponse()
                         {
-                            Message = content.Resource!.Uri
+                            Message = ((ResourceLinkBlock)content)!.Uri
                         };
                         break;
                     default:

@@ -5,17 +5,17 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Tinvo.Abstractions.AIScheduler;
+using Tinvo.Abstractions.DB;
 using Tinvo.Application.AIAssistant.Entities;
 using Tinvo.Application.DataStorage;
-using Tinvo.Application.DB;
 
 namespace Tinvo.Application.AIAssistant
 {
     public class AIAssistantService
     {
-        private readonly DBData<AssistantEntity> _assistantDb;
+        private readonly LinkedDB<AssistantEntity> _assistantDb;
 
-        public AIAssistantService(DBData<AssistantEntity> assistantDb)
+        public AIAssistantService(LinkedDB<AssistantEntity> assistantDb)
         {
             _assistantDb = assistantDb;
         }
@@ -25,45 +25,41 @@ namespace Tinvo.Application.AIAssistant
             await _assistantDb.InitAsync();
         }
 
-        public List<AssistantEntity> GetAssistants()
+        public async Task<List<AssistantEntity>> GetAssistantsAsync()
         {
-            return _assistantDb.Values.OrderByDescending(x => x.Index).ToList();
+            var ret = new List<AssistantEntity>();
+            await foreach (var item in _assistantDb.GetAllAsync())
+            {
+                ret.Add(item);
+            }
+            return ret.OrderByDescending(x => x.Index).ToList();
         }
 
         public async Task AddAssistantAsync(AssistantEntity assistant)
         {
-            _assistantDb.TryAdd(assistant.Id, assistant);
-            await _assistantDb.SaveChangeAsync();
+            await _assistantDb.AddAsync(assistant);
         }
 
         public async Task RemoveAssistantByIdAsync(string id)
         {
-            _assistantDb.Remove(id, out _);
-            await _assistantDb.SaveChangeAsync();
+            await _assistantDb.DeleteAsync(id);
         }
 
         public async Task RemoveAllAssistantAsync()
         {
-            _assistantDb.Clear();
-            await _assistantDb.SaveChangeAsync();
+            await _assistantDb.ClearAllDataAsync();
         }
 
         public async Task UpdateAssistantAsync(AssistantEntity assistant)
         {
-            _assistantDb.TryUpdate(assistant.Id, assistant, _assistantDb[assistant.Id]);
-            await _assistantDb.SaveChangeAsync();
+            await _assistantDb.UpdateAsync(assistant);
         }
 
-        public async Task UpdateAssistantAsync()
-        {
-            await _assistantDb.SaveChangeAsync();
-        }
-
-        public string ExportJsonText()
+        public async Task<string> ExportJsonTextAsync()
         {
             var serializerOptions = new JsonSerializerOptions();
             serializerOptions.Converters.Add(new IAIChatHandleMessageConverter());
-            return _assistantDb.ExportJsonText(serializerOptions);
+            return await _assistantDb.ExportJsonTextAsync(serializerOptions);
         }
 
         public async Task ImportAsync(Stream values)
@@ -71,7 +67,6 @@ namespace Tinvo.Application.AIAssistant
             var serializerOptions = new JsonSerializerOptions();
             serializerOptions.Converters.Add(new IAIChatHandleMessageConverter());
             await _assistantDb.ImportAsync(values, serializerOptions);
-            await _assistantDb.SaveChangeAsync();
         }
     }
 }

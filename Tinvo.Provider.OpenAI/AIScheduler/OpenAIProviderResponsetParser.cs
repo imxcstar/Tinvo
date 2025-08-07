@@ -13,6 +13,7 @@ using Tinvo.Abstractions;
 using Tinvo.Abstractions.AIScheduler;
 using Tinvo.Application.DataStorage;
 
+#pragma warning disable OPENAI001 // 类型仅用于评估，在将来的更新中可能会被更改或删除。取消此诊断以继续。
 namespace Tinvo.Provider.OpenAI.AIScheduler
 {
     public class OpenAIProviderResponsetParser : IAIChatParser
@@ -60,10 +61,7 @@ namespace Tinvo.Provider.OpenAI.AIScheduler
                     }
                     else if (item is ReasoningResponseItem reasoning)
                     {
-                        foreach (var summaryTextPart in reasoning.SummaryTextParts)
-                        {
-                            yield return new AIProviderHandleReasoningMessageResponse() { Message = summaryTextPart };
-                        }
+                        yield return new AIProviderHandleReasoningMessageResponse() { Message = reasoning.GetSummaryText() };
                     }
                 }
             }
@@ -89,3 +87,4 @@ namespace Tinvo.Provider.OpenAI.AIScheduler
         }
     }
 }
+#pragma warning restore OPENAI001 // 类型仅用于评估，在将来的更新中可能会被更改或删除。取消此诊断以继续。

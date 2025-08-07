@@ -16,6 +16,7 @@ using Tinvo.Abstractions.AIScheduler;
 using Tinvo.Application.DataStorage;
 using Tinvo.Utils.Extend;
 
+#pragma warning disable OPENAI001 // 类型仅用于评估，在将来的更新中可能会被更改或删除。取消此诊断以继续。
 namespace Tinvo.Provider.OpenAI.AIScheduler
 {
     public class OpenAIProviderToolInfo
@@ -310,3 +311,4 @@ namespace Tinvo.Provider.OpenAI.AIScheduler
         }
     }
 }
+#pragma warning restore OPENAI001 // 类型仅用于评估，在将来的更新中可能会被更改或删除。取消此诊断以继续。

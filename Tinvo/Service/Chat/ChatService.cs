@@ -32,7 +32,8 @@ namespace Tinvo.Service.Chat
         public List<ChatMsgItemInfo> MsgList { get; set; }
     }
 
-    public class LocalChatService : IChatService
+    public class ChatService
+        : IChatService
     {
         private readonly Serilog.ILogger _logger;
         private readonly IDataStorageServiceFactory _dataStorageServiceFactory;
@@ -40,10 +41,10 @@ namespace Tinvo.Service.Chat
         private readonly AIAssistantService _aiAssistantService;
         private readonly ProviderService _providerService;
 
-        public LocalChatService(IDataStorageServiceFactory dataStorageServiceFactory, ProviderRegisterer providerRegisterer,
+        public ChatService(IDataStorageServiceFactory dataStorageServiceFactory, ProviderRegisterer providerRegisterer,
             AIAssistantService aiAssistantService, ProviderService providerService)
         {
-            _logger = Log.ForContext<LocalChatService>();
+            _logger = Log.ForContext<ChatService>();
             _dataStorageServiceFactory = dataStorageServiceFactory;
             _providerRegisterer = providerRegisterer;
             _aiAssistantService = aiAssistantService;
@@ -61,7 +62,7 @@ namespace Tinvo.Service.Chat
         public async Task LoadAiAppListAsync()
         {
             await _aiAssistantService.InitAsync();
-            List<AiAppInfo> aiAppList = _aiAssistantService.GetAssistants().Select(x => new AiAppInfo()
+            List<AiAppInfo> aiAppList = (await _aiAssistantService.GetAssistantsAsync()).Select(x => new AiAppInfo()
             {
                 Id = x.Id,
                 Name = x.Name,

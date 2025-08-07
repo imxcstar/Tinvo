@@ -165,7 +165,7 @@
     protected override async Task OnInitializedAsync()
     {
         await _aiAssistantService.InitAsync();
-        var allEntity = _aiAssistantService.GetAssistants();
+        var allEntity = await _aiAssistantService.GetAssistantsAsync();
 
         if (allEntity.Any() && allEntity.All(x => x.Index == 0))
         {

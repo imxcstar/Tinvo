@@ -5,11 +5,11 @@ using Serilog.Events;
 using System.Diagnostics.Metrics;
 using Tinvo;
 using Tinvo.Abstractions;
+using Tinvo.Abstractions.DB;
 using Tinvo.Application;
 using Tinvo.Application.AIAssistant;
 using Tinvo.Application.AIAssistant.Entities;
 using Tinvo.Application.DataStorage;
-using Tinvo.Application.DB;
 using Tinvo.Application.Provider;
 using Tinvo.Pages.Chat;
 using Tinvo.Provider.Baidu;
@@ -20,7 +20,6 @@ using Tinvo.Provider.OpenAI;
 using Tinvo.Provider.XunFei;
 using Tinvo.Service;
 using Tinvo.Service.Chat;
-using Tinvo.Service.KBS;
 using Tinvo.Services;
 using Tinvo.Shared;
 
@@ -65,11 +64,10 @@ services.AddScoped<IDataStorageServiceFactory>(s =>
 
 services.AddScoped<INotification, DefaultNotificationService>();
 
-services.AddScoped<DBData<AssistantEntity>>();
+services.AddScoped<LinkedDB<AssistantEntity>>();
 services.AddScoped<AIAssistantService>();
 
-services.AddScoped<IChatService, LocalChatService>();
-services.AddScoped<IKBSService, LocalKBSService>();
+services.AddScoped<IChatService, ChatService>();
 
 services.AddProviderRegisterer()
         .RegistererBaiduProvider()

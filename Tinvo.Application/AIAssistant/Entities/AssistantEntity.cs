@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Tinvo.Application.DB;
+using Tinvo.Abstractions.DB;
 
 namespace Tinvo.Application.AIAssistant.Entities
 {
