@@ -192,7 +192,7 @@ window.blazorHelper = {
             await dotNetReference.invokeMethodAsync(methodName, value);
         }
     },
-    initializePasteHandler: function (textAreaId, fileInputClassName) {
+    initializePasteHandler: function (textAreaId, fileInputClassName, dotNetReference, methodName) {
         const textArea = document.getElementById(textAreaId);
         const fileInput = document.getElementsByClassName(fileInputClassName)[0];
 
@@ -201,7 +201,11 @@ window.blazorHelper = {
             return;
         }
 
-        textArea.addEventListener('paste', function (e) {
+        textArea.addEventListener('paste', async function (e) {
+            if (!await dotNetReference.invokeMethodAsync(methodName)) {
+                return;
+            }
+
             if (e.clipboardData && e.clipboardData.files && e.clipboardData.files.length > 0) {
                 e.preventDefault();
 

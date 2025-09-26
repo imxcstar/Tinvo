@@ -45,7 +45,14 @@ namespace Tinvo
                 };
             });
 
+            if(OperatingSystem.IsMacOS() || OperatingSystem.IsMacCatalyst())
+            {
+                services.AddSingleton<ISystemClipboard, Platforms.MacCatalyst.MacOsSystemClipboard>();
+            }
+
             services.AddSingleton<ICryptographyService, MachineFingerprintCryptographyService>();
+
+            services.AddSingleton<AITaskState>();
 
             services.AddSingleton<IDataStorageServiceFactory>(s =>
             {

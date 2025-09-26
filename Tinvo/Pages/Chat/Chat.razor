@@ -2,12 +2,16 @@
 @implements IDisposable
 @layout MainLayout
 
+@using Microsoft.Extensions.DependencyInjection
+@using Tinvo.Application
 @using Tinvo.Pages.Chat.Component.ChatMsgList
 
 @inject ISnackbar _snackbar
 @inject IChatService _chatService
 @inject IJSRuntime _js
 @inject NavigationManager _navigationManager
+@inject IPlatform _platform
+@inject IServiceProvider _services
 
 <PageTitle>TinvoAI-聊天</PageTitle>
 

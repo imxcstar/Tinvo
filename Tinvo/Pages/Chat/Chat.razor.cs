@@ -1,7 +1,10 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.JSInterop;
 using MudBlazor;
+using Tinvo.Abstractions;
+using Tinvo.Application;
 using Tinvo.Pages.Chat.Component.ChatMsgList;
 
 namespace Tinvo.Pages.Chat;
@@ -157,7 +160,7 @@ public partial class Chat
                 await _js.InvokeVoidAsync("blazorHelper.InitScrollEndListener", "msg-history-group", DotNetObjectReference.Create(this), nameof(OnMsgGroupScrollToEnd));
                 await _js.InvokeVoidAsync("blazorHelper.OnKeyDownListen", "input-msg", "!shift + !ctrl + Enter", DotNetObjectReference.Create(this), nameof(OnMsgInputKeyDownBefore), nameof(OnMsgInputKeyDownAfter));
 
-                await _js.InvokeVoidAsync("blazorHelper.initializePasteHandler", "input-msg", "paste-file-input");
+                await _js.InvokeVoidAsync("blazorHelper.initializePasteHandler", "input-msg", "paste-file-input", DotNetObjectReference.Create(this), nameof(OnPasteFile));
 
                 await _js.InvokeVoidAsync("blazorHelper.RegisterInfoMessageFun", DotNetObjectReference.Create(this), nameof(SendInfoMessage));
                 await _js.InvokeVoidAsync("blazorHelper.RegisterSuccessMessageFun", DotNetObjectReference.Create(this), nameof(SendSuccessMessage));
@@ -173,6 +176,63 @@ public partial class Chat
         }
 
         await base.OnAfterRenderAsync(firstRender);
+    }
+
+    public class PasteBrowserFile : IBrowserFile
+    {
+        private readonly Stream _stream;
+
+        public PasteBrowserFile(string name, long size, Stream stream)
+        {
+            Name = name;
+            Size = size;
+            _stream = stream;
+        }
+
+        public string Name { get; }
+
+        public DateTimeOffset LastModified => DateTimeOffset.Now;
+
+        public long Size { get; }
+
+        public string ContentType => "application/octet-stream";
+
+        public Stream OpenReadStream(long maxAllowedSize = 512000, CancellationToken cancellationToken = default)
+        {
+            return _stream;
+        }
+    }
+
+    [JSInvokable]
+    public async Task<bool> OnPasteFile()
+    {
+        if (!OperatingSystem.IsMacOS() && !OperatingSystem.IsMacCatalyst() && _platform.Type != PlatformType.Maui)
+            return true;
+
+        var systemClipboard = _services.GetService<ISystemClipboard>();
+        if (systemClipboard == null)
+            return false;
+
+        var files = systemClipboard.GetFiles();
+        if (files == null || files.Count == 0)
+            return false;
+            
+        foreach (var file in files)
+        {
+            try
+            {
+                var stream = file.Stream;
+                var browserFile = new PasteBrowserFile(file.Name ?? "clipboard-file", stream.Length, stream);
+                selectedFiles.Add(browserFile);
+            }
+            catch (Exception ex)
+            {
+                _snackbar.Add($"处理剪贴板文件 {file.Name} 时出错: {ex.Message}", Severity.Error);
+            }
+        }
+        StateHasChanged();
+        
+        return false;
     }
 
     [JSInvokable]
