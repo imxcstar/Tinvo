@@ -11,6 +11,6 @@ public interface ISystemClipboard
 
 public class SystemClipboardFileInfo
 {
-    public string? Name { get; set; }
+    public required string Name { get; set; }
     public required Stream Stream { get; set; }
 }

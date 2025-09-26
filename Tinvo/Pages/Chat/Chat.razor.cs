@@ -206,23 +206,20 @@ public partial class Chat
     [JSInvokable]
     public async Task<bool> OnPasteFile()
     {
-        if (!OperatingSystem.IsMacOS() && !OperatingSystem.IsMacCatalyst() && _platform.Type != PlatformType.Maui)
-            return true;
-
         var systemClipboard = _services.GetService<ISystemClipboard>();
         if (systemClipboard == null)
-            return false;
+            return true; // No clipboard service available, let JS handle it
 
         var files = systemClipboard.GetFiles();
         if (files == null || files.Count == 0)
-            return false;
+            return true; // No files in clipboard, let JS handle it
             
         foreach (var file in files)
         {
             try
             {
                 var stream = file.Stream;
-                var browserFile = new PasteBrowserFile(file.Name ?? "clipboard-file", stream.Length, stream);
+                var browserFile = new PasteBrowserFile(file.Name, stream.Length, stream);
                 selectedFiles.Add(browserFile);
             }
             catch (Exception ex)
