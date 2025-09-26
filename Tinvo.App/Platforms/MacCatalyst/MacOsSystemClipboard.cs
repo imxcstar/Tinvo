@@ -15,28 +15,13 @@ public class MacOsSystemClipboard : ISystemClipboard
             var image = pasteboard.Image;
             if (image != null)
             {
-                var tempPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"{Guid.NewGuid()}.png");
                 var imageData = image.AsPNG();
-                System.IO.File.WriteAllBytes(tempPath, imageData.ToArray());
+                if(imageData == null)
+                    return files;
                 files.Add(new SystemClipboardFileInfo
                 {
-                    Name = System.IO.Path.GetFileName(tempPath),
-                    Stream = new MemoryStream(System.IO.File.ReadAllBytes(tempPath))
-                });
-            }
-        }
-
-        if (pasteboard.HasStrings)
-        {
-            var text = pasteboard.String;
-            if (!string.IsNullOrEmpty(text))
-            {
-                var tempPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"{Guid.NewGuid()}.txt");
-                System.IO.File.WriteAllText(tempPath, text);
-                files.Add(new SystemClipboardFileInfo
-                {
-                    Name = System.IO.Path.GetFileName(tempPath),
-                    Stream = new MemoryStream(System.IO.File.ReadAllBytes(tempPath))
+                    Name = $"{Guid.NewGuid()}.png",
+                    Stream = new MemoryStream(imageData.ToArray())
                 });
             }
         }
