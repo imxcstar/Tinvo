@@ -21,7 +21,6 @@ using Tinvo.Application.Provider;
 using Tinvo.Provider.Baidu;
 using Tinvo.Provider.MCP;
 using Tinvo.Provider.OpenAI;
-using Tinvo.Provider.XunFei;
 using Tinvo.Service;
 using Tinvo.Service.Chat;
 using static Tinvo.MiniblinkNative;
@@ -196,7 +195,6 @@ class Program
         services.AddProviderRegisterer()
                 .RegistererBaiduProvider()
                 .RegistererOpenAIProvider()
-                .RegistererXunFeiProvider()
                 .RegistererMCPProvider();
 
         services.AddSingleton<ProviderService>();

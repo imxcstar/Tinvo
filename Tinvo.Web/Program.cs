@@ -17,7 +17,6 @@ using Tinvo.Provider.LLama;
 using Tinvo.Provider.MCP;
 using Tinvo.Provider.Ollama;
 using Tinvo.Provider.OpenAI;
-using Tinvo.Provider.XunFei;
 using Tinvo.Service;
 using Tinvo.Service.Chat;
 using Tinvo.Services;
@@ -72,7 +71,6 @@ services.AddScoped<IChatService, ChatService>();
 services.AddProviderRegisterer()
         .RegistererBaiduProvider()
         .RegistererOpenAIProvider()
-        .RegistererXunFeiProvider()
         .RegistererOllamaProvider()
         .RegistererLLamaProvider()
         .RegistererMCPProvider();

@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using System.Text.Json.Schema;
 using System.Text.Json.Serialization;
 using Tinvo.Abstractions.AIScheduler;
 
@@ -61,7 +62,7 @@ namespace Tinvo.Abstractions
         public string Type { get; set; } = null!;
 
         [JsonPropertyName("parameters")]
-        public FunctionParametersInfo Parameters { get; set; } = null!;
+        public JsonElement Parameters { get; set; }
     }
 
     public class FunctionParametersInfo
@@ -238,7 +239,7 @@ namespace Tinvo.Abstractions
                     Name = customName ?? name,
                     Description = desc,
                     Type = function.ReturnType.ToJsonTypeString(),
-                    Parameters = new FunctionParametersInfo()
+                    Parameters = JsonSerializer.SerializeToElement(new FunctionParametersInfo()
                     {
                         Type = function.ReturnType.ToJsonTypeString(),
                         Properties = properties.ToDictionary(x => x.Name!, x => new FunctionParametersProperties()
@@ -254,13 +255,13 @@ namespace Tinvo.Abstractions
                         }),
                         Required = properties.Where(x => x.GetCustomAttribute(typeof(RequiredAttribute)) != null)
                             .Select(x => x.Name!).ToList()
-                    }
+                    }, JsonSerializerOptions.Web)
                 }
             };
             _functions.Add(customName ?? name, info);
         }
 
-        public void AddCustomFunction(string name, string desc, string type, FunctionParametersInfo parameters,
+        public void AddCustomFunction(string name, string desc, string type, Type parametersType,
             object?[]? clsArgs = null)
         {
             var info = new FunctionMetaInfo()
@@ -273,7 +274,9 @@ namespace Tinvo.Abstractions
                     Name = name,
                     Description = desc,
                     Type = type,
-                    Parameters = parameters
+                    Parameters = JsonSerializer.SerializeToElement(JsonSchemaExporter.GetJsonSchemaAsNode(
+                        JsonSerializerOptions.Default, parametersType
+                    ), JsonSerializerOptions.Web)
                 }
             };
             _functions.Add(name, info);

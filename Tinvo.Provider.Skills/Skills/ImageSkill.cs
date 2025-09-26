@@ -8,12 +8,14 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using Tinvo.Abstractions.AIScheduler;
 using Tinvo.Application.DataStorage;
+using Tinvo.Utils.Extend;
 
 namespace Tinvo.Provider.Skills
 {
@@ -26,6 +28,25 @@ namespace Tinvo.Provider.Skills
         {
             _logger = Log.ForContext<ImageSkill>();
             _dataStorageService = dataStorageService;
+        }
+
+        [Description("通过本地文件路径查看图片")]
+        public async Task<IAIChatHandleMessage> ViewImageFromLocalFilePath([Description("本地文件路径"), Required] string filePath)
+        {
+            if (!File.Exists(filePath))
+                return new AIProviderHandleTextMessageResponse() { Message = "文件路径不存在" };
+
+            var fileId = filePath.ToMD5_32();
+            if (!await _dataStorageService.ContainKeyAsync(fileId))
+            {
+                var dataByte = File.ReadAllBytes(filePath);
+                await _dataStorageService.SetItemAsBinaryAsync(fileId, dataByte);
+            }
+            return new AIProviderHandleCustomFileMessageResponse()
+            {
+                Type = AIChatHandleMessageType.ImageMessage,
+                FileCustomID = fileId,
+            };
         }
 
         [Description("给图片添加文本水印")]

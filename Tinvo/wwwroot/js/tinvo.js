@@ -1,3 +1,8 @@
+//document.body.style.transform = "scale(0.8)";
+//document.body.style.transformOrigin = "top left";
+//document.body.style.width = "125%";
+//document.body.style.height = "125%";
+
 const appHeight = () => {
     const doc = document.documentElement
     doc.style.setProperty('--app-height', `${window.innerHeight}px`)

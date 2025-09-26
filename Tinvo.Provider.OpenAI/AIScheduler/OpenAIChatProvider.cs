@@ -408,8 +408,8 @@ Current date: {DateTime.Now.ToString("yyyy-MM-dd")}" }]);
                 {
                     options.ReasoningOptions = new ResponseReasoningOptions()
                     {
-                        ReasoningEffortLevel = ResponseReasoningEffortLevel.Medium,
-                        ReasoningSummaryVerbosity = ResponseReasoningSummaryVerbosity.Concise
+                        ReasoningEffortLevel = ResponseReasoningEffortLevel.High,
+                        ReasoningSummaryVerbosity = ResponseReasoningSummaryVerbosity.Detailed
                     };
                 }
                 if (_config.EnableWebSearch && options.Tools != null)
@@ -478,7 +478,7 @@ Current date: {DateTime.Now.ToString("yyyy-MM-dd")}" }]);
                 }
                 if (_config.ThinkHandle)
                 {
-                    options.ReasoningEffortLevel = ChatReasoningEffortLevel.Medium;
+                    options.ReasoningEffortLevel = ChatReasoningEffortLevel.High;
                 }
                 if (_config.EnableWebSearch)
                 {

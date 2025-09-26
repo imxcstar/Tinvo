@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using System.Net;
 using Tinvo.Abstractions;
 using Tinvo.Abstractions.MCP;
 using Tinvo.Application.DataStorage;
@@ -28,6 +29,14 @@ namespace Tinvo.Provider.Skills
         [Description("启用目标跟踪技能")]
         [DefaultValue(false)]
         public bool EnableGoalTrackingSkill { get; set; } = false;
+
+        [Description("启用任务计划技能")]
+        [DefaultValue(false)]
+        public bool EnableTaskSchedulerSkill { get; set; } = false;
+
+        [Description("技能执行使用HTTP时的代理")]
+        [TypeMetadataAllowNull]
+        public string? HTTPProxy { get; set; }
     }
 
     public class SkillManager : DefaultFunctionManager
@@ -36,6 +45,7 @@ namespace Tinvo.Provider.Skills
         {
             if (config.EnableImageSkill)
             {
+                this.AddFunction(typeof(ImageSkill), nameof(ImageSkill.ViewImageFromLocalFilePath), clsArgs: [dataStorageService]);
                 this.AddFunction(typeof(ImageSkill), nameof(ImageSkill.ImageAddTextWatermark), clsArgs: [dataStorageService]);
                 this.AddFunction(typeof(ImageSkill), nameof(ImageSkill.ImageAddImageWatermark), clsArgs: [dataStorageService]);
                 this.AddFunction(typeof(ImageSkill), nameof(ImageSkill.ImageConvertToGrayscale), clsArgs: [dataStorageService]);
@@ -44,10 +54,40 @@ namespace Tinvo.Provider.Skills
 
             if (config.EnableURLSkill)
             {
-                this.AddFunction(typeof(UrlSkill), nameof(UrlSkill.DownloadTextAsync), clsArgs: [new HttpClient(), dataStorageService]);
-                this.AddFunction(typeof(UrlSkill), nameof(UrlSkill.DownloadImageAsync), clsArgs: [new HttpClient(), dataStorageService]);
-                this.AddFunction(typeof(UrlSkill), nameof(UrlSkill.CheckUrlAvailableAsync), clsArgs: [new HttpClient(), dataStorageService]);
-                this.AddFunction(typeof(UrlSkill), nameof(UrlSkill.GetUrlHeadersAsync), clsArgs: [new HttpClient(), dataStorageService]);
+                HttpClient httpClient;
+                try
+                {
+                    if (!string.IsNullOrWhiteSpace(config.HTTPProxy))
+                    {
+                        var proxy = new WebProxy
+                        {
+                            Address = new Uri(config.HTTPProxy),
+                            BypassProxyOnLocal = false,
+                            UseDefaultCredentials = false,
+                        };
+
+                        var httpClientHandler = new HttpClientHandler
+                        {
+                            Proxy = proxy,
+                            UseProxy = true
+                        };
+
+                        httpClient = new HttpClient(httpClientHandler);
+                    }
+                    else
+                    {
+                        httpClient = new HttpClient();
+                    }
+                }
+                catch (Exception)
+                {
+                    httpClient = new HttpClient();
+                }
+
+                this.AddFunction(typeof(UrlSkill), nameof(UrlSkill.DownloadTextAsync), clsArgs: [httpClient, dataStorageService]);
+                this.AddFunction(typeof(UrlSkill), nameof(UrlSkill.DownloadImageAsync), clsArgs: [httpClient, dataStorageService]);
+                this.AddFunction(typeof(UrlSkill), nameof(UrlSkill.CheckUrlAvailableAsync), clsArgs: [httpClient, dataStorageService]);
+                this.AddFunction(typeof(UrlSkill), nameof(UrlSkill.GetUrlHeadersAsync), clsArgs: [httpClient, dataStorageService]);
             }
 
             if (config.EnableCMDSkill)
@@ -76,6 +116,15 @@ namespace Tinvo.Provider.Skills
                 this.AddFunction(typeof(GoalTrackingSkill), nameof(GoalTrackingSkill.SetGoalAsync));
                 this.AddFunction(typeof(GoalTrackingSkill), nameof(GoalTrackingSkill.AddGoalProgressAsync));
                 this.AddFunction(typeof(GoalTrackingSkill), nameof(GoalTrackingSkill.GetGoalProgressAsync));
+            }
+
+            if (config.EnableTaskSchedulerSkill)
+            {
+                this.AddFunction(typeof(TaskSchedulerSkill), nameof(TaskSchedulerSkill.AddTaskAsync));
+                this.AddFunction(typeof(TaskSchedulerSkill), nameof(TaskSchedulerSkill.StartTaskAsync));
+                this.AddFunction(typeof(TaskSchedulerSkill), nameof(TaskSchedulerSkill.AddTaskOutputAsync));
+                this.AddFunction(typeof(TaskSchedulerSkill), nameof(TaskSchedulerSkill.GetTasksAsync));
+                this.AddFunction(typeof(TaskSchedulerSkill), nameof(TaskSchedulerSkill.RemoveTaskAsync));
             }
         }
     }

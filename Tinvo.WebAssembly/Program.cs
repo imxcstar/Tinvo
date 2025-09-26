@@ -18,7 +18,6 @@ using Tinvo.Provider.Baidu;
 using Tinvo.Provider.MCP;
 using Tinvo.Provider.Ollama;
 using Tinvo.Provider.OpenAI;
-using Tinvo.Provider.XunFei;
 using Tinvo.Service;
 using Tinvo.Service.Chat;
 using Tinvo.Services;
@@ -59,7 +58,6 @@ services.AddSingleton<AIAssistantService>();
 services.AddProviderRegisterer()
         .RegistererBaiduProvider()
         .RegistererOpenAIProvider()
-        .RegistererXunFeiProvider()
         .RegistererOllamaProvider()
         .RegistererMCPProvider();
 

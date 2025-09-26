@@ -18,7 +18,6 @@
 		<ProjectReference Include="..\Tinvo.Provider.LLama\Tinvo.Provider.LLama.csproj" />
 		<ProjectReference Include="..\Tinvo.Provider.Ollama\Tinvo.Provider.Ollama.csproj" />
 		<ProjectReference Include="..\Tinvo.Provider.OpenAI\Tinvo.Provider.OpenAI.csproj" />
-		<ProjectReference Include="..\Tinvo.Provider.XunFei\Tinvo.Provider.XunFei.csproj" />
 	</ItemGroup>
 	
 	<PropertyGroup>

@@ -22,7 +22,6 @@ using Tinvo.Provider.Ollama;
 using Tinvo.Provider.Onnx;
 using Tinvo.Provider.OpenAI;
 using Tinvo.Provider.Skills;
-using Tinvo.Provider.XunFei;
 using Tinvo.Service;
 using Tinvo.Service.Chat;
 using WinFormedge;
@@ -65,6 +64,8 @@ namespace Tinvo
 
                     services.AddSingleton<ICryptographyService, MachineFingerprintCryptographyService>();
 
+                    services.AddSingleton<AITaskState>();
+
                     services.AddSingleton<IDataStorageServiceFactory>(s =>
                     {
                         return new DataStorageServiceFactory(s, new FileStorageService(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Tinvo")));
@@ -80,7 +81,6 @@ namespace Tinvo
                     services.AddProviderRegisterer()
                             .RegistererBaiduProvider()
                             .RegistererOpenAIProvider()
-                            .RegistererXunFeiProvider()
                             .RegistererOllamaProvider()
                             .RegistererLLamaProvider()
                             .RegistererOnnxProvider()

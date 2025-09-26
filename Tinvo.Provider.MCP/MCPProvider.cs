@@ -85,7 +85,7 @@ namespace Tinvo.Provider.MCP
             {
                 Name = tool.Name,
                 Description = tool.Description,
-                Parameters = tool.JsonSchema.Deserialize<FunctionParametersInfo>(tool.JsonSerializerOptions) ?? new FunctionParametersInfo()
+                Parameters = tool.JsonSchema
             };
         }
 

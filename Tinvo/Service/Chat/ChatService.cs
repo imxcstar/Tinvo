@@ -11,6 +11,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
+using System.Threading.Tasks;
 using Tinvo.Abstractions;
 using Tinvo.Abstractions.AIScheduler;
 using Tinvo.Abstractions.MCP;
@@ -40,15 +41,17 @@ namespace Tinvo.Service.Chat
         private readonly ProviderRegisterer _providerRegisterer;
         private readonly AIAssistantService _aiAssistantService;
         private readonly ProviderService _providerService;
+        private readonly AITaskState _aiTaskState;
 
         public ChatService(IDataStorageServiceFactory dataStorageServiceFactory, ProviderRegisterer providerRegisterer,
-            AIAssistantService aiAssistantService, ProviderService providerService)
+            AIAssistantService aiAssistantService, ProviderService providerService, AITaskState aiTaskState)
         {
             _logger = Log.ForContext<ChatService>();
             _dataStorageServiceFactory = dataStorageServiceFactory;
             _providerRegisterer = providerRegisterer;
             _aiAssistantService = aiAssistantService;
             _providerService = providerService;
+            _aiTaskState = aiTaskState;
         }
 
         private List<MsgCacheInfo> _msgCaches;
@@ -127,6 +130,8 @@ namespace Tinvo.Service.Chat
                     tmsgGroup.Title = string.IsNullOrWhiteSpace(msg) ? "新的聊天" : string.Join("", msg.Take(16));
                 }
 
+                _aiTaskState.TaskID = tmsgGroup.Id;
+                _aiTaskState.CancellationToken = cancellationToken;
                 aiApp ??= AiAppList.First();
                 var msgCache = _msgCaches.FirstOrDefault(x => x.MsgGroup.Id == tmsgGroup.Id);
 
@@ -242,9 +247,12 @@ namespace Tinvo.Service.Chat
                     SessionId = tmsgGroup.Id
                 };
 
+                _aiTaskState.ChatTask = ai;
+                _aiTaskState.ChatSettings = chatSettings;
+                _aiTaskState.ChatHistory = msgChat;
                 var chatRet = ai.ChatAsync(msgChat, chatSettings, cancellationToken);
 
-                await HandleMessage(ai, chatSettings, chatRet, msgHistory, newRetMsg.Contents, cancellationToken);
+                await HandleMessage(_aiTaskState, chatRet, msgHistory, newRetMsg.Contents);
             }
             catch (TaskCanceledException)
             {
@@ -285,15 +293,16 @@ namespace Tinvo.Service.Chat
             }
         }
 
-        private async Task<List<IAIChatHandleMessage>> HandleMessage(IAIChatTask ai, ChatSettings chatSettings,
-            IAsyncEnumerable<IAIChatHandleMessage> receiveMessages, List<ChatMsgItemInfo> historyMessages,
-            List<IAIChatHandleMessage> newResultMessages, CancellationToken cancellationToken = default)
+        private async Task<List<IAIChatHandleMessage>> HandleMessage(
+            AITaskState aiTaskState,
+            IAsyncEnumerable<IAIChatHandleMessage> receiveMessages,
+            List<ChatMsgItemInfo> uiHistoryMessages, List<IAIChatHandleMessage> uiNewResultMessages)
         {
             var ret = new List<IAIChatHandleMessage>();
             IAIChatHandleMessage? oldResponse = null;
-            await foreach (var response in receiveMessages.WithCancellation(cancellationToken))
+            await foreach (var response in receiveMessages.WithCancellation(aiTaskState.CancellationToken))
             {
-                if (cancellationToken != CancellationToken.None && cancellationToken.IsCancellationRequested)
+                if (aiTaskState.CancellationToken != CancellationToken.None && aiTaskState.CancellationToken.IsCancellationRequested)
                     throw new TaskCanceledException();
                 if (response == null)
                     continue;
@@ -325,7 +334,7 @@ namespace Tinvo.Service.Chat
                 }
                 else
                 {
-                    newResultMessages.Add(response);
+                    uiNewResultMessages.Add(response);
                     ret.Add(response);
                     oldResponse = response;
                 }
@@ -336,11 +345,12 @@ namespace Tinvo.Service.Chat
                     {
                         var funCallRet = functionCallMessage.FunctionManager?.CallFunctionAsync(
                             functionCallMessage.FunctionName,
-                            functionCallMessage.Arguments?.ToDictionary(x => x.Key, x => (object?)x.Value)
+                            functionCallMessage.Arguments?.ToDictionary(x => x.Key, x => (object?)x.Value),
+                            aiTaskState.CancellationToken
                         );
                         if (funCallRet != null)
                         {
-                            var cloneChatMessages = historyMessages.ToList();
+                            var cloneChatMessages = uiHistoryMessages.ToList();
                             var newMessages = ret.ToList();
                             cloneChatMessages.Add(
                                 new ChatMsgItemInfo()
@@ -350,16 +360,18 @@ namespace Tinvo.Service.Chat
                                     Contents = newMessages,
                                 }
                             );
-                            functionCallMessage.Result = await HandleMessage(ai, chatSettings, funCallRet, cloneChatMessages, [], cancellationToken);
+                            functionCallMessage.Result = await HandleMessage(aiTaskState, funCallRet, cloneChatMessages, []);
                             var chatHistory = new ChatHistory();
                             ConvertChatHistory(cloneChatMessages, chatHistory);
-                            var functionCallResultAISummaryResult = ai.ChatAsync(chatHistory, chatSettings, cancellationToken);
-                            await HandleMessage(ai, chatSettings, functionCallResultAISummaryResult, cloneChatMessages, newResultMessages, cancellationToken);
+                            aiTaskState.ChatHistory = chatHistory;
+                            var functionCallResultAISummaryResult = aiTaskState.ChatTask!.ChatAsync(chatHistory, aiTaskState.ChatSettings, aiTaskState.CancellationToken);
+                            await HandleMessage(aiTaskState, functionCallResultAISummaryResult, cloneChatMessages, uiNewResultMessages);
                             break;
                         }
                     }
                 }
             }
+
             return ret;
         }
 
